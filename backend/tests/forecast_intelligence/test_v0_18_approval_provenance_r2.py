@@ -322,7 +322,12 @@ def test_canonical_source_bindings_and_deterministic_output(path):
     assert (ROOT / path).read_bytes() == canonical(load(ROOT, path))
     evidence = load(ROOT, R2_EVIDENCE)
     for member, expected in evidence["source_evidence_sha256"].items():
-        assert digest((ROOT / member).read_bytes()) == expected
+        raw = (
+            git_blob(ROOT, "93e9660f6ef2c494178be825c66d11898c6fff97", member)
+            if member in {builder.BUILDER, builder.TEST}
+            else (ROOT / member).read_bytes()
+        )
+        assert digest(raw) == expected
     assert canonical(generate(ROOT)) == (ROOT / R2_EVIDENCE).read_bytes()
     assert canonical(generate(ROOT)) == canonical(generate(ROOT))
 

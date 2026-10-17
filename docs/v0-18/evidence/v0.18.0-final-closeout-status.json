@@ -1,0 +1,994 @@
+{
+  "artifact_sha256": {
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/backend-static.log": "75537e4255bd3c551f3182a31b20ebf5ab48d1e8e3a18054fd417fa4d5facc1a",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/final-contracts.xml": "16aedca2d4a97bad89843bb29295a452383fc0aba56ad3c803f6c33167faa4da",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/frontend-checks.log": "069e11b64163e5d5f7d26bd1313f75495240e3cbd41f95c4f1adf907e0113f60",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/full-e2e/browser.log": "dec79f42c93d0f25c2537dc919a99b117a5eb86251b2e6202db0c52115ca97d4",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/full-e2e/full-browser-results.json": "ec9f53b0a4627006abcfe1bfc91907d8f0ef9f9b6c3a3c9c96c2e03918d08383",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/full-e2e/legacy-server-cleanup.json": "356c6a2fc63f7660897e1bd2dd336846a63cfbeeb186a963e75d7bbba984bdb2",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/full-e2e/owned-resources.json": "a0c8e04eec7c44fcb917d6b97d22e59487720e284e0c15f6e56fa79648eb176b",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/historical-contracts.xml": "0d844ce413a7ec1f87a595a39c967aeaa1c64a879ea3e2c9e330c7d9ca1f70e5",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-green/backend.xml": "54b69bb14e15dc387966033efa6419f9182f23060a454d4e7363ffc21f861536",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-green/execution.log": "4794d2711d19a8a7c9d54204e0ff8b292e0f6c8419709b481c102d79abbbf45a",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-green/owned-resources.json": "f2dc54a98a7b07614f28d43b2075a47f4c8a295a31b4527299019efdd88a8e78",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-repeat/backend.xml": "95e79ecb2750e0f73d03669893ee9a25150f63a90b098a25107c445ad38f672b",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-repeat/execution.log": "59a58bdff129d1d482bd7a04ccbfb0b241c368c2a423c82c3f0f74e0a7d4cf38",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-repeat/owned-resources.json": "0b7c9da49febe8ae7573e02b5b7844a22d72617bcaca8756f985b9e165737a78",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/original-red/executed-test-source.txt": "056238c364557bd20ad8ac5fdbc8038e6921c321da903d7d1f1ddd35f1a7a4d7",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/original-red/execution.log": "c3971c62f320ca17687b25aa93812cff940a10c5ecaa1992922d596e7ce2b2af",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/original-red/owned-cleanup.json": "c40a172f63e2a1fa6acb37afe629ffdb8a96fceaacd2529079388a5ae7a26dcb",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/original-red/red-junit.xml": "6e56105cf69134fb958e75ef1510d9de4700c1c95159189a874396068d65fe1e",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/original-red/report.md": "ec95672a5847702d8a4ea6cff6f638df880f06a5ab5834b9085b83277363f3d8",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/backend.xml": "4466baab46151a22694f8c87c2e60bbe5080cbc1ee12cda923fa876abd9f6911",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/browser-results.json": "3455f942f9e00428167abab4bfd6668a30cf15ed29add3901fb80e683156cc92",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/browser.log": "f6a6a48ba0dd03891edadf8d48d80b1bd8d800406420686635ccb1bcf77db89b",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/execution.log": "843f831287de9ff199dd70b558cc9c6b3d22d9677076151bf5c89129f66509b4",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/owned-resources.json": "c69c9b880143cdb66517dfb50e6b208988ac0706176b362feb91e61da3afae47",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/s6-executed-sources.json": "89f8ab6b8f80eeb07fbfe414a362bac9d95ae8e272b722163be81c12114a21aa",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/s6-toolchain.json": "adda8467c776196eb934ca1719f062cae77e1ee85523d377545e5a24889776b8",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/repeated-red/backend.xml": "3adef7f616e53fb4b729ae24351cf9037ee3a76d012b6a118d040f1f844ab80a",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/repeated-red/execution.log": "3234d0489c27c52f35faee78080f7d033d09488ede59753d96e77bfec20c9ffe",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/repeated-red/owned-resources.json": "74639fc6b73e1faa15917223f9779eaa318c21db9228ce8a3f807fdb8f8572f7",
+    "docs/v0-18/evidence/option-b-client-fix-r1/green/backend.xml": "6e3c6a23e51c2b2886e0b95523b0c3ede2b285b5997f93d7d01ed87cced772a2",
+    "docs/v0-18/evidence/option-b-client-fix-r1/green/browser-results.json": "29aa14444fdb85a2c1f543081dd86e5a599e099d29b8d49124a715c14e5bb48b",
+    "docs/v0-18/evidence/option-b-client-fix-r1/green/browser.log": "41f3a82b99111eeb97329924ca2de01788135d2979083ce37b678af17bf3dd25",
+    "docs/v0-18/evidence/option-b-client-fix-r1/green/client-source-before-browser.json": "8302b03d2b4ad9098ce92372c0a6d8440b80847575a335b2285dfbaa86e7ddc4",
+    "docs/v0-18/evidence/option-b-client-fix-r1/green/execution.log": "09f638868ccfcbf3daf6d8c84e274f1b4353afa0acf2c02ef2353a4a540186f3",
+    "docs/v0-18/evidence/option-b-client-fix-r1/green/frontend-unit.json": "2971dcfbf2055d21cc6ed5cf6c8bddd526bb71d52ce851ac54dfae0d108e5807",
+    "docs/v0-18/evidence/option-b-client-fix-r1/green/owned-resources.json": "b62a56522940d663e95dcf438dba8bebb3616f155e8e8fd49f9625398437b0d6",
+    "docs/v0-18/evidence/option-b-client-fix-r1/green/postgres.log": "b065ea3ead81714f9b4cdfc08e3ff549af04da80b24b69ab4d97f1943f549b04",
+    "docs/v0-18/evidence/option-b-client-fix-r1/green/s6-executed-sources.json": "89f8ab6b8f80eeb07fbfe414a362bac9d95ae8e272b722163be81c12114a21aa",
+    "docs/v0-18/evidence/option-b-client-fix-r1/green/s6-toolchain.json": "adda8467c776196eb934ca1719f062cae77e1ee85523d377545e5a24889776b8"
+  },
+  "backend_lead_2": "PREAUTH_RACE_NOT_TESTED_PENDING",
+  "controls": {
+    "A": {
+      "checks_performed": [
+        "Current main source inventory, scoped exact-head reviews and fixed defect call paths"
+      ],
+      "evidence_references": [
+        "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json",
+        "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "docs/v0-18/evidence/v0.18.0-governance-exception-proposal-r1.json",
+        "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/evidence.json",
+        "docs/v0-18/evidence/option-b-client-fix-r1/evidence.json"
+      ],
+      "evidence_status": "PREPARED_FOR_INDEPENDENT_REVIEW",
+      "findings": [
+        "Evidence prepared; not an independent acceptance decision",
+        "Full-main independent acceptance is still missing; PREAUTH lead 2 untested"
+      ],
+      "independent_acceptance_status": "PENDING",
+      "limitations": [
+        "Full-main independent acceptance is still missing; PREAUTH lead 2 untested",
+        "Historical/CI executions are identified by their actual commit; not represented as new local runtime executions"
+      ],
+      "reviewed_source_sha": "816d8299f007eab7da140fc5c7547d941c026f8f"
+    },
+    "B": {
+      "checks_performed": [
+        "Live S0-S6 and four follow-up PR/commit/parent/event/attempt/job records"
+      ],
+      "evidence_references": [
+        "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json",
+        "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "docs/v0-18/evidence/v0.18.0-governance-exception-proposal-r1.json",
+        "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/evidence.json",
+        "docs/v0-18/evidence/option-b-client-fix-r1/evidence.json"
+      ],
+      "evidence_status": "PREPARED_FOR_INDEPENDENT_REVIEW",
+      "findings": [
+        "Evidence prepared; not an independent acceptance decision",
+        "Merge and CI facts do not establish missing historical prior approvals"
+      ],
+      "independent_acceptance_status": "PENDING",
+      "limitations": [
+        "Merge and CI facts do not establish missing historical prior approvals",
+        "Historical/CI executions are identified by their actual commit; not represented as new local runtime executions"
+      ],
+      "reviewed_source_sha": "816d8299f007eab7da140fc5c7547d941c026f8f"
+    },
+    "C": {
+      "checks_performed": [
+        "Existing PR728 exact HEAD 93e9660 and run38859661855; new HEAD receipt required"
+      ],
+      "evidence_references": [
+        "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json",
+        "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "docs/v0-18/evidence/v0.18.0-governance-exception-proposal-r1.json",
+        "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/evidence.json",
+        "docs/v0-18/evidence/option-b-client-fix-r1/evidence.json"
+      ],
+      "evidence_status": "PREPARED_FOR_INDEPENDENT_REVIEW",
+      "findings": [
+        "Evidence prepared; not an independent acceptance decision",
+        "Committed evidence cannot preclaim future commit CI; final receipt is external"
+      ],
+      "independent_acceptance_status": "PENDING",
+      "limitations": [
+        "Committed evidence cannot preclaim future commit CI; final receipt is external",
+        "Historical/CI executions are identified by their actual commit; not represented as new local runtime executions"
+      ],
+      "reviewed_source_sha": "816d8299f007eab7da140fc5c7547d941c026f8f"
+    },
+    "D": {
+      "checks_performed": [
+        "Live PR718 failure, PR721 correction, PR726 both attempts, PR731 cancelled push and PR732 success"
+      ],
+      "evidence_references": [
+        "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json",
+        "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "docs/v0-18/evidence/v0.18.0-governance-exception-proposal-r1.json",
+        "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/evidence.json",
+        "docs/v0-18/evidence/option-b-client-fix-r1/evidence.json"
+      ],
+      "evidence_status": "PREPARED_FOR_INDEPENDENT_REVIEW",
+      "findings": [
+        "Evidence prepared; not an independent acceptance decision",
+        "No failed/cancelled run or former BLOCKED snapshot is overwritten"
+      ],
+      "independent_acceptance_status": "PENDING",
+      "limitations": [
+        "No failed/cancelled run or former BLOCKED snapshot is overwritten",
+        "Historical/CI executions are identified by their actual commit; not represented as new local runtime executions"
+      ],
+      "reviewed_source_sha": "816d8299f007eab7da140fc5c7547d941c026f8f"
+    },
+    "E": {
+      "checks_performed": [
+        "Bound S5/S6 raw artifacts and client/backend real-PostgreSQL HTTPS SDK Chromium regressions"
+      ],
+      "evidence_references": [
+        "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json",
+        "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "docs/v0-18/evidence/v0.18.0-governance-exception-proposal-r1.json",
+        "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/evidence.json",
+        "docs/v0-18/evidence/option-b-client-fix-r1/evidence.json"
+      ],
+      "evidence_status": "PREPARED_FOR_INDEPENDENT_REVIEW",
+      "findings": [
+        "Evidence prepared; not an independent acceptance decision",
+        "Synthetic and same-host POSIX only; no real deployment or cross-host/real-device validation"
+      ],
+      "independent_acceptance_status": "PENDING",
+      "limitations": [
+        "Synthetic and same-host POSIX only; no real deployment or cross-host/real-device validation",
+        "Historical/CI executions are identified by their actual commit; not represented as new local runtime executions"
+      ],
+      "reviewed_source_sha": "816d8299f007eab7da140fc5c7547d941c026f8f"
+    },
+    "F": {
+      "checks_performed": [
+        "Frozen service/hash bindings and historical Quality, prefixes and unavailable authority semantics"
+      ],
+      "evidence_references": [
+        "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json",
+        "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "docs/v0-18/evidence/v0.18.0-governance-exception-proposal-r1.json",
+        "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/evidence.json",
+        "docs/v0-18/evidence/option-b-client-fix-r1/evidence.json"
+      ],
+      "evidence_status": "PREPARED_FOR_INDEPENDENT_REVIEW",
+      "findings": [
+        "Evidence prepared; not an independent acceptance decision",
+        "No new rolling-seven maximum, prospective accuracy, calibrated quantile, causal or ROI claim"
+      ],
+      "independent_acceptance_status": "PENDING",
+      "limitations": [
+        "No new rolling-seven maximum, prospective accuracy, calibrated quantile, causal or ROI claim",
+        "Historical/CI executions are identified by their actual commit; not represented as new local runtime executions"
+      ],
+      "reviewed_source_sha": "816d8299f007eab7da140fc5c7547d941c026f8f"
+    },
+    "G": {
+      "checks_performed": [
+        "Exact 15-risk register, original current/missing evidence and Owner decisions"
+      ],
+      "evidence_references": [
+        "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json",
+        "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "docs/v0-18/evidence/v0.18.0-governance-exception-proposal-r1.json",
+        "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/evidence.json",
+        "docs/v0-18/evidence/option-b-client-fix-r1/evidence.json"
+      ],
+      "evidence_status": "PREPARED_FOR_INDEPENDENT_REVIEW",
+      "findings": [
+        "Evidence prepared; not an independent acceptance decision",
+        "All production risks remain OPEN_NOT_VALIDATED; engineering release is not deployment"
+      ],
+      "independent_acceptance_status": "PENDING",
+      "limitations": [
+        "All production risks remain OPEN_NOT_VALIDATED; engineering release is not deployment",
+        "Historical/CI executions are identified by their actual commit; not represented as new local runtime executions"
+      ],
+      "reviewed_source_sha": "816d8299f007eab7da140fc5c7547d941c026f8f"
+    }
+  },
+  "current_main_source_sha256": {
+    "backend/app/api/business_access.py": "d62c68297e7f17f73f5ae117b3d9997a6cfc2ebd18356afd78cb80876d2e5718",
+    "backend/app/business_access/__init__.py": "1673b82eded010a5f32871ed7c8ebb244c39458d7cb8ee8fc99385d55e915ec6",
+    "backend/app/business_access/repository.py": "682244a8989a748ca3c442ff7f401cb11fb4849c142649bd4fff7664c0255648",
+    "backend/app/business_access/response.py": "087a7606349cee9ef063dd3adf61333adbbfbb17e3f308763b2cdccea26a15a6",
+    "backend/app/business_access/schemas.py": "a6399cb8f9ea73fc77064fe548d76f326d72ed260fe22e6d6a4317c2d4b450e3",
+    "backend/app/business_access/service.py": "e6f927a7398bdd4881df490bf92f8e3c4939dbe6e63ee5d002709a55e1177c7b",
+    "backend/app/business_access/tokens.py": "557465837ce432de1e9598ba25160c9f41da333af3044e551d4d91caedf7e919",
+    "backend/app/local_auth/__init__.py": "0d7944e897f727f9d83b2ba8244755459a610f6e1d6f2c98e91ad7c9e99003ea",
+    "backend/app/local_auth/authorization.py": "2d638fcbb087ba1409b2ad03ee9cb034fcc064b126091bd0a9fae0928a9f3604",
+    "backend/app/local_auth/bootstrap.py": "14320791d38cf55432aeb38fba39803ab7e2778aff4f55c14547b4c3db1792d0",
+    "backend/app/local_auth/models.py": "c1c8ee2eeef0e24125a85300d4849f0f33c75e16cd2728b765f208458a3c0049",
+    "backend/app/local_auth/passwords.py": "32876be48c6069ee01b40156c85f04fb34c372b4f4883e7804299700a6c90502",
+    "backend/app/local_auth/repository.py": "cc8d4b131b8eff1188b4a51c68157c14745785661452e22eaf9532430af9079b",
+    "backend/app/local_auth/schemas.py": "a86bbe84fc475cdbead79464f0259c871c29b6d6b40c9827b939be87a321ab55",
+    "backend/app/local_auth/service.py": "d1e5e4c531aa948a9c1791888d9c627ae5195deb4ab512930ab669a95ecf167f",
+    "backend/app/local_auth/sessions.py": "8a99a5dfc5e8f229a14f1cecd80c53730c5f1f5ebd8d712c2245f9f062807f6b",
+    "backend/app/mcp/__init__.py": "43458fb9fd8544eeee75ac96f9d3fd24b0cd54e35fe6fa70229f1a53bfa9d3f9",
+    "backend/app/mcp/area_forecast.py": "096d07d7a21a9a936d5ddcf9d9f9e619c7a71c177b220add152dd0b5f5e86c76",
+    "backend/app/mcp/forecast_intelligence_auth.py": "a33a32fab3b682c15dd0f4bf569bca620f8c0a5aa4d979cd04e6c318c18dbf08",
+    "backend/app/mcp/forecast_intelligence_http.py": "b04b10851ce2b07360224b4378f62d4124808734fb42661f5bb1241a39ca6830",
+    "backend/app/mcp/forecast_intelligence_policy.py": "166cd1848898016ae92699e85c1067008edacc344b465cf516eea71bf52f6fb2",
+    "backend/app/mcp/forecast_intelligence_server.py": "b81cd253bfee37118b7b8e3690cb28ab9537bce8f514b677451b30dca366201c",
+    "backend/app/mcp/forecast_intelligence_tools.py": "3d4d6ec2ab6d0bcd6895f64393cf25e37e26f9c2a6878a39bbb260177f6377cd",
+    "backend/app/mcp/hierarchical_forecast_runs.py": "559dbb7bce6f306650c6808582aab21f979de8a7c76c439aa42a11a39ca88bf4",
+    "backend/app/mcp/operational_base_search.py": "0f6b82ace00a6fa41dd3210ab73e19f4ac475e8b262c47c4004bbb8c3a5a85c4",
+    "backend/app/mcp/operational_peak_runs.py": "ed6e608c7fe96d6de7de97bf7d1da310dd256038caee9e500aee73d266a34ecd",
+    "backend/app/mcp/persisted_runs.py": "d561d0998e4bc82979b0992c710df502755d7e0453c0b22c12e580257b20af59",
+    "backend/app/mcp/schema_compat.py": "2203b0eee61b9b72d9a81f82c704299aba01596051c18217e4700c7b54ef4f26",
+    "backend/app/mcp/streamable_http.py": "9f66bdd1d4fa8a5814b093c70ca34683673c1f5f654c9719d42fa877aed53967",
+    "backend/app/mcp/v0_12_research.py": "23085b12c6e49e97c0abe000123751a8fb987e8fe4a8f0c7061693459fe5526f",
+    "frontend/src/dashboard/api/client.ts": "8c098612f7f35cdb99ba508b420f95f7e43eaa556a237d98935065613a9ddd84",
+    "frontend/src/dashboard/api/scenarioBinding.ts": "e14ca89fb82ba5c819e8a76b5de0aef3e2df344ead086a007f018aaf3f20be47",
+    "frontend/src/dashboard/api/security.ts": "c47f63a43d04bd7eaf0d6958d05e407af2d5fc82c13228b56eb4a9ca1f314572",
+    "frontend/src/dashboard/app/Dashboard.tsx": "1c0d243662875fc5323e7f501e1ceee4e309086b2d293bdd1d45a33e1d2b9592",
+    "frontend/src/dashboard/app/ProductEntry.tsx": "0156dc8e8ad1fd7ee4edeb2046bfb9853afc4202d8a18591b619246157c44926",
+    "frontend/src/dashboard/charts/Curves.tsx": "05086ee11e936bfe25242acc522e47734063a88d3455cdd3d50f3d511c73f1f2",
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx": "9738107c43d225996e39e4be93ef355b7e16440af4a85a9646abdea85275c417",
+    "frontend/src/dashboard/components/presentation.tsx": "9383425f2e50bb64453db14a273b0eb0273b4501648a60a54a2588478d49adb1",
+    "frontend/src/dashboard/context/ForecastContext.tsx": "04471ad790e0e3c76e4a587197d426b37dd6a814a2ab7e3545a62622aa221760",
+    "frontend/src/dashboard/context/SessionContext.tsx": "a9793aa2b8e2a4dcd921a99848757a0718c83c62b48d089867e6adb8e38c9ada",
+    "frontend/src/dashboard/context/useResource.ts": "baf8d774b1dbf79ad297f88172ea6c63c0559f1c2d6f577e2eddccebf17bc3d7",
+    "frontend/src/dashboard/pages/CapacityPage.tsx": "c660d643af653c08c3d73d06a53f628e1b02977b2c878738947ec26e8e66b968",
+    "frontend/src/dashboard/pages/ReadPages.tsx": "eaf4f7fec98cdb3e5bd3c258baefa5c743612e5667ac42317b67327d1f4c4b91",
+    "frontend/src/dashboard/schemas/business.ts": "e57dc68ec04df412232dd3b8e43dbaafeb072dfa1ce9501b86e8d6a21ba07881",
+    "frontend/src/dashboard/schemas/contracts.ts": "095f3c145b6ba35ee78c614050284293677906f9d7abb9bef672b53f372c8a25",
+    "frontend/src/dashboard/styles/dashboard.css": "f01acc1b44823dd8bab53f8fca102b9eb1be3b4c51e02f4e044bf64874982bdf",
+    "frontend/src/dashboard/styles/tokens.ts": "cf918bed6b75322fb026383647f715cdf52cc222692f3a57df1af67f36d8c257"
+  },
+  "engineering_release_eligibility": "TECHNICAL_CANDIDATE_NOT_APPROVED",
+  "engineering_technical_result": "PASS_TESTED_SCOPE",
+  "evidence_levels_separated": [
+    "CURRENT_LOCAL_OFFLINE_CONTRACTS",
+    "RECORDED_SYNTHETIC_RUNTIME_AT_BOUND_HEAD",
+    "LIVE_GITHUB_EXACT_HEAD_CI",
+    "SCOPED_COMMENTED_TECHNICAL_REVIEW",
+    "FULL_MAIN_INDEPENDENT_ACCEPTANCE_PENDING",
+    "OWNER_DECISIONS_PENDING"
+  ],
+  "final_head_ci": "EXTERNAL_EXACT_HEAD_RECEIPT_REQUIRED_AFTER_COMMIT",
+  "formal_closeout_result": "BLOCKED",
+  "governance": {
+    "actual_harvest_accessed": false,
+    "deploy_authorized": false,
+    "governance_exception_approved": false,
+    "merge_authorized": false,
+    "model_experiment_executed": false,
+    "owner_historical_risk_acceptance": false,
+    "production_code_changed": false,
+    "production_database_accessed": false,
+    "ready_authorized": false,
+    "release_authorized": false,
+    "stop": true,
+    "tag_authorized": false,
+    "v0_18_version_complete": false,
+    "v0_19_authorized": false,
+    "version_closeout_formal_complete": false
+  },
+  "historical_approval_gaps": {
+    "formal": [
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S0_SCOPE",
+        "gap_id": "PR710:OWNER_READY",
+        "head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 710,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S0_SCOPE",
+        "gap_id": "PR710:OWNER_MERGE",
+        "head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 710,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [],
+        "classification": "S0_SCOPE_ADDENDUM",
+        "gap_id": "PR715:INDEPENDENT_REVIEW",
+        "head_sha": "13d3cf4d8a08d156a3f75a9044a8163bcd8d4720",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 715,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S0_SCOPE_ADDENDUM",
+        "gap_id": "PR715:OWNER_READY",
+        "head_sha": "13d3cf4d8a08d156a3f75a9044a8163bcd8d4720",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 715,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S0_SCOPE_ADDENDUM",
+        "gap_id": "PR715:OWNER_MERGE",
+        "head_sha": "13d3cf4d8a08d156a3f75a9044a8163bcd8d4720",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 715,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [],
+        "classification": "S1_RUNTIME",
+        "gap_id": "PR717:INDEPENDENT_REVIEW",
+        "head_sha": "442ce84f0d15702d284ec65413d479db680fe50b",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 717,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S1_RUNTIME",
+        "gap_id": "PR717:OWNER_READY",
+        "head_sha": "442ce84f0d15702d284ec65413d479db680fe50b",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 717,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S1_RUNTIME",
+        "gap_id": "PR717:OWNER_MERGE",
+        "head_sha": "442ce84f0d15702d284ec65413d479db680fe50b",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 717,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [],
+        "classification": "S1_SIMPLE_ADMIN_D03",
+        "gap_id": "PR718:INDEPENDENT_REVIEW",
+        "head_sha": "d3381356ae1773138e69b0430f9162deab5824e9",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 718,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S1_SIMPLE_ADMIN_D03",
+        "gap_id": "PR718:OWNER_READY",
+        "head_sha": "d3381356ae1773138e69b0430f9162deab5824e9",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 718,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S1_SIMPLE_ADMIN_D03",
+        "gap_id": "PR718:OWNER_MERGE",
+        "head_sha": "d3381356ae1773138e69b0430f9162deab5824e9",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 718,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [],
+        "classification": "S1_POSTMERGE_TIMESTAMP_CORRECTION",
+        "gap_id": "PR721:INDEPENDENT_REVIEW",
+        "head_sha": "0417937f9fb0cc05509ad4a30695e4ba3f989caa",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 721,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S1_POSTMERGE_TIMESTAMP_CORRECTION",
+        "gap_id": "PR721:OWNER_READY",
+        "head_sha": "0417937f9fb0cc05509ad4a30695e4ba3f989caa",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 721,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S1_POSTMERGE_TIMESTAMP_CORRECTION",
+        "gap_id": "PR721:OWNER_MERGE",
+        "head_sha": "0417937f9fb0cc05509ad4a30695e4ba3f989caa",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 721,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [],
+        "classification": "S2_AUTHORIZED_DISCOVERY",
+        "gap_id": "PR723:INDEPENDENT_REVIEW",
+        "head_sha": "68d6ee14000471f82d4712f5c2456e519519f2c6",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 723,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S2_AUTHORIZED_DISCOVERY",
+        "gap_id": "PR723:OWNER_READY",
+        "head_sha": "68d6ee14000471f82d4712f5c2456e519519f2c6",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 723,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S2_AUTHORIZED_DISCOVERY",
+        "gap_id": "PR723:OWNER_MERGE",
+        "head_sha": "68d6ee14000471f82d4712f5c2456e519519f2c6",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 723,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [],
+        "classification": "S3_SERVICE_ACCOUNT_SAFETY",
+        "gap_id": "PR724:INDEPENDENT_REVIEW",
+        "head_sha": "b334138ad2fe2300265115758b18dc9f9bc54128",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 724,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S3_SERVICE_ACCOUNT_SAFETY",
+        "gap_id": "PR724:OWNER_READY",
+        "head_sha": "b334138ad2fe2300265115758b18dc9f9bc54128",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 724,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S3_SERVICE_ACCOUNT_SAFETY",
+        "gap_id": "PR724:OWNER_MERGE",
+        "head_sha": "b334138ad2fe2300265115758b18dc9f9bc54128",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 724,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [],
+        "classification": "S4_DASHBOARD",
+        "gap_id": "PR725:INDEPENDENT_REVIEW",
+        "head_sha": "47a656b215eb9c4e202763fd16f3dc148ada9a77",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 725,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S4_DASHBOARD",
+        "gap_id": "PR725:OWNER_READY",
+        "head_sha": "47a656b215eb9c4e202763fd16f3dc148ada9a77",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 725,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S4_DASHBOARD",
+        "gap_id": "PR725:OWNER_MERGE",
+        "head_sha": "47a656b215eb9c4e202763fd16f3dc148ada9a77",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 725,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [],
+        "classification": "S5_ISOLATED_PILOT",
+        "gap_id": "PR726:INDEPENDENT_REVIEW",
+        "head_sha": "e3078f044a36f053627c91f293aba12dabaf66b6",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 726,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S5_ISOLATED_PILOT",
+        "gap_id": "PR726:OWNER_READY",
+        "head_sha": "e3078f044a36f053627c91f293aba12dabaf66b6",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 726,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S5_ISOLATED_PILOT",
+        "gap_id": "PR726:OWNER_MERGE",
+        "head_sha": "e3078f044a36f053627c91f293aba12dabaf66b6",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 726,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [
+          "ORIGINAL_CHATGPT_CONVERSATION:b158150d-4794-4941-ba02-944b7e65f3d7:INDEPENDENT_REVIEW"
+        ],
+        "classification": "S6_ACCEPTANCE",
+        "gap_id": "PR727:INDEPENDENT_REVIEW",
+        "head_sha": "293fdee41f402f1086fa6a8cca64142a362a34f8",
+        "missing_reason": "PR727_ORIGINAL_PRIOR_REVIEW_OR_EXACT_HEAD_CONTEXT_UNAVAILABLE",
+        "original_status": "PARTIAL_EVIDENCE",
+        "pr_number": 727,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [
+          "ORIGINAL_CHATGPT_CONVERSATION:e868a9e7-a6c7-4e2e-8942-3538899de569:OWNER_READY"
+        ],
+        "classification": "S6_ACCEPTANCE",
+        "gap_id": "PR727:OWNER_READY",
+        "head_sha": "293fdee41f402f1086fa6a8cca64142a362a34f8",
+        "missing_reason": "PR727_ORIGINAL_PRIOR_REVIEW_OR_EXACT_HEAD_CONTEXT_UNAVAILABLE",
+        "original_status": "PARTIAL_EVIDENCE",
+        "pr_number": 727,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [
+          "ORIGINAL_CHATGPT_CONVERSATION:e868a9e7-a6c7-4e2e-8942-3538899de569:OWNER_MERGE"
+        ],
+        "classification": "S6_ACCEPTANCE",
+        "gap_id": "PR727:OWNER_MERGE",
+        "head_sha": "293fdee41f402f1086fa6a8cca64142a362a34f8",
+        "missing_reason": "PR727_ORIGINAL_PRIOR_REVIEW_OR_EXACT_HEAD_CONTEXT_UNAVAILABLE",
+        "original_status": "PARTIAL_EVIDENCE",
+        "pr_number": 727,
+        "resolved_by_this_proposal": false
+      }
+    ],
+    "planning": [
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S1_PREFLIGHT_NOT_RUNTIME",
+        "gap_id": "PR711:OWNER_READY",
+        "head_sha": "be32c1084601d2b02e89c952ccc78312e213112a",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 711,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S1_PREFLIGHT_NOT_RUNTIME",
+        "gap_id": "PR711:OWNER_MERGE",
+        "head_sha": "be32c1084601d2b02e89c952ccc78312e213112a",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 711,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "ROADMAP_ASSESSMENT_NOT_STAGE_REPLACEMENT",
+        "gap_id": "PR712:OWNER_READY",
+        "head_sha": "13ac4381ebcea1094f07a0ab260dc4b5e9f7ac72",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 712,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "ROADMAP_ASSESSMENT_NOT_STAGE_REPLACEMENT",
+        "gap_id": "PR712:OWNER_MERGE",
+        "head_sha": "13ac4381ebcea1094f07a0ab260dc4b5e9f7ac72",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 712,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "SEPARATE_PEAK_BUSINESS_CONTRACT_NOT_V018_IMPLEMENTATION",
+        "gap_id": "PR713:OWNER_READY",
+        "head_sha": "7d9a6d8f878e3c8e4d80d94c38bb7556e51e7d44",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 713,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "SEPARATE_PEAK_BUSINESS_CONTRACT_NOT_V018_IMPLEMENTATION",
+        "gap_id": "PR713:OWNER_MERGE",
+        "head_sha": "7d9a6d8f878e3c8e4d80d94c38bb7556e51e7d44",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 713,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [],
+        "classification": "LOCAL_AUTH_REPLAN_NOT_RUNTIME",
+        "gap_id": "PR714:INDEPENDENT_REVIEW",
+        "head_sha": "52714a6bfdd498dddda7d9f95ff5908b558d28c6",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 714,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "LOCAL_AUTH_REPLAN_NOT_RUNTIME",
+        "gap_id": "PR714:OWNER_READY",
+        "head_sha": "52714a6bfdd498dddda7d9f95ff5908b558d28c6",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 714,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "LOCAL_AUTH_REPLAN_NOT_RUNTIME",
+        "gap_id": "PR714:OWNER_MERGE",
+        "head_sha": "52714a6bfdd498dddda7d9f95ff5908b558d28c6",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 714,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "INDEPENDENT_REVIEW",
+        "candidate_evidence_ids": [],
+        "classification": "S1_IMPLEMENTATION_CONTRACT_NOT_RUNTIME",
+        "gap_id": "PR716:INDEPENDENT_REVIEW",
+        "head_sha": "d9a8d49854bb87e83f7ecae5265d7ca4a0d443af",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 716,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_READY",
+        "candidate_evidence_ids": [],
+        "classification": "S1_IMPLEMENTATION_CONTRACT_NOT_RUNTIME",
+        "gap_id": "PR716:OWNER_READY",
+        "head_sha": "d9a8d49854bb87e83f7ecae5265d7ca4a0d443af",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 716,
+        "resolved_by_this_proposal": false
+      },
+      {
+        "absence_of_approval_proven": false,
+        "action_type": "OWNER_MERGE",
+        "candidate_evidence_ids": [],
+        "classification": "S1_IMPLEMENTATION_CONTRACT_NOT_RUNTIME",
+        "gap_id": "PR716:OWNER_MERGE",
+        "head_sha": "d9a8d49854bb87e83f7ecae5265d7ca4a0d443af",
+        "missing_reason": "NO_VERIFIED_ORIGINAL_RECORD_IN_ACCESSED_SOURCES",
+        "original_status": "NOT_FOUND",
+        "pr_number": 716,
+        "resolved_by_this_proposal": false
+      }
+    ]
+  },
+  "historical_audit_code_sha256": {
+    "backend/tests/forecast_intelligence/build_v0_18_approval_provenance_r2.py": "fc0efbcc05f887ec64c65b197c0ef94700b9248c77ba786e7acb5dd525fa7219",
+    "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py": "e580ae071ca0143dece21787ff759cc79b869b2ce4f7bfd6790670368eb2d397",
+    "backend/tests/forecast_intelligence/test_v0_18_approval_provenance_r2.py": "7610e08fcf4ed155adf0c2e6f96c5530b7304bc7732725bbb1091485a1e7d56c",
+    "backend/tests/forecast_intelligence/test_v0_18_version_closeout.py": "cfee7f729956f963e59144e7a562196041e703161514b1a3081416b5e54cc143"
+  },
+  "historical_gate_statuses": {
+    "G01": "BLOCKED",
+    "G02": "BLOCKED",
+    "G03": "BLOCKED",
+    "G04": "BLOCKED",
+    "G05": "BLOCKED",
+    "G06": "BLOCKED",
+    "G07": "BLOCKED",
+    "G08": "PASS_HISTORICAL_TESTED_SCOPE",
+    "G09": "PASS_HISTORICAL_TESTED_SCOPE",
+    "G10": "PASS_HISTORICAL_TESTED_SCOPE",
+    "G11": "PASS_HISTORICAL_TESTED_SCOPE",
+    "G12": "PASS_HISTORICAL_TESTED_SCOPE",
+    "G13": "PASS_HISTORICAL_TESTED_SCOPE",
+    "G14": "PENDING",
+    "G15": "PENDING",
+    "G16": "PENDING"
+  },
+  "historical_snapshot_sha256": {
+    "docs/v0-18/evidence/v0.18.0-approval-provenance-r2.json": "ba313fac39b3fb610cf94835327e782d30d48e8dddf9e387589696e7875d3495",
+    "docs/v0-18/evidence/v0.18.0-approval-sources-r2.json": "32feedb5a8294a95aa5192ce92f185b013229ee3c5f84b326587c7507d161218",
+    "docs/v0-18/evidence/v0.18.0-closeout-github-snapshot-r1.json": "b16dc66e7ed2e72e711ecf7117b335db67a34a0ad1901bc7a248f751723c7c94",
+    "docs/v0-18/evidence/v0.18.0-version-closeout-manifest-r1.json": "36dfd99675b313af0f4ec963763edd14b165d97426eee09cd83d5e90a6e4620d",
+    "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json": "47074e70ba503988d7b424ae9a2c0af3d46b7553ba720b830840d4f1a4ff4513",
+    "docs/v0-18/v0.18.0-closeout-provenance-recovery-r2.md": "1f640b3dfd68098db1640a5b98cd49906dcb5d5cb944b3b0110aa9755f870b5e",
+    "docs/v0-18/v0.18.0-closeout.md": "ab782c0251efee31aea108aadb9a3a23de518210ae1145cd309c50fcec97585f"
+  },
+  "no_history_chat_recovery_performed": true,
+  "observed_fixed_race_counts": {
+    "business_sql": 0,
+    "comparison": 0,
+    "quality_file": 0,
+    "simulation": 0
+  },
+  "original_closeout_head_sha": "93e9660f6ef2c494178be825c66d11898c6fff97",
+  "owner_decisions_pending": [
+    "LIMITED_HISTORICAL_EVIDENCE_EXCEPTION",
+    "H_CONTEMPORARY_HISTORICAL_RISK_ACCEPTANCE",
+    "EXACT_HEAD_INDEPENDENT_CLOSEOUT_REVIEW_INCLUDING_PREAUTH_DISCLOSURE",
+    "READY_MERGE_AND_POST_MERGE_CI",
+    "SEPARATE_ANNOTATED_TAG_AND_ENGINEERING_RELEASE_AUTHORIZATION"
+  ],
+  "pr_number": 728,
+  "production_readiness": "NOT_READY",
+  "production_risk_register": [
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "REAL_ADMIN_ORGANIZATION_CATALOG",
+      "missing_evidence": "Owner designated bootstrap administrator and verified real resource catalog",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "REAL_SERVICE_ACCOUNTS_GRANTS",
+      "missing_evidence": "Real service-account secrets and approved exact grants",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "PRODUCTION_TLS_NETWORK",
+      "missing_evidence": "Production certificate, HTTPS renewal and network isolation proof",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "LEGACY_NETWORK_DENIAL",
+      "missing_evidence": "Real deployed legacy-entry denial proof",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "PRODUCTION_BACKUP_RESTORE",
+      "missing_evidence": "Actual production backup encryption, restore and reauthorization rehearsal",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "BINARY_VERSION_ROLLBACK",
+      "missing_evidence": "Real binary-version and schema-compatible rollback rehearsal",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "RPO_RTO",
+      "missing_evidence": "Owner approved RPO/RTO, with measured environment evidence",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "LOG_RETENTION_SECRETS",
+      "missing_evidence": "Approved retention/access/deletion/secrets operations",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "OPERATIONS_RESPONSIBILITY",
+      "missing_evidence": "Named operators, escalation thresholds and explicit risk acceptance",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "REAL_IOS_SAFARI",
+      "missing_evidence": "Real iOS Safari device acceptance",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "SOFT_KEYBOARD",
+      "missing_evidence": "Real software keyboard interaction acceptance",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "SCREEN_READER",
+      "missing_evidence": "Actual assistive-technology acceptance",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "CROSS_HOST_NFS_WINDOWS",
+      "missing_evidence": "Cross-host, NFS and Windows revocation safety evidence or topology exclusion",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "FRONTEND_DEPENDENCY_ADVISORIES",
+      "missing_evidence": "Seven affected frontend packages: five high and two moderate, not remediated",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    },
+    {
+      "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+      "id": "CURRENT_ACTUAL_PROSPECTIVE_ACCURACY",
+      "missing_evidence": "Separately authorized real current-season actual data and prospective protocol",
+      "production_blocking": true,
+      "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+      "status": "OPEN_NOT_VALIDATED"
+    }
+  ],
+  "repository": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "reviewed_main_sha": "816d8299f007eab7da140fc5c7547d941c026f8f",
+  "semantic_boundaries": {
+    "H15": "D1..D15_PREFIX_CUMULATIVE",
+    "H7": "D1..D7_PREFIX_CUMULATIVE",
+    "attribution_is_causal": false,
+    "automatic_scheduling_or_optimization": false,
+    "bounds_are_calibrated_quantiles": false,
+    "historical_m1_is_operational_peak_accuracy": false,
+    "loss_unit": "SYNTHETIC_LOSS_UNIT",
+    "point_is_proven_p50": false,
+    "real_roi_validated": false,
+    "rolling_seven_day_maximum": "NOT_VALIDATED_SOURCE_CAPABILITY_UNAVAILABLE",
+    "strict_pit": false,
+    "unavailable": [
+      "RUN_BOUND_UPPER80",
+      "RUN_BOUND_UPPER90",
+      "ATTRIBUTION",
+      "CHILD_CONTRIBUTION"
+    ]
+  },
+  "source_evidence_sha256": {
+    "backend/tests/forecast_intelligence/build_v0_18_approval_provenance_r2.py": "cf11e9c40289777cd09a88cfeefd40110b4f94ed68e0b74137bfb4d8c5f9f583",
+    "backend/tests/forecast_intelligence/test_v0_18_approval_provenance_r2.py": "b8f566e463814f0264718ddd3c3868c8093243dfd306581274d7befed277f243",
+    "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py": "0fd8f468fa7a29c3f882b1e1397a3bb82adf080f2fb1b6af389eb26357fe4b2d",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/evidence.json": "9cc5e0ae2a2f5003e67dbfaf07313c3adf8f738df0458d20d74d6676b4165db5",
+    "docs/v0-18/evidence/option-b-client-fix-r1/evidence.json": "5b9aa1d73537ad30ddd8168388900ebd82e3b9f3b6d985bc0a2c0e330ae64184",
+    "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json": "aee6d3a06e282b05be36198ddd12ab9d2ed704e683714b1da37be7c7a36f19e1",
+    "docs/v0-18/evidence/v0.18.0-governance-exception-proposal-r1.json": "e8d5ce8148cfe7205defc442cc07fcd3fdd4fc15d2ad3f8c65635980654bf942",
+    "docs/v0-18/v0.18.0-final-closeout-status.md": "6dcc079cf9112067a69e310323540e0c884bba9acbb717f0f4030f043cfb2e55"
+  },
+  "task_id": "V0_18_FINAL_CLOSEOUT_DECISION",
+  "version": "0.18.0"
+}
