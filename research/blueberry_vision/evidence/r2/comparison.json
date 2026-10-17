@@ -1,0 +1,218 @@
+{
+  "SYNTHETIC": true,
+  "baseline_available_candidate_missing": [],
+  "baseline_report_hash": "3975ec8fab0118efcbaf10734605224d49cf1e80c58e8c995ee07e032219b6c0",
+  "candidate_available_baseline_missing": [],
+  "candidate_report_hash": "024f20e382be4f762717dba5de045744741b7e023f8ebffd420b858418d81937",
+  "common_evaluated_count": 28,
+  "comparison_hash": "d261d51de5aff781d43bba7fbff26935d1a816561262967b767d796e963cc3fa",
+  "count_unit": "visible_fruit_per_image",
+  "dataset_manifest_hash": "29100d7f845c9bbd16b1c09e5cda703e53cf8fffead963752141247991dec2e5",
+  "limitations": [
+    "Synthetic paired engineering comparison only; no production superiority claim."
+  ],
+  "paired_count_bias_delta_candidate_minus_baseline": 0.21428571428571427,
+  "paired_count_mae_delta_candidate_minus_baseline": -0.21428571428571427,
+  "paired_results": [
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0000",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 27,
+      "candidate_absolute_error": 27,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0001",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 7,
+      "candidate_absolute_error": 7,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0002",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0003",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 10,
+      "candidate_absolute_error": 10,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0004",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0005",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 4,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 4,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0006",
+      "signed_error_delta_candidate_minus_baseline": -4
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0007",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 3,
+      "candidate_absolute_error": 3,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0008",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": -5,
+      "baseline_absolute_error": 10,
+      "candidate_absolute_error": 5,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0009",
+      "signed_error_delta_candidate_minus_baseline": 5
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0010",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0011",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 3,
+      "candidate_absolute_error": 3,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0012",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-out_of_domain-0013",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-test-0000",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 27,
+      "candidate_absolute_error": 27,
+      "image_id": "synthetic-r2-20261013-test-0001",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 7,
+      "candidate_absolute_error": 7,
+      "image_id": "synthetic-r2-20261013-test-0002",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-test-0003",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 9,
+      "candidate_absolute_error": 9,
+      "image_id": "synthetic-r2-20261013-test-0004",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-test-0005",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-test-0006",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-test-0007",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-test-0008",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": -5,
+      "baseline_absolute_error": 10,
+      "candidate_absolute_error": 5,
+      "image_id": "synthetic-r2-20261013-test-0009",
+      "signed_error_delta_candidate_minus_baseline": 5
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-test-0010",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-test-0011",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 3,
+      "candidate_absolute_error": 3,
+      "image_id": "synthetic-r2-20261013-test-0012",
+      "signed_error_delta_candidate_minus_baseline": 0
+    },
+    {
+      "absolute_error_delta_candidate_minus_baseline": 0,
+      "baseline_absolute_error": 0,
+      "candidate_absolute_error": 0,
+      "image_id": "synthetic-r2-20261013-test-0013",
+      "signed_error_delta_candidate_minus_baseline": 0
+    }
+  ],
+  "schema_version": "blueberry-vision-comparison/2.0.0",
+  "scope_hash": "5fe0d1656a8b61bcc51bfc4668539c4b30d65390c6f485e828d79107a8fe9e5c",
+  "split_hash": "29d06869258ae57870fa80fce9a54d6577598149292a6ed3cd1b856c2c7b50cb",
+  "status": "EVALUATED"
+}

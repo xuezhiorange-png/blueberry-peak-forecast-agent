@@ -1,0 +1,95 @@
+{
+  "branch": "research/blueberry-vision-r2-offline-detection-counting",
+  "checkpoint_parent_sha": "bf7564307f719fd3ea5c90a5789b22e5719e4eb8",
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/pytest",
+        "research/blueberry_vision/tests",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "........................................................................ [ 26%]\n........................................................................ [ 53%]\n........................................................................ [ 79%]\n.......................................................                  [100%]\n271 passed in 8.46s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "25 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 25 source files\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/python",
+        "-m",
+        "research.blueberry_vision.cli",
+        "verify-artifacts",
+        "--manifest",
+        "research/blueberry_vision/evidence/r2/artifact_manifest.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\"artifact_hash\": \"e058f194955ce0d6f3956b13d7bd13d987b534c312ba98a4160bb08f8c1d4db3\", \"failures\": [], \"valid\": true, \"verified_count\": 44}\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/python",
+        "-m",
+        "research.blueberry_vision.cli",
+        "verify-artifacts",
+        "--manifest",
+        "/tmp/blueberry-r2-e2e-final/artifact_manifest.json"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "{\"artifact_hash\": \"46bf083a841ef17418f4063869f1589b04637a276b2ed99f8ab3915251c3af60\", \"failures\": [], \"valid\": true, \"verified_count\": 270}\n"
+    }
+  ],
+  "facts": {
+    "all_pass_no_skips": true,
+    "e2e": "PASS2fresh56-imageCPU runs; all270artifacthashesmatch; frozen M4/M5reproduced",
+    "kg_calibration": false,
+    "mypy": "PASS25files",
+    "new_tests": 202,
+    "original_r1_tests": 69,
+    "production_changed": false,
+    "real_accuracy": false,
+    "research_ci": "isolatedCPU exact-head workflow added;remoteconclusion not yet claimed",
+    "ruff": "PASS",
+    "total_tests": 271,
+    "whole_run_hash": "46bf083a841ef17418f4063869f1589b04637a276b2ed99f8ab3915251c3af60"
+  },
+  "limitations": [
+    "Engineering synthetic checks only; no real orchard accuracy, kg calibration or production authorization."
+  ],
+  "milestone": "M7",
+  "recorded_at": "2026-10-13T03:24:03.135831+00:00",
+  "source_head_sha": "88f052405d98210864d4f4d56b0da4bb62d5bd12",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R2_OFFLINE_DETECTION_COUNTING_PIPELINE"
+}

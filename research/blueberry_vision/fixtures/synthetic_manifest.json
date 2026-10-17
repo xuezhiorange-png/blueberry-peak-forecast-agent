@@ -1,0 +1,462 @@
+{
+  "schema_version": "blueberry-vision-manifest/1.0.0",
+  "manifest_id": "SYNTHETIC_BLUEBERRY_VISION_R1_METADATA_ONLY",
+  "SYNTHETIC": true,
+  "purpose": "offline_synthetic_validation",
+  "image_files_present": false,
+  "asset_hash_basis": "synthetic_descriptor_sha256",
+  "as_of_cutoff": "2021-02-01T00:00:00Z",
+  "split_cutoffs": null,
+  "label_definitions": [
+    {
+      "version": "synthetic-candidate-labels-v1",
+      "task_kinds": [
+        "detection",
+        "instance_segmentation",
+        "maturity_classification",
+        "yield_proxy"
+      ],
+      "class_names": [
+        "SYNTHETIC_candidate_fruit"
+      ],
+      "approval_status": "candidate",
+      "source_ref": "fabricated-example-not-a-business-label-standard"
+    }
+  ],
+  "annotation_versions": [
+    {
+      "version": "synthetic-annotation-v1",
+      "label_definition_version": "synthetic-candidate-labels-v1",
+      "guideline_ref": "fabricated-example-no-annotated-image-assets"
+    }
+  ],
+  "near_duplicate_review": {
+    "status": "completed",
+    "method": "synthetic-group-declaration-only",
+    "evidence_ref": "generated-distinct-descriptors-no-image-similarity-analysis",
+    "completed_at": "2021-01-10T00:00:00Z",
+    "scope": "entire_manifest",
+    "basis": "synthetic_declared"
+  },
+  "observations": [
+    {
+      "schema_version": "blueberry-vision-observation/1.0.0",
+      "observation_id": "synthetic-observation-train-001",
+      "image_id": "synthetic-image-train-001",
+      "asset_hash": "35694038e484a7c04f707ed64c97ffd6f5637136dc527497ce98c9e4953e81a8",
+      "capture_session_id": "synthetic-session-train",
+      "near_duplicate_group_id": "synthetic-near-duplicate-train",
+      "observed_at": "2021-01-01T12:00:00Z",
+      "asset_available_at": "2021-01-01T12:01:00Z",
+      "available_at": "2021-01-01T12:02:00Z",
+      "base_identity": {
+        "status": "resolved",
+        "base_id": "SYNTHETIC_BASE_A",
+        "authority_ref": "synthetic-identity-map-v1",
+        "unresolved_reason": null
+      },
+      "season_id": "SYNTHETIC_SEASON_2020_2021",
+      "sampling_unit_id": "SYNTHETIC_UNIT_train",
+      "variety_id": "SYNTHETIC_VARIETY_A",
+      "occlusion": "none",
+      "device": {
+        "device_id": "synthetic-device-0",
+        "camera_model": "SYNTHETIC_CAMERA_NOT_REAL",
+        "view_angle_degrees": 15.0,
+        "capture_distance_m": 0.5,
+        "lighting": "diffuse",
+        "metadata_ref": "synthetic-camera-metadata-v1"
+      },
+      "image_dimensions": {
+        "width_px": 640,
+        "height_px": 480
+      },
+      "record_kind": "synthetic_observation",
+      "SYNTHETIC": true,
+      "split": "train",
+      "task_kind": "detection",
+      "annotation_version": "synthetic-annotation-v1",
+      "label_definition_version": "synthetic-candidate-labels-v1",
+      "annotation_quality_status": "reviewed",
+      "annotation_available_at": "2021-01-01T12:02:00Z",
+      "object_count": 2,
+      "count_unit": "fruit_count",
+      "missing_count_reason": null,
+      "class_labels": [
+        "SYNTHETIC_candidate_fruit",
+        "SYNTHETIC_candidate_fruit"
+      ],
+      "objects": [
+        {
+          "object_id": "synthetic-object-0",
+          "class_label": "SYNTHETIC_candidate_fruit",
+          "bbox_xyxy": [
+            20.0,
+            30.0,
+            45.0,
+            55.0
+          ],
+          "mask_polygon": null
+        },
+        {
+          "object_id": "synthetic-object-1",
+          "class_label": "SYNTHETIC_candidate_fruit",
+          "bbox_xyxy": [
+            120.0,
+            30.0,
+            145.0,
+            55.0
+          ],
+          "mask_polygon": null
+        }
+      ],
+      "source_authority": {
+        "authority_id": "synthetic-fixture-generator",
+        "source_ref": "research/blueberry_vision/generate_artifacts.py",
+        "permission_status": "synthetic_only",
+        "evidence_ref": "fabricated-metadata-only-no-real-assets",
+        "allowed_uses": [
+          "metadata_validation",
+          "train",
+          "validation",
+          "test",
+          "out_of_domain"
+        ],
+        "granted_at": null,
+        "expires_at": null
+      },
+      "model_provenance": null,
+      "record_hash": "52a53501192e7b76c816869abea8ccd371863a06d87b4e8103d42901974f638d"
+    },
+    {
+      "schema_version": "blueberry-vision-observation/1.0.0",
+      "observation_id": "synthetic-observation-validation-001",
+      "image_id": "synthetic-image-validation-001",
+      "asset_hash": "7fd10629ca86375695570bc39a092d1ce0be505fd9347805da572395a2d92fd2",
+      "capture_session_id": "synthetic-session-validation",
+      "near_duplicate_group_id": "synthetic-near-duplicate-validation",
+      "observed_at": "2021-01-03T12:00:00Z",
+      "asset_available_at": "2021-01-03T12:01:00Z",
+      "available_at": "2021-01-03T12:02:00Z",
+      "base_identity": {
+        "status": "resolved",
+        "base_id": "SYNTHETIC_BASE_A",
+        "authority_ref": "synthetic-identity-map-v1",
+        "unresolved_reason": null
+      },
+      "season_id": "SYNTHETIC_SEASON_2020_2021",
+      "sampling_unit_id": "SYNTHETIC_UNIT_validation",
+      "variety_id": "SYNTHETIC_VARIETY_A",
+      "occlusion": "partial",
+      "device": {
+        "device_id": "synthetic-device-1",
+        "camera_model": "SYNTHETIC_CAMERA_NOT_REAL",
+        "view_angle_degrees": 15.0,
+        "capture_distance_m": 0.5,
+        "lighting": "shade",
+        "metadata_ref": "synthetic-camera-metadata-v1"
+      },
+      "image_dimensions": {
+        "width_px": 640,
+        "height_px": 480
+      },
+      "record_kind": "synthetic_observation",
+      "SYNTHETIC": true,
+      "split": "validation",
+      "task_kind": "detection",
+      "annotation_version": "synthetic-annotation-v1",
+      "label_definition_version": "synthetic-candidate-labels-v1",
+      "annotation_quality_status": "reviewed",
+      "annotation_available_at": "2021-01-03T12:02:00Z",
+      "object_count": 2,
+      "count_unit": "fruit_count",
+      "missing_count_reason": null,
+      "class_labels": [
+        "SYNTHETIC_candidate_fruit",
+        "SYNTHETIC_candidate_fruit"
+      ],
+      "objects": [
+        {
+          "object_id": "synthetic-object-0",
+          "class_label": "SYNTHETIC_candidate_fruit",
+          "bbox_xyxy": [
+            20.0,
+            30.0,
+            45.0,
+            55.0
+          ],
+          "mask_polygon": null
+        },
+        {
+          "object_id": "synthetic-object-1",
+          "class_label": "SYNTHETIC_candidate_fruit",
+          "bbox_xyxy": [
+            120.0,
+            30.0,
+            145.0,
+            55.0
+          ],
+          "mask_polygon": null
+        }
+      ],
+      "source_authority": {
+        "authority_id": "synthetic-fixture-generator",
+        "source_ref": "research/blueberry_vision/generate_artifacts.py",
+        "permission_status": "synthetic_only",
+        "evidence_ref": "fabricated-metadata-only-no-real-assets",
+        "allowed_uses": [
+          "metadata_validation",
+          "train",
+          "validation",
+          "test",
+          "out_of_domain"
+        ],
+        "granted_at": null,
+        "expires_at": null
+      },
+      "model_provenance": null,
+      "record_hash": "c21729318b4a591dfabb94c2dd244797fec2482761fc800ff3785f64b2e2ad33"
+    },
+    {
+      "schema_version": "blueberry-vision-observation/1.0.0",
+      "observation_id": "synthetic-observation-test-001",
+      "image_id": "synthetic-image-test-001",
+      "asset_hash": "c0f26a69dc84307af200bcb5966c1564077a5b9c1fcb8acae0469f6f8ea3ff9b",
+      "capture_session_id": "synthetic-session-test",
+      "near_duplicate_group_id": "synthetic-near-duplicate-test",
+      "observed_at": "2021-01-05T12:00:00Z",
+      "asset_available_at": "2021-01-05T12:01:00Z",
+      "available_at": "2021-01-05T12:02:00Z",
+      "base_identity": {
+        "status": "resolved",
+        "base_id": "SYNTHETIC_BASE_2",
+        "authority_ref": "synthetic-identity-map-v1",
+        "unresolved_reason": null
+      },
+      "season_id": "SYNTHETIC_SEASON_2020_2021",
+      "sampling_unit_id": "SYNTHETIC_UNIT_test",
+      "variety_id": "SYNTHETIC_VARIETY_A",
+      "occlusion": "heavy",
+      "device": {
+        "device_id": "synthetic-device-0",
+        "camera_model": "SYNTHETIC_CAMERA_NOT_REAL",
+        "view_angle_degrees": 15.0,
+        "capture_distance_m": 0.5,
+        "lighting": "direct_sun",
+        "metadata_ref": "synthetic-camera-metadata-v1"
+      },
+      "image_dimensions": {
+        "width_px": 640,
+        "height_px": 480
+      },
+      "record_kind": "synthetic_observation",
+      "SYNTHETIC": true,
+      "split": "test",
+      "task_kind": "detection",
+      "annotation_version": "synthetic-annotation-v1",
+      "label_definition_version": "synthetic-candidate-labels-v1",
+      "annotation_quality_status": "reviewed",
+      "annotation_available_at": "2021-01-05T12:02:00Z",
+      "object_count": 2,
+      "count_unit": "fruit_count",
+      "missing_count_reason": null,
+      "class_labels": [
+        "SYNTHETIC_candidate_fruit",
+        "SYNTHETIC_candidate_fruit"
+      ],
+      "objects": [
+        {
+          "object_id": "synthetic-object-0",
+          "class_label": "SYNTHETIC_candidate_fruit",
+          "bbox_xyxy": [
+            20.0,
+            30.0,
+            45.0,
+            55.0
+          ],
+          "mask_polygon": null
+        },
+        {
+          "object_id": "synthetic-object-1",
+          "class_label": "SYNTHETIC_candidate_fruit",
+          "bbox_xyxy": [
+            120.0,
+            30.0,
+            145.0,
+            55.0
+          ],
+          "mask_polygon": null
+        }
+      ],
+      "source_authority": {
+        "authority_id": "synthetic-fixture-generator",
+        "source_ref": "research/blueberry_vision/generate_artifacts.py",
+        "permission_status": "synthetic_only",
+        "evidence_ref": "fabricated-metadata-only-no-real-assets",
+        "allowed_uses": [
+          "metadata_validation",
+          "train",
+          "validation",
+          "test",
+          "out_of_domain"
+        ],
+        "granted_at": null,
+        "expires_at": null
+      },
+      "model_provenance": null,
+      "record_hash": "6532582c50489ee66fe6e1644a16e572cebc2f18ef5d2ae98d546b8c1b6dd912"
+    },
+    {
+      "schema_version": "blueberry-vision-observation/1.0.0",
+      "observation_id": "synthetic-observation-out_of_domain-001",
+      "image_id": "synthetic-image-out_of_domain-001",
+      "asset_hash": "b56363bd6797b902c8812bcc70f633fd95cd2634ddbcdfe2e48bb3dac5d9f75c",
+      "capture_session_id": "synthetic-session-out_of_domain",
+      "near_duplicate_group_id": "synthetic-near-duplicate-out_of_domain",
+      "observed_at": "2021-01-07T12:00:00Z",
+      "asset_available_at": "2021-01-07T12:01:00Z",
+      "available_at": "2021-01-07T12:02:00Z",
+      "base_identity": {
+        "status": "resolved",
+        "base_id": "SYNTHETIC_BASE_3",
+        "authority_ref": "synthetic-identity-map-v1",
+        "unresolved_reason": null
+      },
+      "season_id": "SYNTHETIC_SEASON_2020_2021",
+      "sampling_unit_id": "SYNTHETIC_UNIT_out_of_domain",
+      "variety_id": null,
+      "occlusion": "unknown",
+      "device": {
+        "device_id": "synthetic-device-1",
+        "camera_model": "SYNTHETIC_CAMERA_NOT_REAL",
+        "view_angle_degrees": 15.0,
+        "capture_distance_m": 0.5,
+        "lighting": "mixed",
+        "metadata_ref": "synthetic-camera-metadata-v1"
+      },
+      "image_dimensions": {
+        "width_px": 640,
+        "height_px": 480
+      },
+      "record_kind": "synthetic_observation",
+      "SYNTHETIC": true,
+      "split": "out_of_domain",
+      "task_kind": "detection",
+      "annotation_version": "synthetic-annotation-v1",
+      "label_definition_version": "synthetic-candidate-labels-v1",
+      "annotation_quality_status": "reviewed",
+      "annotation_available_at": "2021-01-07T12:02:00Z",
+      "object_count": 2,
+      "count_unit": "fruit_count",
+      "missing_count_reason": null,
+      "class_labels": [
+        "SYNTHETIC_candidate_fruit",
+        "SYNTHETIC_candidate_fruit"
+      ],
+      "objects": [
+        {
+          "object_id": "synthetic-object-0",
+          "class_label": "SYNTHETIC_candidate_fruit",
+          "bbox_xyxy": [
+            20.0,
+            30.0,
+            45.0,
+            55.0
+          ],
+          "mask_polygon": null
+        },
+        {
+          "object_id": "synthetic-object-1",
+          "class_label": "SYNTHETIC_candidate_fruit",
+          "bbox_xyxy": [
+            120.0,
+            30.0,
+            145.0,
+            55.0
+          ],
+          "mask_polygon": null
+        }
+      ],
+      "source_authority": {
+        "authority_id": "synthetic-fixture-generator",
+        "source_ref": "research/blueberry_vision/generate_artifacts.py",
+        "permission_status": "synthetic_only",
+        "evidence_ref": "fabricated-metadata-only-no-real-assets",
+        "allowed_uses": [
+          "metadata_validation",
+          "train",
+          "validation",
+          "test",
+          "out_of_domain"
+        ],
+        "granted_at": null,
+        "expires_at": null
+      },
+      "model_provenance": null,
+      "record_hash": "22dc52adfbb534ace432f36402da16b303bd3f2cd2611397af8b44ec0fb1f726"
+    },
+    {
+      "schema_version": "blueberry-vision-observation/1.0.0",
+      "observation_id": "synthetic-observation-unassigned-001",
+      "image_id": "synthetic-image-unassigned-001",
+      "asset_hash": "ce94f17810353a0ec528d216e0bd13efb2b32769bfa78b8b073de9e9f11ce0bf",
+      "capture_session_id": "synthetic-session-unassigned",
+      "near_duplicate_group_id": "synthetic-near-duplicate-unassigned",
+      "observed_at": "2021-01-09T12:00:00Z",
+      "asset_available_at": "2021-01-09T12:01:00Z",
+      "available_at": "2021-01-09T12:02:00Z",
+      "base_identity": {
+        "status": "unresolved",
+        "base_id": null,
+        "authority_ref": null,
+        "unresolved_reason": "synthetic-example-awaiting-authoritative-identity"
+      },
+      "season_id": "SYNTHETIC_SEASON_2020_2021",
+      "sampling_unit_id": "SYNTHETIC_UNIT_unassigned",
+      "variety_id": null,
+      "occlusion": "unknown",
+      "device": {
+        "device_id": "synthetic-device-0",
+        "camera_model": "SYNTHETIC_CAMERA_NOT_REAL",
+        "view_angle_degrees": null,
+        "capture_distance_m": null,
+        "lighting": "unknown",
+        "metadata_ref": "synthetic-camera-metadata-v1"
+      },
+      "image_dimensions": {
+        "width_px": 640,
+        "height_px": 480
+      },
+      "record_kind": "synthetic_observation",
+      "SYNTHETIC": true,
+      "split": "unassigned",
+      "task_kind": "detection",
+      "annotation_version": null,
+      "label_definition_version": null,
+      "annotation_quality_status": "not_annotated",
+      "annotation_available_at": null,
+      "object_count": null,
+      "count_unit": "fruit_count",
+      "missing_count_reason": "synthetic-intentionally-not-annotated",
+      "class_labels": null,
+      "objects": null,
+      "source_authority": {
+        "authority_id": "synthetic-fixture-generator",
+        "source_ref": "research/blueberry_vision/generate_artifacts.py",
+        "permission_status": "synthetic_only",
+        "evidence_ref": "fabricated-metadata-only-no-real-assets",
+        "allowed_uses": [
+          "metadata_validation",
+          "train",
+          "validation",
+          "test",
+          "out_of_domain"
+        ],
+        "granted_at": null,
+        "expires_at": null
+      },
+      "model_provenance": null,
+      "record_hash": "ba73b2b797e5a572d8e9c3f15c1215935edc79a702c3ca23645c7d1741fc6464"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "classical": {
+    "connectivity": 4,
+    "maximum_component_area_fraction": 0.9,
+    "maximum_input_pixels": 4000000,
+    "minimum_blue_over_green": 12.0,
+    "minimum_color_difference": 18.0,
+    "minimum_component_area": 12,
+    "minimum_fill_ratio": 0.12,
+    "minimum_saturation": 0.2,
+    "minimum_value": 0.12,
+    "name": "classical_rgb_components",
+    "score_type": "non_probability_color_shape_score",
+    "version": "rgb-connected-components/2.0.0"
+  },
+  "config_hash": "f3f601d37c058d58810858cdab78926ab66bb3170b1a1bb0042bd1fca0f493e7",
+  "evaluation": {
+    "ap_iou_threshold": 0.5,
+    "ap_method": "VOC_ALL_POINTS_PRECISION_ENVELOPE",
+    "count_policy": "RAW_OUTPUT_BOX_COUNT_INCLUDING_IGNORED_PREDICTIONS",
+    "count_unit": "visible_fruit_per_image",
+    "ignore_overlap_threshold": 0.5,
+    "ignore_rule": "UNMATCHED_PREDICTION_INTERSECTION_OVER_PREDICTION_AREA_GE_THRESHOLD",
+    "iou_threshold": 0.5,
+    "max_detections": null,
+    "schema_version": "blueberry-vision-evaluator-config/2.0.0"
+  },
+  "inference": {
+    "connectivity": 4,
+    "maximum_component_area_fraction": 0.9,
+    "maximum_input_pixels": 4000000,
+    "minimum_component_area": 12,
+    "minimum_fill_ratio": 0.12,
+    "probability_threshold": 0.5,
+    "score_type": "uncalibrated_pixel_probability_shape_score",
+    "version": "numpy-logistic-pixel/2.0.0"
+  },
+  "selection_policy": "PRE_REGISTERED_DEFAULTS_NO_TEST_TUNING",
+  "source_code_sha256": {
+    "classical.py": "7b4ccbd5a28ffb18cdb4f4f1d6018c27a7d03d671fb568a342f1898d00431604",
+    "evaluator.py": "289bf6e0c76a72ee6dec373949502aecf2ae5fb8cd6d0cc9bf0f7f85d044efbf",
+    "trainable.py": "884ed4e0d032ea24888c1d8901cdb895ba01abea502ef122c0df5d5657a25948"
+  },
+  "test_used_for_model_selection": false,
+  "training": {
+    "feature_version": "normalized-rgb-polynomial/2.0.0",
+    "iterations": 80,
+    "l2_penalty": 0.001,
+    "learning_rate": 0.15,
+    "maximum_input_pixels": 4000000,
+    "maximum_training_samples": 250000,
+    "samples_per_image": 1200,
+    "sampling": "balanced_per_image_without_replacement",
+    "seed": 20261013,
+    "source_scope": "synthetic_train_only",
+    "version": "numpy-logistic-pixel/2.0.0"
+  }
+}

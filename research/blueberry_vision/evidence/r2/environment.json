@@ -1,0 +1,95 @@
+{
+  "architecture": "x86_64",
+  "authorization": {
+    "current_season_actual": false,
+    "draft_pr": true,
+    "private_business_image_access": false,
+    "production_change": false,
+    "ready_merge_tag_release_deploy": false,
+    "synthetic_cpu_training": true,
+    "synthetic_image_generation": true
+  },
+  "base_main_sha": "c35524174865785164fe4529f35067037ccddc2a",
+  "blockers": [],
+  "captured_at": "2026-10-13T02:27:03.779018+00:00",
+  "cpu_only": true,
+  "dependencies": {
+    "Pillow": {
+      "license_classifiers": [],
+      "license_expression": "MIT-CMU",
+      "license_header": "",
+      "version": "12.3.0"
+    },
+    "mypy": {
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "license_header": "",
+      "version": "2.1.0"
+    },
+    "numpy": {
+      "license_classifiers": [],
+      "license_expression": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+      "license_header": "",
+      "version": "2.4.6"
+    },
+    "pydantic": {
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "license_header": "",
+      "version": "2.13.4"
+    },
+    "pytest": {
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "license_header": "",
+      "version": "9.1.1"
+    },
+    "pytest-asyncio": {
+      "license_classifiers": [],
+      "license_expression": "Apache-2.0",
+      "license_header": "",
+      "version": "1.4.0"
+    },
+    "ruff": {
+      "license_classifiers": [],
+      "license_expression": "MIT",
+      "license_header": "",
+      "version": "0.15.18"
+    }
+  },
+  "github_push_permission": true,
+  "initial_tracked_untracked_status": "CLEAN",
+  "isolation": "NEW_WORKTREE_R1_WORKTREE_PRESERVED",
+  "milestone": "M0",
+  "platform": "Linux",
+  "push_dry_run_result": "SUCCESS_NEW_BRANCH_ALLOWED",
+  "python": "3.12.14",
+  "r1_regression": {
+    "command": "python -m pytest research/blueberry_vision/tests/test_validator.py -q",
+    "exit_code": 0,
+    "stderr": "",
+    "stdout": ".....................................................................    [100%]\n69 passed in 1.36s\n"
+  },
+  "r2_branch": "research/blueberry-vision-r2-offline-detection-counting",
+  "r2_start_head_sha": "88f052405d98210864d4f4d56b0da4bb62d5bd12",
+  "requirements_file": "research/blueberry_vision/requirements-r2.txt",
+  "source_branch": "research/blueberry-vision-foundation-prep-r0",
+  "source_head_sha": "88f052405d98210864d4f4d56b0da4bb62d5bd12",
+  "source_sha256": {
+    "AGENTS.md": "ff6eb1c2cc45607138da6a619512fbbdfad8e541016b6b67bd1b65c1daf51b60",
+    "docs/research/blueberry-vision-algorithm-research-r1.md": "cf2959cde71f2306f632befc4cb3a47e1ca0ca77839392d7e9fc0463d5b84f68",
+    "docs/research/blueberry-vision-data-contract-r1.md": "44d60dd2ff84accc5c18edf0f81b1c5bf70d5ac6c75e18489c2260faedf9ae84",
+    "docs/research/blueberry-vision-experiment-protocol-r1.md": "8234fe21fc6341e6fd194ac03b7d8e6283ed61085b6396f951721587bd643641",
+    "docs/research/blueberry-vision-foundation-engineering-preparation-r1.md": "85da1f403f130685bf148ff03e5e6d9c35d1bfe17fca8a1028379055f1c62814",
+    "docs/research/blueberry-vision-foundation-preparation-r0.md": "589a026ddf0acdd6d4ef525661d8be145deac7aaa4d5fd8d5ab992695bffb145",
+    "pyproject.toml": "c9210aeadcf68e6ded852d778e380737bc644e3a3a5766c64e9d412654c384df",
+    "research/blueberry_vision/README.md": "343049be4434583e08082ad651aa9224956b9fccf390babc48b5eaaf2ca60803",
+    "research/blueberry_vision/contracts.py": "f1c67186ce050c5d2368f34d38d946fbdb5b6096e9e076c450dd8cd0c7b8c8a2",
+    "research/blueberry_vision/experiment_protocol_r1.json": "f64591d95400cc9735e99d6483df5b49fee48d40bea68c216137e6a2e18915ad",
+    "research/blueberry_vision/tests/test_validator.py": "327d461f6e83653ddda520161f426a76ac83114caf51791ec189df2687b3e453",
+    "research/blueberry_vision/validate_manifest.py": "9ff23c888e4a4bec816e8bf16a3e8b7823b617b9c4977c40697a3cba3db314d9",
+    "uv.lock": "02f743c0d2ecc884f453c2b6bc4570faf1da6cbca9513dce01e4e5a9d375717e"
+  },
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R2_OFFLINE_DETECTION_COUNTING_PIPELINE"
+}

@@ -1,0 +1,76 @@
+{
+  "branch": "research/blueberry-vision-r2-offline-detection-counting",
+  "checkpoint_parent_sha": "dc6361dd25124bb4b55a3df5ffd25d52cca7a451",
+  "checks": [
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/python",
+        "-m",
+        "pytest",
+        "research/blueberry_vision/tests/test_r2_evaluator.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "......................................                                   [100%]\n38 passed in 0.16s\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "check",
+        "research/blueberry_vision/evaluator.py",
+        "research/blueberry_vision/tests/test_r2_evaluator.py",
+        "research/blueberry_vision/cli.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "All checks passed!\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/ruff",
+        "format",
+        "--check",
+        "research/blueberry_vision/evaluator.py",
+        "research/blueberry_vision/tests/test_r2_evaluator.py",
+        "research/blueberry_vision/cli.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "3 files already formatted\n"
+    },
+    {
+      "command": [
+        "/tmp/blueberry-vision-r2-venv/bin/mypy",
+        "--explicit-package-bases",
+        "research/blueberry_vision/evaluator.py",
+        "research/blueberry_vision/tests/test_r2_evaluator.py",
+        "research/blueberry_vision/cli.py"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "Success: no issues found in 3 source files\n"
+    }
+  ],
+  "facts": {
+    "bbox_ap": "VOC all-points research AP50 NOT COCO mAP",
+    "cli_status": "Generate/assets/baseline/train/predict/evaluate available; report/run-demo acceptance pending M6/M7 checkpoint.",
+    "evaluated_per_model": 28,
+    "evaluation_scope": "SYNTHETIC_ONLY",
+    "excluded_per_model": 0,
+    "failed_and_negative_results_retained": true,
+    "independent_hand_goldens": true,
+    "max_dets": null,
+    "ood_images": 14,
+    "parameters_fixed_before_official_test": true,
+    "test_images": 14
+  },
+  "limitations": [
+    "Engineering synthetic checks only; no real orchard accuracy, kg calibration or production authorization."
+  ],
+  "milestone": "M5",
+  "recorded_at": "2026-10-13T03:05:28.322460+00:00",
+  "source_head_sha": "88f052405d98210864d4f4d56b0da4bb62d5bd12",
+  "status": "PASS",
+  "task_id": "BLUEBERRY_VISION_R2_OFFLINE_DETECTION_COUNTING_PIPELINE"
+}
