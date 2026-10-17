@@ -96,7 +96,11 @@ export function AuthorizedSavedRunSelector() {
           setListing(result.data);
         }
       } catch (failure) {
-        if (task.valid()) setError(safeError(failure));
+        if (task.valid()) {
+          if (failure instanceof DashboardError && failure.status === 409)
+            invalidateSecurity("access");
+          else setError(safeError(failure));
+        }
       } finally {
         if (task.valid()) {
           active.current = null;
