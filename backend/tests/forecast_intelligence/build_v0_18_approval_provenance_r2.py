@@ -638,6 +638,9 @@ def g12(root, r1):
         if len(parents) == 3 and parents[1] == BASE:
             delivery = parents[2]
             break
+    # R2 is now a preserved historical delivery. Later append-only closeout
+    # work must not be misclassified as part of that already-reviewed snapshot.
+    delivery = delivery or "93e9660f6ef2c494178be825c66d11898c6fff97"
     args = ("git", "diff", "--name-only", START)
     current = command(*args, *((delivery,) if delivery else ()), root=root).decode().splitlines()
     untracked = (
@@ -802,7 +805,12 @@ def generate(root):
             s: sum(g["status"] == s for g in gates) for s in ("PASS", "BLOCKED", "PENDING", "FAIL")
         },
         "source_evidence_sha256": {
-            p: digest((root / p).read_bytes()) for p in (*R1_FILES, R2_DOC, SOURCES, BUILDER, TEST)
+            p: digest(
+                git_blob(root, "93e9660f6ef2c494178be825c66d11898c6fff97", p)
+                if p in {BUILDER, TEST}
+                else (root / p).read_bytes()
+            )
+            for p in (*R1_FILES, R2_DOC, SOURCES, BUILDER, TEST)
         },
         "historical_failure_chain": r1["historical_failures"],
         "current_head_ci": "POST_COMMIT_EXTERNAL_EXACT_HEAD_RECEIPT_REQUIRED",
