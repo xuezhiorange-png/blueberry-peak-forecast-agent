@@ -1,0 +1,50 @@
+COMMAND=['npm', 'run', 'test:unit', '--', '--run']
+
+> blueberry-peak-forecast-trial@0.2.0 test:unit
+> vitest --run
+
+
+ RUN  v4.1.10 /Users/charles/blueberry-v018-backend-revoke-read-fix-r1/frontend
+
+
+ Test Files  10 passed (10)
+      Tests  156 passed (156)
+   Start at  13:55:43
+   Duration  4.11s (transform 1.49s, setup 1.85s, import 2.59s, tests 6.60s, environment 12.03s)
+
+EXIT=0
+COMMAND=['npm', 'run', 'lint']
+
+> blueberry-peak-forecast-trial@0.2.0 lint
+> eslint --max-warnings 0 src e2e vite.config.ts playwright.config.ts
+
+EXIT=0
+COMMAND=['npm', 'run', 'typecheck']
+
+> blueberry-peak-forecast-trial@0.2.0 typecheck
+> tsc --noEmit
+
+EXIT=0
+COMMAND=['npm', 'run', 'format:check']
+
+> blueberry-peak-forecast-trial@0.2.0 format:check
+> prettier --check .
+
+Checking formatting...
+All matched files use Prettier code style!
+EXIT=0
+COMMAND=['npm', 'run', 'build']
+
+> blueberry-peak-forecast-trial@0.2.0 build
+> tsc -b && vite build
+
+vite v8.1.5 building client environment for production...
+[2Ktransforming...✓ 141 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.46 kB │ gzip:   0.32 kB
+dist/assets/index-BDPBqYAy.css   24.50 kB │ gzip:   6.04 kB
+dist/assets/index-HneJs152.js   432.81 kB │ gzip: 130.30 kB
+
+✓ built in 148ms
+EXIT=0
