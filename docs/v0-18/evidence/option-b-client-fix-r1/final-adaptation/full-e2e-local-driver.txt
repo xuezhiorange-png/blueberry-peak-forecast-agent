@@ -1,0 +1,96 @@
+"""Local execution of unchanged CI seed/fixtures under the existing owned runner."""
+import json
+import socket
+import subprocess
+import sys
+import time
+import urllib.request
+from pathlib import Path
+
+import yaml
+
+from backend.tests.safe_pilot import run as owned
+
+original = owned.command
+owned.TESTS = [
+    'backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py',
+    'backend/tests/forecast_intelligence/test_v0_18_s5_safe_pilot_contract.py',
+    'backend/tests/forecast_intelligence/test_v0_18_s6_acceptance_contract.py',
+]
+job = yaml.safe_load(Path('.github/workflows/ci.yml').read_text())['jobs']['frontend-e2e']
+
+
+def command(arguments, environment, log, **kwargs):
+    if arguments[:3] != ['npx', 'playwright', 'test']:
+        return original(arguments, environment, log, **kwargs)
+    env = dict(environment)
+    root = Path(env['TMPDIR']).parent
+    for key, value in job['env'].items():
+        if key.startswith('TRIAL_ACTOR_'):
+            env[key] = value
+    env['POSTGRES_DB'] = 'client_test_frontend_e2e'
+    env['DATABASE_URL'] = (
+        f"postgresql+asyncpg://{env['POSTGRES_USER']}:{env['POSTGRES_PASSWORD']}"
+        f"@127.0.0.1:{env['POSTGRES_PORT']}/{env['POSTGRES_DB']}"
+    )
+    env['BLUEBERRY_LEGACY_SYNTHETIC_TEST'] = '1'
+    env['FRONTEND_E2E_XLSX_DIR'] = str(root)
+    env['DASHBOARD_TEST_PYTHON'] = sys.executable
+    create = """import asyncio,os,asyncpg
+async def main():
+ c=await asyncpg.connect(host=os.environ['POSTGRES_HOST'],port=int(os.environ['POSTGRES_PORT']),user=os.environ['POSTGRES_USER'],password=os.environ['POSTGRES_PASSWORD'],database='postgres')
+ await c.execute('CREATE DATABASE client_test_frontend_e2e')
+ await c.close()
+asyncio.run(main())
+"""
+    preparations = [[sys.executable, '-c', create], ['alembic', '-c', 'backend/alembic.ini', 'upgrade', 'head']]
+    for name in ('Seed real Trial authority and import mapping', 'Generate real XLSX acceptance fixture'):
+        step = next(x['run'] for x in job['steps'] if x.get('name') == name)
+        script = step.split("python - <<'PY'\n", 1)[1].rsplit('\nPY', 1)[0]
+        script = 'import os\n' + script.replace('f"/tmp/frontend-e2e-', 'f"{os.environ[\'FRONTEND_E2E_XLSX_DIR\']}/frontend-e2e-')
+        preparations.append([sys.executable, '-c', script])
+    for args in preparations:
+        result = original(args, env, root / 'full-e2e-setup.log', cancellation=kwargs['cancellation'])
+        if result:
+            return result
+    for project in ('chromium-desktop', 'chromium-mobile'):
+        assert (root / f'frontend-e2e-{project}.xlsx').is_file()
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1', 0))
+        port = listener.getsockname()[1]
+    env['VITE_TRIAL_API_PROXY_TARGET'] = f'http://127.0.0.1:{port}'
+    with (root / 'legacy-backend.log').open('wb') as output:
+        child = subprocess.Popen(
+            [sys.executable, '-m', 'uvicorn', 'backend.tests.support.legacy_test_app:create_live_legacy_test_app', '--factory', '--host', '127.0.0.1', '--port', str(port)],
+            env=env, stdout=output, stderr=subprocess.STDOUT, cwd=owned.ROOT,
+        )
+        try:
+            ready = False
+            for _ in range(300):
+                if child.poll() is not None:
+                    raise RuntimeError('OWNED_LEGACY_SERVER_EXITED')
+                try:
+                    with urllib.request.urlopen(env['VITE_TRIAL_API_PROXY_TARGET'] + '/health/ready', timeout=1) as response:
+                        ready = response.status == 200 and response.headers.get('X-Blueberry-Test-Entry') == 'SYNTHETIC_LEGACY'
+                except OSError:
+                    pass
+                if ready:
+                    break
+                if kwargs['cancellation'].signum is not None:
+                    return kwargs['cancellation'].exit_code
+                time.sleep(.1)
+            assert ready, 'ISOLATED_LEGACY_NOT_READY'
+            env['PLAYWRIGHT_JSON_OUTPUT_FILE'] = str(root / 'full-browser-results.json')
+            return original(
+                ['npx', 'playwright', 'test', '--workers=1', '--reporter=list,json', '--output=' + str(root / 'browser')],
+                env, log, **kwargs,
+            )
+        finally:
+            child.terminate()
+            child.wait(timeout=30)
+            (root / 'legacy-server-cleanup.json').write_text(json.dumps({'pid': child.pid, 'exit': child.returncode, 'owned_process_stopped': child.poll() is not None}) + '\n')
+
+
+owned.command = command
+sys.argv = ['full-client-local', '--output', '/tmp/SYNTHETIC-option-b-client-full-e2e-complete-20261017', '--browser']
+owned.main()

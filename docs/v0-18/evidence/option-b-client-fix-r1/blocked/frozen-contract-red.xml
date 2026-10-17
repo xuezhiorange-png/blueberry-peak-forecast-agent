@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.046" timestamp="2026-10-16T22:20:24.863613+08:00" hostname="chengxuezhideMacBook-Air-3.local"><testcase classname="backend.tests.forecast_intelligence.test_v0_18_s4_business_flow_contract" name="test_canonical_sources_and_immutable_history" time="0.006"><failure message="AssertionError: assert '8c098612f7f3...065613a9ddd84' == '22e03d846899...10eba71f51ba8'&#10;  &#10;  - 22e03d846899a00d52aaf1cb2d9df62f71329afa6f06ce7422d10eba71f51ba8&#10;  + 8c098612f7f35cdb99ba508b420f95f7e43eaa556a237d98935065613a9ddd84">def test_canonical_sources_and_immutable_history():
+        raw = FILE.read_bytes()
+        data = json.loads(raw)
+        assert raw == (json.dumps(data, sort_keys=True, ensure_ascii=False, indent=2) + "\n").encode()
+        assert data["task_id"] == "V0_18_S4_DASHBOARD_AUTHORIZED_BUSINESS_FLOW_R1"
+        assert data["base_main_sha"] == BASE
+        assert len(data["frozen_history_sha256"]) == 260
+        for field in ("source_evidence_sha256", "frozen_history_sha256"):
+            for relative, expected in data[field].items():
+                path = Path(relative)
+                assert not path.is_absolute() and ".." not in path.parts
+&gt;               assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected
+E               AssertionError: assert '8c098612f7f3...065613a9ddd84' == '22e03d846899...10eba71f51ba8'
+E                 
+E                 - 22e03d846899a00d52aaf1cb2d9df62f71329afa6f06ce7422d10eba71f51ba8
+E                 + 8c098612f7f35cdb99ba508b420f95f7e43eaa556a237d98935065613a9ddd84
+
+backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py:25: AssertionError</failure></testcase></testsuite></testsuites>
