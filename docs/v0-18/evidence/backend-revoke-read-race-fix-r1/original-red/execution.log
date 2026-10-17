@@ -1,0 +1,145 @@
+The files belonging to this database system will be owned by user "charles".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C.UTF-8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory /tmp/SYNTHETIC-option-b-backend-pg-repro-20261016-r1/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /tmp/SYNTHETIC-option-b-backend-pg-repro-20261016-r1/data -l logfile start
+
+waiting for server to start.... done
+server started
+F
+=================================== FAILURES ===================================
+________ test_lead_1_disable_after_authentication_before_grant_and_read ________
+
+pg_auth = (<backend.app.local_auth.service.AuthService object at 0x117e66fc0>, async_sessionmaker(class_='AsyncSession', bind=<s...ckend.app.local_auth.models.AuthAccount object at 0x117f49850>, 'blueberry_test_auth_eddc68c7d5b9443789fbefe970a5f9e2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x117f70fe0>
+record_property = <function record_property.<locals>.append_property at 0x11713bc40>
+tmp_path = PosixPath('/private/tmp/SYNTHETIC-option-b-backend-pg-repro-20261016-r1/pytest/test_lead_1_disable_after_auth0')
+
+    async def test_lead_1_disable_after_authentication_before_grant_and_read(
+        pg_auth, monkeypatch, record_property, tmp_path
+    ):
+        auth, factory, _, user, _ = pg_auth
+        selected, _ = await seed(factory, user)
+        app = application(auth)
+        authenticated, resume = asyncio.Event(), asyncio.Event()
+        pause = False
+        counts = {"business_reads": 0}
+        observations = []
+        original_authenticate, original_curve = auth.authenticate, ForecastIntelligenceReadService.curve
+    
+        async def barrier_authenticate(request, **kwargs):
+            principal = await original_authenticate(request, **kwargs)
+            if pause and request.url.path.endswith("/curve"):
+                observations.append({"event": "authenticated_transaction_complete"})
+                authenticated.set()
+                await resume.wait()
+            return principal
+    
+        async def observe_curve(self, query):
+            pid, transaction, isolation = (
+                await self.session.execute(
+                    text("SELECT pg_backend_pid(), txid_current(), current_setting('transaction_isolation')")
+                )
+            ).one()
+            observations.append({"event": "canonical_read_entry", "pid": pid, "transaction": transaction, "isolation": isolation})
+            return await original_curve(self, query)
+    
+        def sql_observer(conn, cursor, statement, parameters, context, many):
+            del conn, cursor, parameters, context, many
+            sql = statement.lower().lstrip()
+            if sql.startswith("select") and ("operational_peak_forecast" in sql or "hierarchical_forecast" in sql):
+                counts["business_reads"] += 1
+    
+        monkeypatch.setattr(auth, "authenticate", barrier_authenticate)
+        monkeypatch.setattr(ForecastIntelligenceReadService, "curve", observe_curve)
+        engine = factory.kw["bind"]
+        event.listen(engine.sync_engine, "before_cursor_execute", sql_observer)
+        try:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="https://synthetic.test") as client:
+                assert (await login(client)).status_code == 200
+                positive = await client.get("/api/v1/forecast-intelligence/curve", params=selected.model_dump(mode="json"))
+                assert positive.status_code == 200
+                assert positive.json()["source_result_hash"] == selected.expected_source_result_hash
+                assert counts["business_reads"] > 0, "Broken SQL observer cannot prove zero work"
+                positive_count = counts["business_reads"]
+                counts["business_reads"] = 0
+                observations.clear()
+                pause = True
+                pending = asyncio.create_task(client.get("/api/v1/forecast-intelligence/curve", params=selected.model_dump(mode="json")))
+                try:
+                    await asyncio.wait_for(authenticated.wait(), 5)
+                    # Hold this physical connection until the request completes, so
+                    # the canonical reader cannot reuse its PostgreSQL backend PID.
+                    async with engine.connect() as connection:
+                        async with factory(bind=connection) as db, db.begin():
+                            pid, transaction, isolation = (await db.execute(text("SELECT pg_backend_pid(), txid_current(), current_setting('transaction_isolation')"))).one()
+                            account = await db.scalar(select(AuthAccount).where(AuthAccount.account_id == user.account_id).with_for_update())
+                            account.status = "DISABLED"
+                            account.auth_revision += 1
+                            await auth.revoke_all(db, account, "SYNTHETIC_OPTION_B_DISABLE")
+                            observations.append({"event": "account_exclusive_lock_and_revoke", "pid": pid, "transaction": transaction, "isolation": isolation})
+                        observations.append({"event": "revocation_commit_completed"})
+                        resume.set()
+                        response = await asyncio.wait_for(pending, 10)
+                    assert response.status_code in {401, 403}
+                    assert response.json()["data"] is None
+                    assert "daily_rows" not in response.text
+                    assert selected.expected_source_result_hash not in response.text
+                    assert (await client.get("/api/v1/auth/me")).status_code == 401
+                    readers = [o for o in observations if o["event"] == "canonical_read_entry"]
+                    assert all(r["pid"] != pid and r["transaction"] != transaction for r in readers)
+                    result = {
+                        "SYNTHETIC": True,
+                        "lead": "AUTHENTICATE_TO_READ_REVOCATION_WINDOW",
+                        "positive_control_business_reads": positive_count,
+                        "business_reads_after_disable_commit": counts["business_reads"],
+                        "sensitive_response_sent": False,
+                        "response_status": response.status_code,
+                        "session_invalidated": True,
+                        "observations": observations,
+                        "expected_business_reads_after_disable_commit": 0,
+                    }
+                    record_property("OPTION_B_PG_LEAD_1", json.dumps(result, sort_keys=True))
+                    (tmp_path / "lead-1-observations.json").write_text(json.dumps(result, sort_keys=True, indent=2) + "\n")
+>                   assert counts["business_reads"] == 0, "Disabled subject reached real canonical SQL before final send denial"
+E                   AssertionError: Disabled subject reached real canonical SQL before final send denial
+E                   assert 2 == 0
+
+backend/tests/option_b_pg/test_concurrency.py:105: AssertionError
+=============================== warnings summary ===============================
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: 12 warnings
+  /Users/charles/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.13/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    warnings.warn(
+
+backend/tests/option_b_pg/test_concurrency.py::test_lead_1_disable_after_authentication_before_grant_and_read
+  backend/tests/option_b_pg/test_concurrency.py:19: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_lead_1_disable_after_authentication_before_grant_and_read(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED backend/tests/option_b_pg/test_concurrency.py::test_lead_1_disable_after_authentication_before_grant_and_read
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 13 warnings in 7.54s
+pg_ctl: server is running (PID: 88560)
+/opt/homebrew/Cellar/postgresql@16/16.15_1/bin/postgres "-D" "/tmp/SYNTHETIC-option-b-backend-pg-repro-20261016-r1/data" "-h" "127.0.0.1" "-p" "50493" "-k" "/tmp/SYNTHETIC-option-b-backend-pg-repro-20261016-r1"
+waiting for server to shut down.... done
+server stopped
+pg_ctl: no server running

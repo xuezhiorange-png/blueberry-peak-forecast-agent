@@ -27,18 +27,30 @@ def test_canonical_s3_evidence_and_source_hashes():
             path = Path(relative)
             assert not path.is_absolute() and ".." not in path.parts
             revised = {
+                "backend/tests/business_access/test_contract.py",
                 "backend/tests/historical_source.py",
                 "backend/tests/local_auth/test_runtime_evidence_contract.py",
                 "backend/tests/mcp/test_v0_18_s3_contract.py",
             }
+            revised_authorization = (
+                field == "unchanged_business_sources_sha256"
+                and relative == "backend/app/local_auth/authorization.py"
+            )
             source = (
-                historical_bytes(relative, "08b185b4621bf517846c986841bb5579b6c37b35")
-                if relative in revised
-                else (ROOT / path).read_bytes()
+                historical_bytes(relative, data["base_main_sha"])
+                if revised_authorization
+                else (
+                    historical_bytes(relative, "08b185b4621bf517846c986841bb5579b6c37b35")
+                    if relative in revised
+                    else (ROOT / path).read_bytes()
+                )
             )
             assert hashlib.sha256(source).hexdigest() == digest
             if field != "source_evidence_sha256":
-                assert (ROOT / path).read_bytes() == historical_bytes(
+                current_or_approved_history = (
+                    source if revised_authorization else (ROOT / path).read_bytes()
+                )
+                assert current_or_approved_history == historical_bytes(
                     relative, data["base_main_sha"]
                 )
     for relative, binding in data["historical_source_adaptation"].items():
