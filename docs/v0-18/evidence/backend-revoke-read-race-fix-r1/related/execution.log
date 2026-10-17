@@ -1,0 +1,103 @@
+The files belonging to this database system will be owned by user "charles".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C.UTF-8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory /tmp/SYNTHETIC-v018-revoke-related-s1-s6-20261017-r1/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /tmp/SYNTHETIC-v018-revoke-related-s1-s6-20261017-r1/data -l logfile start
+
+waiting for server to start.... done
+server started
+........................................................................ [ 28%]
+........................................................................ [ 57%]
+........................................................................ [ 86%]
+...................................                                      [100%]
+=============================== warnings summary ===============================
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: 12 warnings
+  /Users/charles/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.13/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    warnings.warn(
+
+backend/tests/safe_pilot/test_mcp_and_rollback.py::test_operational_factory_all_eight_real_tls_payload_parity_rotation_rollback
+  /Users/charles/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/websockets/legacy/__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+    warnings.warn(  # deprecated in 14.0 - 2024-11-09
+
+backend/tests/safe_pilot/test_mcp_and_rollback.py::test_operational_factory_all_eight_real_tls_payload_parity_rotation_rollback
+  /Users/charles/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+    from websockets.server import WebSocketServerProtocol
+
+backend/tests/safe_pilot/test_restore_and_ingress.py::test_full_backup_restore_reapproval_and_fail_closed_rollback
+  backend/tests/safe_pilot/test_restore_and_ingress.py:146: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_full_backup_restore_reapproval_and_fail_closed_rollback(
+
+backend/tests/safe_pilot/test_runner_cleanup.py::test_sigterm_during_pg_ctl_start_cleans_postmaster
+  backend/tests/safe_pilot/test_runner_cleanup.py:261: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_sigterm_during_pg_ctl_start_cleans_postmaster(runners):
+
+backend/tests/safe_pilot/test_runner_cleanup.py::test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster
+  backend/tests/safe_pilot/test_runner_cleanup.py:274: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster(runners):
+
+backend/tests/safe_pilot/test_runner_cleanup.py::test_failed_test_exit_still_cleans_postgres_and_preserves_failure
+  backend/tests/safe_pilot/test_runner_cleanup.py:297: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_failed_test_exit_still_cleans_postgres_and_preserves_failure(runners):
+
+backend/tests/safe_pilot/test_runner_cleanup.py::test_start_command_failure_after_postmaster_spawn_still_cleans
+  backend/tests/safe_pilot/test_runner_cleanup.py:306: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_start_command_failure_after_postmaster_spawn_still_cleans(runners):
+
+backend/tests/safe_pilot/test_runner_cleanup.py::test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup
+  backend/tests/safe_pilot/test_runner_cleanup.py:315: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup(runners, record_property):
+
+backend/tests/safe_pilot/test_two_worker_accounts.py::test_two_posix_sdk_workers_never_mix_accounts_and_refresh_policy
+  backend/tests/safe_pilot/test_two_worker_accounts.py:80: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_two_posix_sdk_workers_never_mix_accounts_and_refresh_policy(
+
+backend/tests/acceptance_s6/test_tls_authority.py::test_s6_canonical_http_sdk_complete_payloads[BASE]
+backend/tests/acceptance_s6/test_tls_authority.py::test_s6_canonical_http_sdk_complete_payloads[REGION]
+backend/tests/acceptance_s6/test_tls_authority.py::test_s6_canonical_http_sdk_complete_payloads[COMPANY]
+  backend/tests/acceptance_s6/test_tls_authority.py:88: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.parametrize("level", ["BASE", "REGION", "COMPANY"])
+
+backend/tests/acceptance_s6/test_tls_revocation.py::test_s6_tls_revocation_precedes_response_release[account]
+backend/tests/acceptance_s6/test_tls_revocation.py::test_s6_tls_revocation_precedes_response_release[grant]
+  backend/tests/acceptance_s6/test_tls_revocation.py:20: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.parametrize("revocation", ["account", "grant"])
+
+backend/tests/acceptance_s6/test_zero_reads.py::test_s6_http_denies_before_sensitive_work[missing_cookie]
+backend/tests/acceptance_s6/test_zero_reads.py::test_s6_http_denies_before_sensitive_work[wrong_hash]
+backend/tests/acceptance_s6/test_zero_reads.py::test_s6_http_denies_before_sensitive_work[foreign_run]
+backend/tests/acceptance_s6/test_zero_reads.py::test_s6_http_denies_before_sensitive_work[foreign_season]
+backend/tests/acceptance_s6/test_zero_reads.py::test_s6_http_denies_before_sensitive_work[foreign_family]
+backend/tests/acceptance_s6/test_zero_reads.py::test_s6_http_denies_before_sensitive_work[no_quality]
+backend/tests/acceptance_s6/test_zero_reads.py::test_s6_http_denies_before_sensitive_work[admin]
+  backend/tests/acceptance_s6/test_zero_reads.py:115: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.parametrize(
+
+backend/tests/acceptance_s6/test_zero_reads.py::test_s6_mcp_no_exact_or_quality_grant_has_zero_sensitive_work
+  backend/tests/acceptance_s6/test_zero_reads.py:176: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_s6_mcp_no_exact_or_quality_grant_has_zero_sensitive_work(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+251 passed, 34 warnings in 409.85s (0:06:49)
+pg_ctl: server is running (PID: 45675)
+/opt/homebrew/Cellar/postgresql@16/16.15_1/bin/postgres "-D" "/tmp/SYNTHETIC-v018-revoke-related-s1-s6-20261017-r1/data" "-h" "127.0.0.1" "-p" "49559" "-k" "/tmp/SYNTHETIC-v018-revoke-related-s1-s6-20261017-r1"
+waiting for server to shut down.... done
+server stopped
+pg_ctl: no server running

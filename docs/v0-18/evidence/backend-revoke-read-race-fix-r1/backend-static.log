@@ -1,0 +1,9 @@
+COMMAND=['/Users/charles/blueberry-simple-admin-r1/.venv/bin/ruff', 'check', '.']
+All checks passed!
+EXIT=0
+COMMAND=['/Users/charles/blueberry-simple-admin-r1/.venv/bin/ruff', 'format', '--check', '.']
+1485 files already formatted
+EXIT=0
+COMMAND=['/Users/charles/blueberry-simple-admin-r1/.venv/bin/mypy', 'backend/app']
+Success: no issues found in 581 source files
+EXIT=0

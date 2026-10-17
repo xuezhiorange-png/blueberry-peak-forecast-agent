@@ -1,0 +1,74 @@
+{
+  "artifacts": {
+    "executed-test-source.txt": {
+      "sha256": "056238c364557bd20ad8ac5fdbc8038e6921c321da903d7d1f1ddd35f1a7a4d7",
+      "source": "/Users/charles/blueberry-v018-backend-pg-repro-r1/backend/tests/option_b_pg/test_concurrency.py"
+    },
+    "owned-cleanup.json": {
+      "sha256": "c40a172f63e2a1fa6acb37afe629ffdb8a96fceaacd2529079388a5ae7a26dcb",
+      "source": "/tmp/SYNTHETIC-option-b-backend-pg-repro-20261016-r1/owned-resources.json"
+    },
+    "red-junit.xml": {
+      "sha256": "6e56105cf69134fb958e75ef1510d9de4700c1c95159189a874396068d65fe1e",
+      "source": "/tmp/SYNTHETIC-option-b-backend-pg-repro-20261016-r1/backend.xml"
+    }
+  },
+  "backend_production_code_changed": false,
+  "base_main_sha": "ebe50fbe250097a882407604a8482ca9cfdf6d9a",
+  "cleanup": {
+    "data_device_inode": [
+      16777231,
+      132723567
+    ],
+    "directory_identity_verified": true,
+    "listener_closed": true,
+    "postmaster_absent": true,
+    "postmaster_pid": 88560,
+    "root_device_inode": [
+      16777231,
+      132723563
+    ],
+    "state": "STOPPED",
+    "stop_exit": 0
+  },
+  "governance_exception_approved": false,
+  "h_owner_risk_acceptance": false,
+  "independent_acceptance": "PENDING",
+  "lead_1": {
+    "SYNTHETIC": true,
+    "business_reads_after_disable_commit": 2,
+    "expected_business_reads_after_disable_commit": 0,
+    "lead": "AUTHENTICATE_TO_READ_REVOCATION_WINDOW",
+    "observations": [
+      {
+        "event": "authenticated_transaction_complete"
+      },
+      {
+        "event": "account_exclusive_lock_and_revoke",
+        "isolation": "read committed",
+        "pid": 88676,
+        "transaction": 748
+      },
+      {
+        "event": "revocation_commit_completed"
+      },
+      {
+        "event": "canonical_read_entry",
+        "isolation": "read committed",
+        "pid": 88677,
+        "transaction": 749
+      }
+    ],
+    "positive_control_business_reads": 2,
+    "response_status": 401,
+    "sensitive_response_sent": false,
+    "session_invalidated": true
+  },
+  "lead_2": "NOT_EXECUTED_STOP_ON_CONFIRMED_LEAD_1",
+  "production_readiness": "NOT_READY",
+  "raw_execution_log_sha256": "c3971c62f320ca17687b25aa93812cff940a10c5ecaa1992922d596e7ce2b2af",
+  "result": "REPRODUCED",
+  "stop": true,
+  "task_id": "V0_18_OPTION_B_BACKEND_CONCURRENCY_POSTGRES_REPRO_R1",
+  "version_closeout_formal_complete": false
+}

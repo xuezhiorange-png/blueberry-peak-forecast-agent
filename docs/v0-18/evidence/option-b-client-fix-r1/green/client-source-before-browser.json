@@ -1,0 +1,27 @@
+{
+  "captured_at_utc": "2026-10-17T03:14:38.343669+00:00",
+  "phase": "BEFORE_BROWSER_BUILD",
+  "source_sha256": {
+    "frontend/e2e/dashboard-business-flow.spec.ts": "6556d04e2a4d4a1b5e98f659eeb1525cc9405a5194a8cb168d81231245c43e88",
+    "frontend/e2e/dashboard-s6-acceptance.spec.ts": "52552f89cce5216f3144eba90b59ad04bc37110a2afa6538d15c4ad10e3233ac",
+    "frontend/e2e/option-b-client-binding.spec.ts": "02ca419ccd039431f0eafcf780027fd02ee169bf19929e5d21b98f9b9c601077",
+    "frontend/e2e/support/option_b_binding_pg.py": "9663c0abde944ea74933662ad52d4568c0bd9337c9ac41dec0c18f88d66bfc3c",
+    "frontend/src/dashboard/api/client.ts": "8c098612f7f35cdb99ba508b420f95f7e43eaa556a237d98935065613a9ddd84",
+    "frontend/src/dashboard/api/scenarioBinding.ts": "e14ca89fb82ba5c819e8a76b5de0aef3e2df344ead086a007f018aaf3f20be47",
+    "frontend/src/dashboard/api/security.ts": "c47f63a43d04bd7eaf0d6958d05e407af2d5fc82c13228b56eb4a9ca1f314572",
+    "frontend/src/dashboard/app/Dashboard.tsx": "1c0d243662875fc5323e7f501e1ceee4e309086b2d293bdd1d45a33e1d2b9592",
+    "frontend/src/dashboard/app/ProductEntry.tsx": "0156dc8e8ad1fd7ee4edeb2046bfb9853afc4202d8a18591b619246157c44926",
+    "frontend/src/dashboard/charts/Curves.tsx": "05086ee11e936bfe25242acc522e47734063a88d3455cdd3d50f3d511c73f1f2",
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx": "9738107c43d225996e39e4be93ef355b7e16440af4a85a9646abdea85275c417",
+    "frontend/src/dashboard/components/presentation.tsx": "9383425f2e50bb64453db14a273b0eb0273b4501648a60a54a2588478d49adb1",
+    "frontend/src/dashboard/context/ForecastContext.tsx": "04471ad790e0e3c76e4a587197d426b37dd6a814a2ab7e3545a62622aa221760",
+    "frontend/src/dashboard/context/SessionContext.tsx": "a9793aa2b8e2a4dcd921a99848757a0718c83c62b48d089867e6adb8e38c9ada",
+    "frontend/src/dashboard/context/useResource.ts": "baf8d774b1dbf79ad297f88172ea6c63c0559f1c2d6f577e2eddccebf17bc3d7",
+    "frontend/src/dashboard/pages/CapacityPage.tsx": "c660d643af653c08c3d73d06a53f628e1b02977b2c878738947ec26e8e66b968",
+    "frontend/src/dashboard/pages/ReadPages.tsx": "eaf4f7fec98cdb3e5bd3c258baefa5c743612e5667ac42317b67327d1f4c4b91",
+    "frontend/src/dashboard/schemas/business.ts": "e57dc68ec04df412232dd3b8e43dbaafeb072dfa1ce9501b86e8d6a21ba07881",
+    "frontend/src/dashboard/schemas/contracts.ts": "095f3c145b6ba35ee78c614050284293677906f9d7abb9bef672b53f372c8a25",
+    "frontend/src/dashboard/styles/dashboard.css": "f01acc1b44823dd8bab53f8fca102b9eb1be3b4c51e02f4e044bf64874982bdf",
+    "frontend/src/dashboard/styles/tokens.ts": "cf918bed6b75322fb026383647f715cdf52cc222692f3a57df1af67f36d8c257"
+  }
+}

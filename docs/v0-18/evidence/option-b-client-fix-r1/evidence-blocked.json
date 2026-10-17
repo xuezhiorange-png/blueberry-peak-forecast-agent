@@ -1,0 +1,155 @@
+{
+  "a_g_independent_acceptance": "PENDING",
+  "artifacts": {
+    "docs/v0-18/evidence/option-b-client-fix-r1/blocked/frontend-unit-green.json": "ffdf355e0984405924b3a057ce0e9005c61300e9327c67abfe966139c74b38ed",
+    "docs/v0-18/evidence/option-b-client-fix-r1/blocked/frozen-contract-red.xml": "fbf077b486a30bdff70c84e3fa4865af93939f21520d4dabe5bda6ad472d597b",
+    "docs/v0-18/evidence/option-b-client-fix-r1/red/original-blocker-report.txt": "0dc874133452dfd4499c967e8de37f2e72ea1738277038a38a2fd5b75a790a0c",
+    "docs/v0-18/evidence/option-b-client-fix-r1/red/original-probe-source.txt": "350a4e4f01bf0059ada70f78772a1aed7616dd71e8714f599d8bc9514f04a3e3",
+    "docs/v0-18/evidence/option-b-client-fix-r1/red/original-probes.json": "0a95616445def5634cfb68d12e4b7f70fad92127ec51dad64f15836c28e0820b",
+    "docs/v0-18/evidence/option-b-client-fix-r1/red/repeated-red.json": "37f12a5adab9481264cdd125d4bbc6e6ac34f77ddef81219d3ec6c27aabc8d62"
+  },
+  "backend_format": "PASS",
+  "backend_reproduction_is_separate": true,
+  "backend_reproduction_pass_claim": false,
+  "backend_runtime_changed": false,
+  "base_main_sha": "ebe50fbe250097a882407604a8482ca9cfdf6d9a",
+  "binding_contract_insufficient": false,
+  "binding_method": "VERIFY_FROZEN_INPUT_SCENARIO_HASH_COMMITMENT_AND_RAW_STRINGS_NO_BUSINESS_RECOMPUTATION",
+  "blocker": "HISTORICAL_HASH_TEST_ADAPTATION_REQUIRES_SEPARATE_AUTHORIZATION",
+  "ci_workflow_changed": false,
+  "client_red_reproduced": true,
+  "client_runtime_implemented_not_formally_accepted": true,
+  "deploy_authorized": false,
+  "exact_head_ci": null,
+  "final_head_sha": null,
+  "frontend_build": "PASS",
+  "frontend_format": "PASS",
+  "frontend_unit": {
+    "failed": 0,
+    "passed": 156
+  },
+  "governance_exception_approved": false,
+  "h_owner_risk_acceptance": false,
+  "historical_contract_regression": {
+    "failed": 1,
+    "failed_node": "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py::test_canonical_sources_and_immutable_history",
+    "passed": 105
+  },
+  "historical_evidence_changed": false,
+  "historical_source_conflicts": {
+    "frontend/src/dashboard/api/client.ts": {
+      "current_sha256": "8c098612f7f35cdb99ba508b420f95f7e43eaa556a237d98935065613a9ddd84",
+      "historical_commit_verified": "ebe50fbe250097a882407604a8482ca9cfdf6d9a",
+      "historical_expected_sha256": "22e03d846899a00d52aaf1cb2d9df62f71329afa6f06ce7422d10eba71f51ba8"
+    },
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx": {
+      "current_sha256": "9738107c43d225996e39e4be93ef355b7e16440af4a85a9646abdea85275c417",
+      "historical_commit_verified": "ebe50fbe250097a882407604a8482ca9cfdf6d9a",
+      "historical_expected_sha256": "c962bdffc8be0c5b19c3feeceadb4463616e884c0f019d2853c27cd862e9c9a0"
+    }
+  },
+  "lint": "PASS",
+  "local_pg_full_acceptance": "NOT_COMPLETED",
+  "merge_authorized": false,
+  "mypy_backend_app": "PASS",
+  "owned_cleanup": [
+    {
+      "cleanup": {
+        "data_device_inode": [
+          16777231,
+          132792749
+        ],
+        "directory_identity_verified": true,
+        "listener_closed": true,
+        "postmaster_absent": true,
+        "postmaster_pid": 91982,
+        "root_device_inode": [
+          16777231,
+          132792735
+        ],
+        "state": "STOPPED",
+        "stop_exit": 0
+      },
+      "exit": 143,
+      "path": "/tmp/SYNTHETIC-option-b-client-regression-20261016-r1/owned-resources.json",
+      "sha256": "73729a1bcf9612a06e7cd3595c2d27f0589bce10ab837c276efa5f0d6667bdbf",
+      "shutdown_exit": 0
+    },
+    {
+      "cleanup": {
+        "data_device_inode": [
+          16777231,
+          132898782
+        ],
+        "directory_identity_verified": true,
+        "listener_closed": true,
+        "postmaster_absent": true,
+        "postmaster_pid": 94163,
+        "root_device_inode": [
+          16777231,
+          132898771
+        ],
+        "state": "STOPPED",
+        "stop_exit": 0
+      },
+      "exit": 143,
+      "path": "/tmp/SYNTHETIC-option-b-client-regression-20261016-final/owned-resources.json",
+      "sha256": "502dd2c82815b2bf51f736fd7a1e6aa53e298ff7b1ef6c3479b8b2dc44a6eee0",
+      "shutdown_exit": 0
+    },
+    {
+      "cleanup": {
+        "data_device_inode": [
+          16777231,
+          133005499
+        ],
+        "directory_identity_verified": true,
+        "listener_closed": true,
+        "postmaster_absent": true,
+        "postmaster_pid": 95593,
+        "root_device_inode": [
+          16777231,
+          133005493
+        ],
+        "state": "STOPPED",
+        "stop_exit": 0
+      },
+      "exit": 143,
+      "path": "/tmp/SYNTHETIC-option-b-client-regression-20261016-final2/owned-resources.json",
+      "sha256": "1b85b73bcfa288f13c804c2e505d09bbd8dda521f854c17dce9096c5ff42cec5",
+      "shutdown_exit": 0
+    }
+  ],
+  "pr_number": null,
+  "production_readiness": "NOT_READY",
+  "ready_authorized": false,
+  "real_https_postgres_browser": "NOT_EXECUTED_CANCELLED_BEFORE_BROWSER",
+  "release_authorized": false,
+  "required_extra_authorization": {
+    "ci_workflow_change_required": false,
+    "scope": "Only resolve the two historical frontend sources using reviewed fixed Git bytes; preserve all expected hashes, frozen evidence and current runtime checks",
+    "test_file": "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py"
+  },
+  "result": "BLOCKED",
+  "ruff": "PASS",
+  "source_sha256": {
+    "docs/v0-18/option-b-client-authority-scenario-binding-fix-r1.md": "090116bb210a17950eae29922e0e736d840e1c17708741d3df9ceb7dbd74bcf8",
+    "frontend/e2e/option-b-client-binding.spec.ts": "02ca419ccd039431f0eafcf780027fd02ee169bf19929e5d21b98f9b9c601077",
+    "frontend/e2e/support/option_b_binding_pg.py": "9663c0abde944ea74933662ad52d4568c0bd9337c9ac41dec0c18f88d66bfc3c",
+    "frontend/e2e/support/publish_option_b_client.py": "9e009d791995a547351f8f9d0fc489e1a418613a5397654dc3f4252d5fd587d1",
+    "frontend/e2e/support/run_option_b_client.py": "09eb3ba85e6134f0dcae5ab8640cfd3648daa5bcb70bac74c204f4aa27cdaf14",
+    "frontend/src/dashboard/api/client.ts": "8c098612f7f35cdb99ba508b420f95f7e43eaa556a237d98935065613a9ddd84",
+    "frontend/src/dashboard/api/scenarioBinding.ts": "e14ca89fb82ba5c819e8a76b5de0aef3e2df344ead086a007f018aaf3f20be47",
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx": "9738107c43d225996e39e4be93ef355b7e16440af4a85a9646abdea85275c417",
+    "frontend/src/test/fixtures/build_option_b_workforce.py": "68f2c5f5629fe54450943fda4f6014fd2228c2e163465995347d2fe56c708da0",
+    "frontend/src/test/fixtures/option-b-workforce-synthetic.json": "8e28bdfc3729e2092c278347cf7986b24f608119df4af4615ae0d8747a0ccddd",
+    "frontend/src/test/optionBBlockingAudit.test.tsx": "42ff3ad3be384b273ec8f2203736b492f1515340696a9df6a8f7d92ae7e8d87c",
+    "frontend/src/test/scenarioBinding.test.ts": "c95b07c987bc057e2b59489bc15f70a46d1fa8dfe81da73ff106360c6594f8f0",
+    "frontend/src/test/setup.ts": "e6ef901305e43b84146ec66c09402bf799c95d331d791cff40bdb55283396df2"
+  },
+  "stop": true,
+  "tag_authorized": false,
+  "task_id": "V0_18_OPTION_B_CLIENT_AUTHORITY_SCENARIO_BINDING_FIX_R1",
+  "typecheck": "PASS",
+  "version_closeout_formal_complete": false
+}

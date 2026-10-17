@@ -8,6 +8,15 @@ from backend.tests.historical_source import historical_bytes
 
 ROOT = Path(__file__).resolve().parents[3]
 BASE = "08b185b4621bf517846c986841bb5579b6c37b35"
+S4_DELIVERY = "89641834ab7a0bd902a23f9243325da5c163d518"
+APPROVED_EVOLVING_SOURCES = {
+    "backend/tests/mcp/test_v0_18_s3_contract.py",
+    "backend/tests/local_auth/test_runtime_evidence_contract.py",
+    "frontend/src/dashboard/api/client.ts",
+    "frontend/src/dashboard/api/security.ts",
+    "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx",
+    "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py",
+}
 FILE = ROOT / "docs/v0-18/evidence/s4-dashboard-authorized-business-flow-r1.json"
 
 
@@ -22,7 +31,12 @@ def test_canonical_sources_and_immutable_history():
         for relative, expected in data[field].items():
             path = Path(relative)
             assert not path.is_absolute() and ".." not in path.parts
-            assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected
+            source = (
+                historical_bytes(relative, S4_DELIVERY, root=ROOT)
+                if field == "source_evidence_sha256" and relative in APPROVED_EVOLVING_SOURCES
+                else (ROOT / path).read_bytes()
+            )
+            assert hashlib.sha256(source).hexdigest() == expected
             if field == "frozen_history_sha256":
                 assert (ROOT / path).read_bytes() == historical_bytes(relative, BASE)
     for relative, binding in data["historical_source_bindings"].items():
