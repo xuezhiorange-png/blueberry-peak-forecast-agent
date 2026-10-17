@@ -1,0 +1,67 @@
+{
+  "SYNTHETIC": true,
+  "backend_exit": 1,
+  "business_cancelled": false,
+  "cancel_signal": null,
+  "cleanup": {
+    "data_device_inode": [
+      16777231,
+      134005000
+    ],
+    "directory_identity_verified": true,
+    "listener_closed": true,
+    "postmaster_absent": true,
+    "postmaster_pid": 44375,
+    "root_device_inode": [
+      16777231,
+      134004996
+    ],
+    "state": "STOPPED",
+    "stop_exit": 0
+  },
+  "execution_secret_scan": "PASS",
+  "execution_sha256": "3234d0489c27c52f35faee78080f7d033d09488ede59753d96e77bfec20c9ffe",
+  "exit": 1,
+  "finished_at_utc": "2026-10-17T05:39:21.756365+00:00",
+  "host": "127.0.0.1",
+  "ownership": {
+    "data_device_inode": [
+      16777231,
+      134005000
+    ],
+    "pg_version_sha256": "e6c21e8d260fe71882debdb339d2402a2ca7648529bc2303f48649bce0380017",
+    "root_device_inode": [
+      16777231,
+      134004996
+    ]
+  },
+  "password_published": false,
+  "port": 64266,
+  "production_deployed": false,
+  "python": "3.12.13 (main, May 10 2026, 19:20:41) [Clang 22.1.3 ]",
+  "root": "/tmp/SYNTHETIC-v018-revoke-read-fix-original-red-20261017",
+  "shutdown_exit": 0,
+  "signal_count": 0,
+  "source_sha256": {
+    "backend/app/main.py": "951239a381f3d1cfb0074411e745396a782db46b849da475902eb619730138ac",
+    "backend/app/mcp/forecast_intelligence_http.py": "b04b10851ce2b07360224b4378f62d4124808734fb42661f5bb1241a39ca6830",
+    "backend/app/mcp/forecast_intelligence_policy.py": "166cd1848898016ae92699e85c1067008edacc344b465cf516eea71bf52f6fb2",
+    "backend/tests/safe_pilot/__init__.py": "a2b7ee03a8e5a3e313004ca8fdd73df8d1aad43cb41218706f47712c65edad9b",
+    "backend/tests/safe_pilot/cleanup_evidence.py": "aba468d8adfd98c7b38ccc5092e59b1ce885b250223a54cd7c57ae7f776480bd",
+    "backend/tests/safe_pilot/conftest.py": "fd5c3b01ae12c2f8e4e389ff6990db301d8966ddb037df9c01b0cab623e2c99c",
+    "backend/tests/safe_pilot/evidence.py": "1cec6983dae8288a5990ce1432be62b0b2ecb03fc0806edb19e496846896dca9",
+    "backend/tests/safe_pilot/operations.py": "4e2b8805d4c1fc6adc621d2ac75818b40a2f058bd27603a55269f786c9762caa",
+    "backend/tests/safe_pilot/run.py": "36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43",
+    "backend/tests/safe_pilot/test_mcp_and_rollback.py": "1b09f73b5d4ab6de05a231edc85ab0e2521883ab13a1bd57647efbc090ec3f64",
+    "backend/tests/safe_pilot/test_recovered_policy.py": "4e8bdc1c3e846f25434bac3f737018af0a445e894b5ae6b6a5da2bb68807ae01",
+    "backend/tests/safe_pilot/test_restore_and_ingress.py": "41da5921f25a3938a00d9dd8512fa26170dd851f98189ee66ddd5b7062d703e9",
+    "backend/tests/safe_pilot/test_runner_cleanup.py": "7f45b2067844da5c2e91ce217d4a04d617f873264e9ae4d8c843686d0b368ad9",
+    "backend/tests/safe_pilot/test_two_worker_accounts.py": "754cfad294964998bb3c3b89070d0a29e787840fe3ada658287ed146705b4817",
+    "frontend/e2e/dashboard-business-flow.spec.ts": "6556d04e2a4d4a1b5e98f659eeb1525cc9405a5194a8cb168d81231245c43e88",
+    "frontend/e2e/support/business_pg.py": "8e762482611503b15200092761d6fb9f8a6822d477d5e769521a5fe5b9d7c902"
+  },
+  "started_at_utc": "2026-10-17T05:39:14.489004+00:00",
+  "tests": [
+    "backend/tests/revoke_read_race"
+  ]
+}

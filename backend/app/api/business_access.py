@@ -12,6 +12,7 @@ from backend.app.business_access.response import DiscoveryResponse, failure
 from backend.app.business_access.schemas import Filters, Selection
 from backend.app.business_access.service import DiscoveryService
 from backend.app.forecast_intelligence.read_schemas import ReadError
+from backend.app.local_auth.authorization import read_admission
 from backend.app.local_auth.sessions import AuthError
 
 router = APIRouter()
@@ -27,7 +28,7 @@ async def handle(request: Request, operation: str) -> JSONResponse:
         params = request.query_params
         if len(params.multi_items()) != len(params):
             raise AuthError("INVALID_REQUEST", 422)
-        async with auth.factory() as db:
+        async with auth.factory() as db, read_admission(auth, db, request, principal):
             if operation == "selection":
                 if params:
                     raise AuthError("INVALID_REQUEST", 422)
