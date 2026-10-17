@@ -1,0 +1,128 @@
+# V0.18 OPTION_B A–G 审查材料：缺陷触发停止 R1
+
+TASK_ID=V0_18_OPTION_B_COMPENSATING_CONTROLS_A_G_R1
+
+**RESULT=BLOCKED。本文件不是完整 A–G 接受报告。** 实际审查 main 为
+`ebe50fbe250097a882407604a8482ca9cfdf6d9a`。发现可重复的生产组件/客户端缺陷后，
+依本次授权的停止规则停止正式验收，未修改生产文件、未创建提交或 PR、未执行新 HEAD CI。
+需要 Owner 单独授权定向修复，不能靠放宽测试完成本任务。
+
+## 已核实基线与证据层级
+
+- Fresh fetch：main 精确匹配预期；#729 已合并到上述 main。
+- #729 push CI #38878373722 completed/success；4 项实际执行成功，8 项规则性跳过。
+- #728 仍 OPEN/Draft，准确 HEAD `93e9660f6ef2c494178be825c66d11898c6fff97`。
+- 重新获取 #728 CI #38859661855 attempt 1：12 项任务成功。实际下载 JUnit：
+  Canary 10,289 个 testcase / 5 skipped / 0 failures/errors；Golden 9,244 个
+  testcase / 21 skipped / 0 failures/errors。testcase 数包含 skipped，不能全部称为 passed。
+- 只读取了 17 个 PR 的 GitHub PR/Review/Comment 资料和 34 个准确 attempt 的 CI
+  元数据、父提交与历史日志；这些材料不能证明未恢复的历史 Owner 审批发生过。
+- 辅助代码审查和本报告都由 Codex 执行，不是独立审查者的正式接受。
+
+## F01：目录冲突后旧预测仍保留（已复现）
+
+来源：`frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx` 的 load()。
+scope/list 的 grant_revision 或 catalog_snapshot 不一致时，代码在客户端构造
+409 DIRECTORY_CHANGED，但 catch 只设置 error，不像 select() 的 409 分支那样
+调用 invalidateSecurity("access")。
+
+复现：使用实际 ForecastProvider、选择器及请求校验代码，种入明确 SYNTHETIC 的
+旧合法上下文；返回两个合法 Schema、但 revision 或 snapshot 不一致的 HTTP DTO。
+界面已经显示“来源身份不一致”，上下文仍为 SYNTHETIC_OLD_CONTEXT，而不是 CLEARED。
+两个独立测试均失败，StrictMode 下重现。没有 mock 授权函数或修改组件。
+
+这证明本地冲突清理缺陷；**不证明服务器已泄漏未授权数据**。该探针使用合成 fetch
+响应，是定位客户端缺陷的单元测试，不是实际 HTTP/PostgreSQL/浏览器全链路验收。
+
+最小修复建议（尚未授权）：仅定向修改该组件冲突处理；增加现有 ForecastContext/
+SessionGate 联动回归，确保旧日期、结果和排名一起失效、迟到响应不恢复旧状态。
+不应为了修复此点放宽服务器认证或改动历史证据。
+
+## F02：模拟响应未绑定提交产能及情景版本（已复现）
+
+来源：`frontend/src/dashboard/api/client.ts` 的 verifyScenario()。
+它核对 forecast/cost/hash、规划级别、情景 ID 和日期，但没有核对返回的每日原始
+产能输入与 scenario_version。使用既有 SYNTHETIC 夹具，将请求首日 DIRECT 产能改为
+999999 并修改 scenario_version，实际 simulate() 仍接受旧 fixture 的 READY 响应。
+“应拒绝该响应”的断言失败。compare() 同样调用该校验函数，尚未新增其单独探针。
+
+这证明客户端响应绑定缺口，**不证明服务端计算错误、真实网络串包或错误业务 Hash**。
+未来修复应验证原始输入身份/语义，不在浏览器重算 backlog、损失、排名或预测总量。
+最小修复范围候选为该客户端及直接单元/浏览器回归；是否需要额外 Schema 更改需先审查。
+
+## 待进一步确认的后端线索（非 PostgreSQL 运行结论）
+
+辅助源码审查发现两个应交给独立审查和定向复现的线索：
+
+1. authenticate 返回 Principal 后，到 authorize()/DiscoveryService 读取业务前，未再
+   刷新账号/会话状态。撤权已提交时可能仍进入读阶段；最终 release gate 另行复核。
+   需要实际 PostgreSQL barrier 测试区分“已获准在途请求”和“撤权后的新读准入”，
+   不把内存协作者探针等同于真实越权或泄露证明。
+2. login() 在 advisory lock 前读取 PREAUTH，等待锁后未刷新该会话；两个使用同一
+   PREAUTH 且均持有效密码的并发登录可能都成功。需要真实 PostgreSQL 双请求复现。
+   目前不宣称密码绕过或真实会话泄露，也不擅自修改该路径。
+
+## 本轮执行、失败与资源保留
+
+运行命令：
+
+```sh
+python -m backend.tests.acceptance_s6.run --output /tmp/SYNTHETIC-option-b-a-g-20261016-r1 --browser
+cd frontend
+npx vitest run src/test/optionBBlockingAudit.test.tsx --reporter=json --outputFile=/tmp/option-b-blocking-probes-r1.json
+```
+
+主验收在发现缺陷后由审查者主动 SIGTERM，exit=143；**不是完整回归 PASS**。
+尚未进入浏览器阶段，不产生或冒充新截图。原始 cluster、日志、私有凭据和中间输出
+保留在新私有目录，禁止提交私有密码、证书 key、dump 或数据库目录。
+原 S5 runner 的所有权清理已完成：shutdown_exit=0、STOPPED、postmaster_absent=true、
+listener_closed=true、execution_secret_scan=PASS。只向本任务已核实 PID 的 runner
+发送 SIGTERM，没有按端口/进程名批量终止，没有操作其他测试资源。
+
+缺陷探针：3 tests / 3 failed / 0 passed。失败测试原样保留，不添加 skip/xfail、重试、
+sleep 或降低断言。其失败是本次停止依据，不得用历史绿色 CI 覆盖。
+
+## A–G 状态及独立接受
+
+| 控制 | 当前材料状态 | 尚缺内容 |
+| --- | --- | --- |
+| A | BLOCKED | F01/F02 修复和复测；后端线索的真实 PG 复现；完整独立技术复审 |
+| B | PARTIAL | 已取实际 PR/Review/CI 和 Git 来源；完整逐条结论在停止点未完成，不继承历史审批 PASS |
+| C | PREPARED_TESTED_SCOPE | #728 准确 HEAD、12 job 和原始 JUnit 已实时核验；独立接受仍待完成 |
+| D | PREPARED_TESTED_SCOPE | #718 failure、#721 success、#726 attempt 1 cancelled / 2 success 的原状态和日志保留 |
+| E | PARTIAL | 已查 S5/S6 原始测试与归档，重新执行因缺陷停止；不记为本轮全量 PASS |
+| F | PARTIAL | 已查真实服务/前端语义，缺陷处理后再完成全项接受 |
+| G | PREPARED_TESTED_SCOPE | 原 15 项 OPEN_NOT_VALIDATED、production_blocking=true 完整保留 |
+
+所有控制 INDEPENDENT_ACCEPTANCE_STATUS=PENDING。回滚仅验证同兼容版本重建；日志
+扫描不是所有可能秘密的穷尽证明；真实网络/TLS、多主机/NFS/Windows、iOS Safari、
+软键盘、屏幕阅读器、真实成本/ROI、当前实际与 prospective accuracy 均未借此关闭。
+H7 是 D1..D7 累计，不是滚动七日最大值；未绑定的 Upper80/90、归因、子实体贡献
+继续不可用，M1 历史精度不是 Operational Peak 运行精度。
+
+原 R1/R2/#729 文件未改写；29＋12 历史缺口和 G01–G07 BLOCKED 保留。
+只读取证脚本新增的必要性：从实际 Actions/Review/日志/JUnit 获取可重放来源，
+避免只复制旧 JSON 的 PASS。新增离线测试只检验证据完整及 BLOCKED 状态，不能代替
+实际失败探针、运行回归或独立接受。
+
+OWNER_HISTORICAL_RISK_ACCEPTANCE=false
+
+GOVERNANCE_EXCEPTION_APPROVED=false
+
+VERSION_CLOSEOUT_FORMAL_COMPLETE=false
+
+V0_18_VERSION_COMPLETE=false
+
+PRODUCTION_READINESS=NOT_READY
+
+READY_AUTHORIZED=false
+
+MERGE_AUTHORIZED=false
+
+TAG_AUTHORIZED=false
+
+RELEASE_AUTHORIZED=false
+
+DEPLOY_AUTHORIZED=false
+
+STOP=true

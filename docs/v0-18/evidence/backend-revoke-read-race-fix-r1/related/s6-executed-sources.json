@@ -1,0 +1,15 @@
+{
+  "SYNTHETIC": true,
+  "source_sha256": {
+    "backend/tests/acceptance_s6/__init__.py": "497e58e6399359772e0f6a20d3b714bdc860478fc7101c46665ce7662fd6f8a3",
+    "backend/tests/acceptance_s6/conftest.py": "a402f73da16d5891173f539405c13b5678aa2866c5b28084f97676dd513942f8",
+    "backend/tests/acceptance_s6/evidence.py": "7b6bb2311a7ed996705941c285c23f1eae0fcb35e66cbd276987920e7343208d",
+    "backend/tests/acceptance_s6/run.py": "cf49b05d05397e237614b3548ca10eacbc27851e4f7e220b027c993d79453975",
+    "backend/tests/acceptance_s6/test_tls_authority.py": "3b587c16c45c5c2d9647db548082aab7b765d11fe4001f8ac554c23c5956501a",
+    "backend/tests/acceptance_s6/test_tls_revocation.py": "530fd51d449ddb4d2aaa6a1d6cc475f7051715c7430e32ec79c91b729222d457",
+    "backend/tests/acceptance_s6/test_zero_reads.py": "e5f4b6fbac8f33a52d0e5840b8cc39f97661737e46500edf660cb2ac7854af32",
+    "backend/tests/acceptance_s6/validate.py": "b17545c1820e7d769784fcdc2c4f349e03e156e0583335ba8a8d9d5aec19b895",
+    "frontend/e2e/dashboard-s6-acceptance.spec.ts": "52552f89cce5216f3144eba90b59ad04bc37110a2afa6538d15c4ad10e3233ac",
+    "frontend/e2e/support/acceptance_s6_pg.py": "1775257354b14f1e93739fd5e6fd1931363d1dc6874734405918c43e7fd94c4d"
+  }
+}
