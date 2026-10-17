@@ -1,0 +1,209 @@
+"""Offline current-state evidence; not independent review or risk acceptance."""
+
+import copy
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from backend.tests.forecast_intelligence.build_v0_18_version_closeout import git_blobs
+
+ROOT = Path(__file__).resolve().parents[3]
+BASE = "816d8299f007eab7da140fc5c7547d941c026f8f"
+OLD = "93e9660f6ef2c494178be825c66d11898c6fff97"
+EVIDENCE = "docs/v0-18/evidence/v0.18.0-final-closeout-status.json"
+SNAPSHOT = "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json"
+pytestmark = [pytest.mark.unit, pytest.mark.contract]
+
+
+def load(path):
+    return json.loads((ROOT / path).read_bytes())
+
+
+def canonical(value):
+    return (
+        json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False) + "\n"
+    ).encode()
+
+
+def blob(commit, path):
+    return subprocess.check_output(["git", "show", f"{commit}:{path}"], cwd=ROOT)
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def validate(value):
+    assert value["task_id"] == "V0_18_FINAL_CLOSEOUT_DECISION"
+    assert value["reviewed_main_sha"] == BASE
+    assert value["engineering_technical_result"] == "PASS_TESTED_SCOPE"
+    assert value["formal_closeout_result"] == "BLOCKED"
+    assert value["engineering_release_eligibility"] == "TECHNICAL_CANDIDATE_NOT_APPROVED"
+    assert value["production_readiness"] == "NOT_READY"
+    assert value["backend_lead_2"] == "PREAUTH_RACE_NOT_TESTED_PENDING"
+    assert value["historical_gate_statuses"] == {
+        **dict.fromkeys([f"G{i:02}" for i in range(1, 8)], "BLOCKED"),
+        **dict.fromkeys([f"G{i:02}" for i in range(8, 14)], "PASS_HISTORICAL_TESTED_SCOPE"),
+        **dict.fromkeys([f"G{i:02}" for i in range(14, 17)], "PENDING"),
+    }
+    assert len(value["historical_approval_gaps"]["formal"]) == 29
+    assert len(value["historical_approval_gaps"]["planning"]) == 12
+    assert len(value["production_risk_register"]) == 15
+    assert all(
+        r["status"] == "OPEN_NOT_VALIDATED" and r["production_blocking"]
+        for r in value["production_risk_register"]
+    )
+    assert set(value["controls"]) == set("ABCDEFG")
+    for control in value["controls"].values():
+        assert control["reviewed_source_sha"] == BASE
+        assert control["independent_acceptance_status"] == "PENDING"
+        assert control["evidence_references"] and control["checks_performed"]
+        assert control["limitations"] and control["findings"]
+    assert all(v is False for k, v in value["governance"].items() if k != "stop")
+    assert value["governance"]["stop"] is True
+    assert value["final_head_ci"] == "EXTERNAL_EXACT_HEAD_RECEIPT_REQUIRED_AFTER_COMMIT"
+
+
+def test_current_state_and_canonical_sources():
+    value = load(EVIDENCE)
+    validate(value)
+    for path in (EVIDENCE, SNAPSHOT):
+        assert (ROOT / path).read_bytes() == canonical(load(path))
+    for path, expected in value["source_evidence_sha256"].items():
+        assert sha((ROOT / path).read_bytes()) == expected, path
+    for path, expected in value["historical_snapshot_sha256"].items():
+        assert sha((ROOT / path).read_bytes()) == sha(blob(OLD, path)) == expected, path
+    for path, expected in value["historical_audit_code_sha256"].items():
+        assert sha(blob(OLD, path)) == expected, path
+    for path, expected in value["current_main_source_sha256"].items():
+        assert sha(blob(BASE, path)) == sha((ROOT / path).read_bytes()) == expected, path
+    for path, expected in value["artifact_sha256"].items():
+        assert sha((ROOT / path).read_bytes()) == expected, path
+
+
+def test_pr_parent_chain_actual_jobs_and_scoped_reviews():
+    snapshot = load(SNAPSHOT)
+    prs = {p["number"]: p for p in snapshot["pull_requests"]}
+    numbers = [710, 711, 712, 713, 714, 715, 716, 717, 718, 721, 723, 724, 725, 726, 727]
+    numbers += [729, 730, 731, 732]
+    previous = "1b218edc74ff29091c07607ddbcdba0c10577398"
+    for number in numbers:
+        row = prs[number]
+        parents = (
+            subprocess.check_output(
+                ["git", "rev-list", "--parents", "-n", "1", row["merge_sha"]], cwd=ROOT
+            )
+            .decode()
+            .split()[1:]
+        )
+        assert row["merged"] and row["state"] == "closed"
+        assert parents == row["parents"] == [previous, row["head_sha"]]
+        pr_runs = [r for r in row["ci_attempts"] if r["event"] == "pull_request"]
+        assert pr_runs and all(r["head_sha"] == row["head_sha"] for r in pr_runs)
+        latest = max(pr_runs, key=lambda r: (r["id"], r["run_attempt"]))
+        assert latest["conclusion"] == "success" and latest["status"] == "completed"
+        assert len(latest["jobs"]) == 12
+        assert all(j["conclusion"] == "success" for j in latest["jobs"])
+        pushes = [r for r in row["ci_attempts"] if r["event"] == "push"]
+        assert pushes and all(r["head_sha"] == row["merge_sha"] for r in pushes)
+        latest = max(pushes, key=lambda r: (r["id"], r["run_attempt"]))
+        assert latest["conclusion"] == {718: "failure", 731: "cancelled"}.get(number, "success")
+        assert len(latest["jobs"]) == 12
+        previous = row["merge_sha"]
+    assert previous == BASE == snapshot["reviewed_main_sha"]
+    for number, review_id in {
+        729: 5545395837,
+        730: 5556168873,
+        731: 5556766696,
+        732: 5557159134,
+    }.items():
+        review = next(r for r in prs[number]["reviews"] if r["id"] == review_id)
+        assert review["commit_id"] == prs[number]["head_sha"]
+        assert review["state"] == "COMMENTED" and "REVIEW_RESULT=PASS" in review["body"]
+    assert [
+        (r["run_attempt"], r["conclusion"])
+        for r in prs[726]["ci_attempts"]
+        if r["id"] == 38703671252
+    ] == [(1, "cancelled"), (2, "success")]
+    assert snapshot["release"]["tag_name"] == "v0.17.0"
+    assert not snapshot["release"]["draft"] and not snapshot["release"]["prerelease"]
+
+
+def test_original_gaps_risks_and_semantics_are_not_replaced():
+    value = load(EVIDENCE)
+    proposal = load("docs/v0-18/evidence/v0.18.0-governance-exception-proposal-r1.json")
+    r1 = load("docs/v0-18/evidence/v0.18.0-version-closeout-r1.json")
+    r2 = load("docs/v0-18/evidence/v0.18.0-approval-provenance-r2.json")
+    assert value["historical_approval_gaps"] == proposal["historical_approval_gaps"]
+    assert value["production_risk_register"] == proposal["production_risk_register"]
+    assert value["semantic_boundaries"] == r1["semantic_boundaries"]
+    assert [g["status"] for g in r2["version_complete_gates"][:7]] == ["BLOCKED"] * 7
+    assert value["backend_lead_2"] == "PREAUTH_RACE_NOT_TESTED_PENDING"
+    assert value["observed_fixed_race_counts"] == {
+        "business_sql": 0,
+        "quality_file": 0,
+        "simulation": 0,
+        "comparison": 0,
+    }
+    frozen = r1["frozen_model_and_math_sha256"]
+    current = git_blobs(ROOT, dict.fromkeys(frozen, BASE))
+    assert all(sha(current[path]) == expected for path, expected in frozen.items())
+
+
+def test_current_delivery_is_audit_only_not_production_mutation():
+    value = load(EVIDENCE)
+    historical = set(value["historical_snapshot_sha256"]) | set(
+        value["historical_audit_code_sha256"]
+    )
+    added = {
+        EVIDENCE,
+        SNAPSHOT,
+        "docs/v0-18/v0.18.0-final-closeout-status.md",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+    }
+    changed = (
+        subprocess.check_output(["git", "diff", "--name-only", BASE], cwd=ROOT)
+        .decode()
+        .splitlines()
+    )
+    untracked = (
+        subprocess.check_output(["git", "ls-files", "--others", "--exclude-standard"], cwd=ROOT)
+        .decode()
+        .splitlines()
+    )
+    assert set(changed + untracked) <= historical | added
+    assert not any(path.startswith(("backend/app/", "frontend/", ".github/")) for path in changed)
+
+
+@pytest.mark.parametrize(
+    "field,new",
+    [
+        ("formal_closeout_result", "PASS"),
+        ("production_readiness", "READY"),
+        ("backend_lead_2", "PASS"),
+        ("engineering_release_eligibility", "APPROVED"),
+    ],
+)
+def test_unsupported_acceptance_cannot_pass(field, new):
+    value = copy.deepcopy(load(EVIDENCE))
+    value[field] = new
+    with pytest.raises(AssertionError):
+        validate(value)
+
+
+def test_risk_or_historical_gate_cannot_be_silently_closed():
+    for mode in ("gate", "risk", "acceptance", "owner"):
+        value = copy.deepcopy(load(EVIDENCE))
+        if mode == "gate":
+            value["historical_gate_statuses"]["G01"] = "PASS"
+        elif mode == "risk":
+            value["production_risk_register"][0]["status"] = "CLOSED"
+        elif mode == "acceptance":
+            value["controls"]["A"]["independent_acceptance_status"] = "PASS"
+        else:
+            value["governance"]["owner_historical_risk_acceptance"] = True
+        with pytest.raises(AssertionError):
+            validate(value)
