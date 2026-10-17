@@ -1,0 +1,392 @@
+{
+  "actual_runtime_secret_scan": "PASS",
+  "artifact_sha256": {
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/backend-static.log": "75537e4255bd3c551f3182a31b20ebf5ab48d1e8e3a18054fd417fa4d5facc1a",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/final-contracts.xml": "16aedca2d4a97bad89843bb29295a452383fc0aba56ad3c803f6c33167faa4da",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/frontend-checks.log": "069e11b64163e5d5f7d26bd1313f75495240e3cbd41f95c4f1adf907e0113f60",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/full-e2e/browser.log": "dec79f42c93d0f25c2537dc919a99b117a5eb86251b2e6202db0c52115ca97d4",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/full-e2e/full-browser-results.json": "ec9f53b0a4627006abcfe1bfc91907d8f0ef9f9b6c3a3c9c96c2e03918d08383",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/full-e2e/legacy-server-cleanup.json": "356c6a2fc63f7660897e1bd2dd336846a63cfbeeb186a963e75d7bbba984bdb2",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/full-e2e/owned-resources.json": "a0c8e04eec7c44fcb917d6b97d22e59487720e284e0c15f6e56fa79648eb176b",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/historical-contracts.xml": "0d844ce413a7ec1f87a595a39c967aeaa1c64a879ea3e2c9e330c7d9ca1f70e5",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-green/backend.xml": "54b69bb14e15dc387966033efa6419f9182f23060a454d4e7363ffc21f861536",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-green/execution.log": "4794d2711d19a8a7c9d54204e0ff8b292e0f6c8419709b481c102d79abbbf45a",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-green/owned-resources.json": "f2dc54a98a7b07614f28d43b2075a47f4c8a295a31b4527299019efdd88a8e78",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-repeat/backend.xml": "95e79ecb2750e0f73d03669893ee9a25150f63a90b098a25107c445ad38f672b",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-repeat/execution.log": "59a58bdff129d1d482bd7a04ccbfb0b241c368c2a423c82c3f0f74e0a7d4cf38",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/matrix-repeat/owned-resources.json": "0b7c9da49febe8ae7573e02b5b7844a22d72617bcaca8756f985b9e165737a78",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/original-red/executed-test-source.txt": "056238c364557bd20ad8ac5fdbc8038e6921c321da903d7d1f1ddd35f1a7a4d7",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/original-red/execution.log": "c3971c62f320ca17687b25aa93812cff940a10c5ecaa1992922d596e7ce2b2af",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/original-red/owned-cleanup.json": "c40a172f63e2a1fa6acb37afe629ffdb8a96fceaacd2529079388a5ae7a26dcb",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/original-red/red-junit.xml": "6e56105cf69134fb958e75ef1510d9de4700c1c95159189a874396068d65fe1e",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/original-red/report.md": "ec95672a5847702d8a4ea6cff6f638df880f06a5ab5834b9085b83277363f3d8",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/backend.xml": "4466baab46151a22694f8c87c2e60bbe5080cbc1ee12cda923fa876abd9f6911",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/browser-results.json": "3455f942f9e00428167abab4bfd6668a30cf15ed29add3901fb80e683156cc92",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/browser.log": "f6a6a48ba0dd03891edadf8d48d80b1bd8d800406420686635ccb1bcf77db89b",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/execution.log": "843f831287de9ff199dd70b558cc9c6b3d22d9677076151bf5c89129f66509b4",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/owned-resources.json": "c69c9b880143cdb66517dfb50e6b208988ac0706176b362feb91e61da3afae47",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/s6-executed-sources.json": "89f8ab6b8f80eeb07fbfe414a362bac9d95ae8e272b722163be81c12114a21aa",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/related/s6-toolchain.json": "adda8467c776196eb934ca1719f062cae77e1ee85523d377545e5a24889776b8",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/repeated-red/backend.xml": "3adef7f616e53fb4b729ae24351cf9037ee3a76d012b6a118d040f1f844ab80a",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/repeated-red/execution.log": "3234d0489c27c52f35faee78080f7d033d09488ede59753d96e77bfec20c9ffe",
+    "docs/v0-18/evidence/backend-revoke-read-race-fix-r1/repeated-red/owned-resources.json": "74639fc6b73e1faa15917223f9779eaa318c21db9228ce8a3f807fdb8f8572f7"
+  },
+  "backend_lead_2": "PENDING",
+  "base_main_sha": "4d61e3d64a4ecde2ccf90961bb5afa47ae6f19ec",
+  "branch": "codex/v0.18-backend-revoke-read-race-fix-r1",
+  "ci": {
+    "binding": "Final Draft PR HEAD and terminal GitHub Actions receipt in PR body/final response; local source hashes must match final commit.",
+    "status": "PENDING_AT_COMMIT_EXACT_HEAD_RECEIPT_REQUIRED"
+  },
+  "commands": {
+    "backend_static": "ruff check .; ruff format --check .; mypy backend/app",
+    "concurrency": "python -m backend.tests.revoke_read_race.run --output <fresh-private-SYNTHETIC-directory>",
+    "frontend": "npm run test:unit -- --run; npm run lint; npm run typecheck; npm run format:check; npm run build",
+    "full_e2e_driver": "docs/v0-18/evidence/option-b-client-fix-r1/final-adaptation/full-e2e-local-driver.txt",
+    "full_e2e_driver_sha256": "88adeb0a9e5f945469e7b1433f9173b41f9863ee67b85c9f8f6a35ec85c51094",
+    "full_e2e_only_substitution": "private output root -> /tmp/SYNTHETIC-v018-revoke-full-e2e-20261017",
+    "related": "frontend.e2e.support.run_option_b_client.main(): unchanged S5/S6 composition, --browser"
+  },
+  "data_classification": "ISOLATED_SYNTHETIC_ONLY",
+  "execution_history": {
+    "candidate_503_failure": {
+      "backend_exit": 1,
+      "browser_exit": null,
+      "cleanup_state": "STOPPED",
+      "execution_sha256": "855e50822846b481bb9d0404410510b6d2a075de6766e43ce9c5102127649718",
+      "exit": 1,
+      "finished_at_utc": "2026-10-17T05:41:44.702883+00:00",
+      "junit": {
+        "errors": 0,
+        "failed": 1,
+        "skipped": 0,
+        "total": 1
+      },
+      "ownership_receipt_sha256": "fb9a6cac34e466b42b14b8bf27def058322fdaa9f9f5c903a7a25fd401da582b",
+      "private_directory": "/tmp/SYNTHETIC-v018-revoke-read-fix-original-green-20261017",
+      "started_at_utc": "2026-10-17T05:41:38.331249+00:00"
+    },
+    "fixture_constraint_failure": {
+      "backend_exit": 1,
+      "browser_exit": null,
+      "cleanup_state": "STOPPED",
+      "execution_sha256": "aef5a06ab3c5f0ae87bb849f1f300e347eb3ea3528bd03f6fb4f0f788f24a6ad",
+      "exit": 1,
+      "finished_at_utc": "2026-10-17T05:47:44.908154+00:00",
+      "junit": {
+        "errors": 0,
+        "failed": 48,
+        "skipped": 0,
+        "total": 49
+      },
+      "ownership_receipt_sha256": "f802c6ba0abb08592108df353da0693e1d789abeebc356eaa9b30aa660e8a63a",
+      "private_directory": "/tmp/SYNTHETIC-v018-revoke-read-fix-matrix-20261017-r1",
+      "started_at_utc": "2026-10-17T05:46:09.031399+00:00"
+    },
+    "fixture_empty_hash_failure": {
+      "backend_exit": 1,
+      "browser_exit": null,
+      "cleanup_state": "STOPPED",
+      "execution_sha256": "99f0c59b8c9eea8df444556837e7d1bfb75aaf86c9aa447b812be7f709bcd3bc",
+      "exit": 1,
+      "finished_at_utc": "2026-10-17T05:50:14.080410+00:00",
+      "junit": {
+        "errors": 0,
+        "failed": 5,
+        "skipped": 0,
+        "total": 49
+      },
+      "ownership_receipt_sha256": "da6782761a7407e643071f8cb8ff1b9a850ac15fa0085dfa983caf498183164b",
+      "private_directory": "/tmp/SYNTHETIC-v018-revoke-read-fix-matrix-20261017-r2",
+      "started_at_utc": "2026-10-17T05:48:19.978154+00:00"
+    },
+    "full_e2e": {
+      "backend_exit": 0,
+      "browser_exit": 0,
+      "cleanup_state": "STOPPED",
+      "execution_sha256": "5dc925c33183590c7808839b54477388a43950090dc5982a03515ee830d6b37c",
+      "exit": 0,
+      "finished_at_utc": "2026-10-17T06:04:00.944258+00:00",
+      "junit": {
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "total": 9
+      },
+      "ownership_receipt_sha256": "a0c8e04eec7c44fcb917d6b97d22e59487720e284e0c15f6e56fa79648eb176b",
+      "private_directory": "/tmp/SYNTHETIC-v018-revoke-full-e2e-20261017",
+      "started_at_utc": "2026-10-17T05:58:45.834156+00:00"
+    },
+    "matrix_green": {
+      "backend_exit": 0,
+      "browser_exit": null,
+      "cleanup_state": "STOPPED",
+      "execution_sha256": "4794d2711d19a8a7c9d54204e0ff8b292e0f6c8419709b481c102d79abbbf45a",
+      "exit": 0,
+      "finished_at_utc": "2026-10-17T05:52:40.466803+00:00",
+      "junit": {
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "total": 49
+      },
+      "ownership_receipt_sha256": "f2dc54a98a7b07614f28d43b2075a47f4c8a295a31b4527299019efdd88a8e78",
+      "private_directory": "/tmp/SYNTHETIC-v018-revoke-read-fix-matrix-20261017-r3",
+      "started_at_utc": "2026-10-17T05:50:35.628866+00:00"
+    },
+    "matrix_repeat": {
+      "backend_exit": 0,
+      "browser_exit": null,
+      "cleanup_state": "STOPPED",
+      "execution_sha256": "59a58bdff129d1d482bd7a04ccbfb0b241c368c2a423c82c3f0f74e0a7d4cf38",
+      "exit": 0,
+      "finished_at_utc": "2026-10-17T05:55:20.197552+00:00",
+      "junit": {
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "total": 49
+      },
+      "ownership_receipt_sha256": "0b7c9da49febe8ae7573e02b5b7844a22d72617bcaca8756f985b9e165737a78",
+      "private_directory": "/tmp/SYNTHETIC-v018-revoke-read-fix-matrix-repeat-20261017",
+      "started_at_utc": "2026-10-17T05:53:22.764482+00:00"
+    },
+    "original_probe_green": {
+      "backend_exit": 0,
+      "browser_exit": null,
+      "cleanup_state": "STOPPED",
+      "execution_sha256": "51d9c517188b9033ecf507fd2c75204fbf15f7abd83a450b1cf66c3de9a8f175",
+      "exit": 0,
+      "finished_at_utc": "2026-10-17T05:42:42.059369+00:00",
+      "junit": {
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "total": 1
+      },
+      "ownership_receipt_sha256": "e7db56ee0410d16ec4527c8ef64c72ee9ef86037dacdc34364064dbe8893459c",
+      "private_directory": "/tmp/SYNTHETIC-v018-revoke-read-fix-original-green2-20261017",
+      "started_at_utc": "2026-10-17T05:42:35.950954+00:00"
+    },
+    "related": {
+      "backend_exit": 0,
+      "browser_exit": 0,
+      "cleanup_state": "STOPPED",
+      "execution_sha256": "843f831287de9ff199dd70b558cc9c6b3d22d9677076151bf5c89129f66509b4",
+      "exit": 0,
+      "finished_at_utc": "2026-10-17T05:58:45.120828+00:00",
+      "junit": {
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "total": 251
+      },
+      "ownership_receipt_sha256": "c69c9b880143cdb66517dfb50e6b208988ac0706176b362feb91e61da3afae47",
+      "private_directory": "/tmp/SYNTHETIC-v018-revoke-related-s1-s6-20261017-r1",
+      "started_at_utc": "2026-10-17T05:49:31.686582+00:00"
+    },
+    "repeated_red": {
+      "backend_exit": 1,
+      "browser_exit": null,
+      "cleanup_state": "STOPPED",
+      "execution_sha256": "3234d0489c27c52f35faee78080f7d033d09488ede59753d96e77bfec20c9ffe",
+      "exit": 1,
+      "finished_at_utc": "2026-10-17T05:39:21.756365+00:00",
+      "junit": {
+        "errors": 0,
+        "failed": 1,
+        "skipped": 0,
+        "total": 1
+      },
+      "ownership_receipt_sha256": "74639fc6b73e1faa15917223f9779eaa318c21db9228ce8a3f807fdb8f8572f7",
+      "private_directory": "/tmp/SYNTHETIC-v018-revoke-read-fix-original-red-20261017",
+      "started_at_utc": "2026-10-17T05:39:14.489004+00:00"
+    }
+  },
+  "governance": {
+    "deploy_authorized": false,
+    "governance_exception_approved": false,
+    "merge_authorized": false,
+    "production_database_accessed": false,
+    "ready_authorized": false,
+    "real_account_created": false,
+    "release_authorized": false,
+    "tag_authorized": false,
+    "version_closeout_formal_complete": false
+  },
+  "historical_integrity": {
+    "base_tracked_v016_v017_v018_documents_checked": 721,
+    "binding_detail": "Four adapted test files retain frozen expected hashes; actual fixed Git blobs were independently checked before adaptation. Full historical contract JUnit is archived.",
+    "changed": 0,
+    "expected_hashes_changed": false,
+    "frozen_s1_history_files": 260,
+    "git_sources": {
+      "S1": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "S2": "3410dd4426618a7a4b29c08cbf58aaef20196939",
+      "S3": "08b185b4621bf517846c986841bb5579b6c37b35",
+      "S4": "89641834ab7a0bd902a23f9243325da5c163d518"
+    }
+  },
+  "independent_review": "PENDING",
+  "limitations": [
+    "Local PostgreSQL 16.15, Python 3.12.13, macOS POSIX; not production deployment acceptance.",
+    "The PREAUTH second independent concurrency lead was not executed.",
+    "Read locks order cooperating revokers using the established subject FOR UPDATE protocol.",
+    "Already transmitted network bytes cannot be retracted.",
+    "Inherited npm audit reported 7 advisories; frontend dependencies were unchanged and not audited closed.",
+    "Intermediate candidate failures retain private raw logs and hashes; no exact intermediate code snapshot is asserted."
+  ],
+  "local_regression": {
+    "backend_static": "PASS",
+    "concurrency_primary": {
+      "errors": 0,
+      "failed": 0,
+      "skipped": 0,
+      "total": 49
+    },
+    "concurrency_repeat": {
+      "errors": 0,
+      "failed": 0,
+      "skipped": 0,
+      "total": 49
+    },
+    "final_contracts_including_new_evidence": {
+      "errors": 0,
+      "failed": 0,
+      "skipped": 0,
+      "total": 115
+    },
+    "frontend_static_build": "PASS",
+    "frontend_unit": {
+      "failed": 0,
+      "passed": 156,
+      "skipped": 0,
+      "source": "frontend-checks.log"
+    },
+    "full_frontend_e2e": {
+      "duration": 289685.097,
+      "expected": 144,
+      "flaky": 0,
+      "skipped": 0,
+      "startTime": "2026-10-17T05:59:10.469Z",
+      "unexpected": 0
+    },
+    "historical_contracts": {
+      "errors": 0,
+      "failed": 0,
+      "skipped": 0,
+      "total": 112
+    },
+    "s1_s6_related": {
+      "errors": 0,
+      "failed": 0,
+      "skipped": 0,
+      "total": 251
+    },
+    "secure_browser": {
+      "duration": 137746.501,
+      "expected": 50,
+      "flaky": 0,
+      "skipped": 0,
+      "startTime": "2026-10-17T05:56:26.916Z",
+      "unexpected": 0
+    }
+  },
+  "observations_source": "matrix-green/backend.xml: REVOKE_READ_PROOF (35), ENGINE_ADMISSION_PROOF (10), READ_LOCK_PROOF (2), OPTION_B_PG_LEAD_1 (1)",
+  "observed_post_disable_counts": {
+    "business_sql": 0,
+    "comparison": 0,
+    "quality_file": 0,
+    "simulation": 0
+  },
+  "original_red": {
+    "evidence_sha256": "fdc10c2a449dbdf63f7d6535ea5849eb9790ab3839f4df359f4e3a8927a75ef9",
+    "lead_1": {
+      "SYNTHETIC": true,
+      "business_reads_after_disable_commit": 2,
+      "expected_business_reads_after_disable_commit": 0,
+      "lead": "AUTHENTICATE_TO_READ_REVOCATION_WINDOW",
+      "observations": [
+        {
+          "event": "authenticated_transaction_complete"
+        },
+        {
+          "event": "account_exclusive_lock_and_revoke",
+          "isolation": "read committed",
+          "pid": 88676,
+          "transaction": 748
+        },
+        {
+          "event": "revocation_commit_completed"
+        },
+        {
+          "event": "canonical_read_entry",
+          "isolation": "read committed",
+          "pid": 88677,
+          "transaction": 749
+        }
+      ],
+      "positive_control_business_reads": 2,
+      "response_status": 401,
+      "sensitive_response_sent": false,
+      "session_invalidated": true
+    },
+    "source_function_ast_preserved": true
+  },
+  "positive_controls": {
+    "compare": {
+      "business_sql": 2,
+      "comparison": 1,
+      "simulation": 6
+    },
+    "curve": {
+      "business_sql": 2
+    },
+    "quality": {
+      "quality_file": 7
+    },
+    "saved-runs": {
+      "business_sql": 3
+    },
+    "scope": {
+      "business_sql": 2
+    },
+    "selection": {
+      "business_sql": 9
+    },
+    "simulate": {
+      "business_sql": 2,
+      "simulation": 1
+    }
+  },
+  "production_files": [
+    "backend/app/local_auth/authorization.py",
+    "backend/app/api/business_access.py"
+  ],
+  "production_readiness": "NOT_READY",
+  "root_cause": "INITIAL_AUTH_SNAPSHOT_STALE_BEFORE_BUSINESS_READ",
+  "sensitive_response_sent": false,
+  "source_evidence_sha256": {
+    "backend/app/api/business_access.py": "d62c68297e7f17f73f5ae117b3d9997a6cfc2ebd18356afd78cb80876d2e5718",
+    "backend/app/local_auth/authorization.py": "2d638fcbb087ba1409b2ad03ee9cb034fcc064b126091bd0a9fae0928a9f3604",
+    "backend/tests/business_access/test_contract.py": "e6ad3cae0d4664a235a4809a3cd4e6b816e7707e41418b19e961a0ef5e367e7a",
+    "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py": "f9e7af78c10e2a084e715f8498ddec73cdaa82a8ba4df05ccc8785dfde523b41",
+    "backend/tests/local_auth/test_runtime_evidence_contract.py": "607e193b5d81565b52f6494c69456478f3f67831eee9a6c6ad84a844a39e70cc",
+    "backend/tests/mcp/test_v0_18_s3_contract.py": "8d5662a9a94c1fff5f6f41c9ca112ad6eae4a8619fd5e6f8dd28f5971f961de5",
+    "backend/tests/revoke_read_race/__init__.py": "fe544682796040ee52c90550876ece614025d8e165a5b3bab19a8f5a2bb3e54c",
+    "backend/tests/revoke_read_race/conftest.py": "c5b8fea4365e86b0e3a8b3c736eba8c03627a8972ef4003c3852017a68b5f9f0",
+    "backend/tests/revoke_read_race/run.py": "5a5d6bf42fe11c520fd10ba694b6db7c69a4b35b39d53e02c62d4a1c71932334",
+    "backend/tests/revoke_read_race/test_admission.py": "103584a3a07c8d92fcfa2478b89a31cde0557aacf23944519d0769a59a38506f",
+    "backend/tests/revoke_read_race/test_evidence_contract.py": "5095c19f3b0e168ec3bf3518c30737887aef19eb6274c1bca9f0ec2d527c2b80",
+    "backend/tests/revoke_read_race/test_original_repro.py": "39924ec8534f1601f35e30ccb96d96cbfc6e3c53de1fdd094bc394f6a1e0ea92",
+    "docs/v0-18/backend-revoke-read-race-fix-r1.md": "2d245533eb05f3798c7c0479888531f7cb1f5c6ecfce70e1e78b676f66a66421"
+  },
+  "task_id": "V0_18_BACKEND_REVOKE_READ_RACE_FIX_R1",
+  "toolchain": {
+    "node": "v22.22.3",
+    "pg_ctl": "pg_ctl (PostgreSQL) 16.15 (Homebrew)",
+    "pg_dump": "pg_dump (PostgreSQL) 16.15 (Homebrew)",
+    "pg_restore": "pg_restore (PostgreSQL) 16.15 (Homebrew)",
+    "python": "3.12.13 (main, May 10 2026, 19:20:41) [Clang 22.1.3 ]"
+  }
+}
