@@ -1,0 +1,513 @@
+{
+  "capture_boundary": "PUBLIC_SCOPED_FIX_CHAIN_ONLY_NO_HISTORICAL_CHAT_RECOVERY",
+  "captured_at_utc": "2026-10-18T08:13:27.036133+00:00",
+  "latest_release": {
+    "assets": [],
+    "assets_url": "https://api.github.com/repos/xuezhiorange-png/blueberry-peak-forecast-agent/releases/408106332/assets",
+    "author": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/295156777?v=4",
+      "events_url": "https://api.github.com/users/xuezhiorange-png/events{/privacy}",
+      "followers_url": "https://api.github.com/users/xuezhiorange-png/followers",
+      "following_url": "https://api.github.com/users/xuezhiorange-png/following{/other_user}",
+      "gists_url": "https://api.github.com/users/xuezhiorange-png/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/xuezhiorange-png",
+      "id": 295156777,
+      "login": "xuezhiorange-png",
+      "node_id": "U_kgDOEZe8KQ",
+      "organizations_url": "https://api.github.com/users/xuezhiorange-png/orgs",
+      "received_events_url": "https://api.github.com/users/xuezhiorange-png/received_events",
+      "repos_url": "https://api.github.com/users/xuezhiorange-png/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/xuezhiorange-png/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/xuezhiorange-png/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/xuezhiorange-png",
+      "user_view_type": "public"
+    },
+    "body": "## Included\n\n* Productized frozen V0.16 forecast intelligence and decision-support engines.\n* Unified Forecast Intelligence service with six read capabilities and decision-support APIs.\n* Eight MCP tools using the same authoritative business services.\n* Five-page React Dashboard: Overview, Forecast, Attribution, Capacity Simulator and Quality.\n* Isolated synthetic cross-surface HTTP/MCP/Dashboard acceptance and deterministic scenario comparisons.\n* Completed S0–S6 engineering acceptance and V0.17 Version Closeout, with reviewed PR #709 and successful post-merge main CI #37941572203.\n\n## Governance and limitations\n\n* Productization and engineering release, not production deployment approval.\n* Production readiness remains NOT_READY.\n* Normal business run discovery, resource-level access isolation and production service-account authorization remain unvalidated.\n* Run-bound Upper80/Upper90 and attribution authority remain unavailable.\n* Prospective accuracy and current-season actual scoring are not validated.\n* Point forecasts are not proven P50; planning bounds are not proven calibrated quantiles; attribution is not causal.\n* Business loss uses synthetic cost contracts; no validated company cost, financial ROI, or optimization claim.\n* Real iOS Safari, soft-keyboard and screen-reader acceptance remain unvalidated.\n* Historical failed main CI runs #37807916550 and #37861642942 remain preserved, followed by successful correction.\n* No production deployment or V0.18 development is authorized.\n",
+    "created_at": "2026-10-09T16:22:55Z",
+    "draft": false,
+    "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/releases/tag/v0.17.0",
+    "id": 408106332,
+    "immutable": false,
+    "name": "v0.17.0 — Forecast Intelligence Productization and Dashboard",
+    "node_id": "RE_kwDOS_gTTs4YUzVc",
+    "prerelease": false,
+    "published_at": "2026-10-09T16:24:10Z",
+    "tag_name": "v0.17.0",
+    "tarball_url": "https://api.github.com/repos/xuezhiorange-png/blueberry-peak-forecast-agent/tarball/v0.17.0",
+    "target_commitish": "1b218edc74ff29091c07607ddbcdba0c10577398",
+    "updated_at": "2026-10-09T16:24:10Z",
+    "upload_url": "https://uploads.github.com/repos/xuezhiorange-png/blueberry-peak-forecast-agent/releases/408106332/assets{?name,label}",
+    "url": "https://api.github.com/repos/xuezhiorange-png/blueberry-peak-forecast-agent/releases/408106332",
+    "zipball_url": "https://api.github.com/repos/xuezhiorange-png/blueberry-peak-forecast-agent/zipball/v0.17.0"
+  },
+  "preauth_main_ci": {
+    "conclusion": "success",
+    "created_at": "2026-10-18T06:46:14Z",
+    "event": "push",
+    "head_sha": "8f6cae4004c663b9ccaf2061869cc7cb6e80adc4",
+    "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096",
+    "id": 39105220096,
+    "jobs": [
+      {
+        "completed_at": "2026-10-18T06:56:06Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609471228",
+        "id": 117609471228,
+        "name": "frontend-e2e",
+        "started_at": "2026-10-18T06:46:17Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T06:46:53Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609471308",
+        "id": 117609471308,
+        "name": "frontend-static",
+        "started_at": "2026-10-18T06:46:17Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T07:40:10Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609471422",
+        "id": 117609471422,
+        "name": "full-suite-canary",
+        "started_at": "2026-10-18T06:46:17Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T06:46:49Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609471468",
+        "id": 117609471468,
+        "name": "frontend-unit",
+        "started_at": "2026-10-18T06:46:17Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T06:46:15Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609471962",
+        "id": 117609471962,
+        "name": "postgres-concurrency",
+        "started_at": "2026-10-18T06:46:15Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T06:46:15Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609471996",
+        "id": 117609471996,
+        "name": "postgres-migration",
+        "started_at": "2026-10-18T06:46:15Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T06:46:15Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609471997",
+        "id": 117609471997,
+        "name": "postgres-domain-2",
+        "started_at": "2026-10-18T06:46:15Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T06:46:15Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609472004",
+        "id": 117609472004,
+        "name": "static",
+        "started_at": "2026-10-18T06:46:15Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T06:46:15Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609472040",
+        "id": 117609472040,
+        "name": "unit-contract-golden",
+        "started_at": "2026-10-18T06:46:15Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T06:46:15Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609472086",
+        "id": 117609472086,
+        "name": "compose-smoke",
+        "started_at": "2026-10-18T06:46:15Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T06:46:15Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609472125",
+        "id": 117609472125,
+        "name": "postgres-task11",
+        "started_at": "2026-10-18T06:46:15Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T06:46:15Z",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39105220096/job/117609491318",
+        "id": 117609491318,
+        "name": "postgres-domain-1",
+        "started_at": "2026-10-18T06:46:22Z",
+        "status": "completed"
+      }
+    ],
+    "run_attempt": 1,
+    "status": "completed",
+    "updated_at": "2026-10-18T07:40:11Z"
+  },
+  "preauth_pr": {
+    "base_sha": "816d8299f007eab7da140fc5c7547d941c026f8f",
+    "head_sha": "f151f0e6aca3577c5ee959a220c16e9756179649",
+    "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/733",
+    "merge_sha": "8f6cae4004c663b9ccaf2061869cc7cb6e80adc4",
+    "merged": true,
+    "merged_at": "2026-10-18T06:46:12Z",
+    "number": 733,
+    "parents": [
+      "816d8299f007eab7da140fc5c7547d941c026f8f",
+      "f151f0e6aca3577c5ee959a220c16e9756179649"
+    ],
+    "state": "closed"
+  },
+  "preauth_pr_ci": {
+    "conclusion": "success",
+    "created_at": "2026-10-18T04:35:23Z",
+    "event": "pull_request",
+    "head_sha": "f151f0e6aca3577c5ee959a220c16e9756179649",
+    "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239",
+    "id": 39097619239,
+    "jobs": [
+      {
+        "completed_at": "2026-10-18T04:45:24Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218494",
+        "id": 117587218494,
+        "name": "frontend-e2e",
+        "started_at": "2026-10-18T04:35:26Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T04:41:59Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218600",
+        "id": 117587218600,
+        "name": "postgres-domain-1",
+        "started_at": "2026-10-18T04:35:26Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T04:56:39Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218610",
+        "id": 117587218610,
+        "name": "unit-contract-golden",
+        "started_at": "2026-10-18T04:35:26Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T04:35:54Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218614",
+        "id": 117587218614,
+        "name": "frontend-unit",
+        "started_at": "2026-10-18T04:35:25Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T04:38:00Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218627",
+        "id": 117587218627,
+        "name": "postgres-migration",
+        "started_at": "2026-10-18T04:35:26Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T04:36:45Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218630",
+        "id": 117587218630,
+        "name": "static",
+        "started_at": "2026-10-18T04:35:26Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T05:22:35Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218636",
+        "id": 117587218636,
+        "name": "full-suite-canary",
+        "started_at": "2026-10-18T04:35:25Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T04:36:02Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218645",
+        "id": 117587218645,
+        "name": "frontend-static",
+        "started_at": "2026-10-18T04:35:25Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T04:36:50Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218651",
+        "id": 117587218651,
+        "name": "postgres-concurrency",
+        "started_at": "2026-10-18T04:35:25Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T04:45:34Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218672",
+        "id": 117587218672,
+        "name": "postgres-domain-2",
+        "started_at": "2026-10-18T04:35:25Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T04:35:52Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218696",
+        "id": 117587218696,
+        "name": "compose-smoke",
+        "started_at": "2026-10-18T04:35:26Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-18T04:37:57Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39097619239/job/117587218735",
+        "id": 117587218735,
+        "name": "postgres-task11",
+        "started_at": "2026-10-18T04:35:54Z",
+        "status": "completed"
+      }
+    ],
+    "run_attempt": 1,
+    "status": "completed",
+    "updated_at": "2026-10-18T05:22:35Z"
+  },
+  "preauth_review": {
+    "_links": {
+      "html": {
+        "href": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/733#pullrequestreview-5561705476"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/xuezhiorange-png/blueberry-peak-forecast-agent/pulls/733"
+      }
+    },
+    "author_association": "OWNER",
+    "body": "## V0.18 PREAUTH concurrent-login duplication — independent exact-head technical review\n\nTASK_ID=V0_18_PREAUTH_CONCURRENT_LOGIN_FIX_INDEPENDENT_REVIEW_R1\nPR_NUMBER=733\nREVIEWED_HEAD_SHA=f151f0e6aca3577c5ee959a220c16e9756179649\nBASE_MAIN_SHA=816d8299f007eab7da140fc5c7547d941c026f8f\nREVIEW_RESULT=PASS\nREVIEW_SCOPE=PREAUTH_DUPLICATE_CONSUMPTION_FIX_ONLY\nBLOCKING_FINDINGS=0\n\nIndependent source-level review of the single production patch, SQLAlchemy transaction/session behavior, original unchanged reproducer, two real isolated PostgreSQL runs and their raw JSON/JUnit results, negative/invariant tests, source/hash contract adaptations, and GitHub Actions exact-head job logs.\n\n### Code review findings\n- Among 86 PR files, **the sole production change** is `backend/app/local_auth/service.py` (+25/-2); no `backend/app/` other than this file, front-end production, migrations/schema, API response contract, MCP runtime, model/forecasting math, dependencies or CI workflow changed.\n- The existing lock order (HMAC login-bucket advisory locks -> account `FOR UPDATE` -> PREAUTH `FOR UPDATE`) is preserved. On successful password verification, the code selects the exact PREAUTH session by session ID **and Cookie token digest** with PostgreSQL row `FOR UPDATE` and SQLAlchemy `populate_existing=True`, then calls the existing `load(..., preauth=True, csrf=True)` for latest kind/revocation/expiry/CSRF state and checks the matching PREAUTH ID. The same transaction performs successful PREAUTH revocation, new END_USER issuance and LOGIN_SUCCESS audit. This closes the observed stale PREAUTH snapshot under PostgreSQL READ COMMITTED without relying on process-local locks or treating a timeout as GREEN.\n- Normal sequential login, sequential replay rejection, distinct PREAUTH sessions (both valid), in-flight CSRF/token digest/revocation/expiry alterations, cross-worker wrong-password limits, and rollback/cancel/audit failures have explicit positive and negative coverage. The unchanged original real ASGI reproducer remains executable and does not fake a successful login.\n\n### Real PostgreSQL proof\n- Preserved RED: A/B both HTTP 200, two distinct independently valid END_USER sessions, two LOGIN_SUCCESS audits and both `/auth/me` 200, with B commit before A resume.\n- Fresh round1 and round2: **13/13 PASS each, no skip/fail**. Read original `round{1,2}/pytest/test_02_one_preauth_must_not_i0/concurrent.json` and JUnit: deterministic A pre-lock load -> B independent commit -> A resume, distinct backend PIDs and transaction IDs; A=401, B=200, A `/me`=401, B `/me`=200, exactly 1 new END_USER session, 1 LOGIN_SUCCESS audit, 1 independently valid cookie, PREAUTH revoked with `LOGIN_ROTATION`, A transaction aborted, B committed.\n- Recorded 302 real related PostgreSQL/ASGI/MCP cases PASS, including 35 previously fixed revoke/read probes with positive controls and 0 post-revocation sensitive business/Quality/simulation/comparison work. Local historical/contract run 109 PASS. Local browser E2E 144 PASS, and independently recorded PostgreSQL owned-cleanup evidence.\n- Fixed historical source checks are narrowly allowlisted against original fixed Git bytes and unchanged expected SHA256. The original RED capsule and initial historical hash contract failures are retained.\n\n### Official exact-head CI\nRun #39097619239, event=pull_request, attempt 1, HEAD f151f0e6aca3577c5ee959a220c16e9756179649: **12 completed success / 0 failure / 0 skipped jobs**; raw Canary job logs `10304 passed, 5 skipped`; Golden `9181 passed, 21 skipped, 1015 deselected`; Frontend E2E `144 passed`. This is not inherited from prior HEADs.\n\n### Scope and release boundaries\nThis review accepts the **specific previously confirmed PREAUTH duplicate-consumption defect fix** within isolated test conditions, not all possible login races or production-network security. The prior PREAUTH lead-2 is now `FIXED_TESTED_SCOPE` on PR #733, but until merged is **not on main**. The A–G entire V0.18 governance exception/full-main security acceptance and H Owner historical-provenance risk decision remain separate. PR #728 is still OPEN/Draft and untouched. Production risk register remains OPEN/NOT_VALIDATED; V0.18 engineering release and any deployment are not thereby authorized.\n\nREVIEW_PASS_SCOPED=true\nPRODUCTION_READINESS=NOT_READY\nVERSION_CLOSEOUT_FORMAL_COMPLETE=false\nREADY_AUTHORIZED=false\nMERGE_AUTHORIZED=false\nTAG_AUTHORIZED=false\nRELEASE_AUTHORIZED=false\nDEPLOY_AUTHORIZED=false\nSTOP=true\n\nThis is an AI-assisted technical review published as a GitHub COMMENTED review via the connected account. It does not claim a separate human reviewer or a GitHub APPROVED state.",
+    "commit_id": "f151f0e6aca3577c5ee959a220c16e9756179649",
+    "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/733#pullrequestreview-5561705476",
+    "id": 5561705476,
+    "node_id": "PRR_kwDOS_gTTs8AAAABS4DkBA",
+    "pull_request_url": "https://api.github.com/repos/xuezhiorange-png/blueberry-peak-forecast-agent/pulls/733",
+    "state": "COMMENTED",
+    "submitted_at": "2026-10-18T06:13:20Z",
+    "user": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/295156777?u=36eab043b9abef13e14c58f18435c913f83368e9&v=4",
+      "events_url": "https://api.github.com/users/xuezhiorange-png/events{/privacy}",
+      "followers_url": "https://api.github.com/users/xuezhiorange-png/followers",
+      "following_url": "https://api.github.com/users/xuezhiorange-png/following{/other_user}",
+      "gists_url": "https://api.github.com/users/xuezhiorange-png/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/xuezhiorange-png",
+      "id": 295156777,
+      "login": "xuezhiorange-png",
+      "node_id": "U_kgDOEZe8KQ",
+      "organizations_url": "https://api.github.com/users/xuezhiorange-png/orgs",
+      "received_events_url": "https://api.github.com/users/xuezhiorange-png/received_events",
+      "repos_url": "https://api.github.com/users/xuezhiorange-png/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/xuezhiorange-png/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/xuezhiorange-png/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/xuezhiorange-png",
+      "user_view_type": "public"
+    }
+  },
+  "previous_closeout_ci": {
+    "conclusion": "success",
+    "created_at": "2026-10-17T15:35:09Z",
+    "event": "pull_request",
+    "head_sha": "772503823320c48c6920fc66c5164d8a30844fd9",
+    "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189",
+    "id": 39045692189,
+    "jobs": [
+      {
+        "completed_at": "2026-10-17T15:38:00Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433839979",
+        "id": 117433839979,
+        "name": "postgres-migration",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T16:26:33Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840072",
+        "id": 117433840072,
+        "name": "full-suite-canary",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T15:42:58Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840099",
+        "id": 117433840099,
+        "name": "postgres-domain-2",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T15:56:09Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840123",
+        "id": 117433840123,
+        "name": "unit-contract-golden",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T15:36:37Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840128",
+        "id": 117433840128,
+        "name": "postgres-concurrency",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T15:35:37Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840129",
+        "id": 117433840129,
+        "name": "compose-smoke",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T15:37:27Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840132",
+        "id": 117433840132,
+        "name": "postgres-task11",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T15:44:02Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840152",
+        "id": 117433840152,
+        "name": "frontend-e2e",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T15:35:52Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840170",
+        "id": 117433840170,
+        "name": "frontend-static",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T15:35:51Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840186",
+        "id": 117433840186,
+        "name": "frontend-unit",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T15:36:21Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840187",
+        "id": 117433840187,
+        "name": "static",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      },
+      {
+        "completed_at": "2026-10-17T15:41:20Z",
+        "conclusion": "success",
+        "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/39045692189/job/117433840189",
+        "id": 117433840189,
+        "name": "postgres-domain-1",
+        "started_at": "2026-10-17T15:35:12Z",
+        "status": "completed"
+      }
+    ],
+    "run_attempt": 1,
+    "status": "completed",
+    "updated_at": "2026-10-17T16:26:33Z"
+  },
+  "previous_closeout_review": {
+    "_links": {
+      "html": {
+        "href": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/728#pullrequestreview-5561062016"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/xuezhiorange-png/blueberry-peak-forecast-agent/pulls/728"
+      }
+    },
+    "author_association": "OWNER",
+    "body": "## V0.18 #728 — exact-head independent closeout material review (AI-assisted)\n\nTASK_ID=V0_18_CLOSEOUT_INDEPENDENT_REVIEW_R1\nPR_NUMBER=728\nREVIEWED_HEAD_SHA=772503823320c48c6920fc66c5164d8a30844fd9\nREVIEWED_MAIN_SHA=816d8299f007eab7da140fc5c7547d941c026f8f\nREVIEW_RESULT=PASS_AS_FAITHFUL_CLOSEOUT_STATUS_PACKAGE\nENGINEERING_TECHNICAL_RESULT=PASS_TESTED_SCOPE\nFORMAL_CLOSEOUT_RESULT=BLOCKED\nENGINEERING_RELEASE_ELIGIBILITY=TECHNICAL_CANDIDATE_NOT_APPROVED\nPRODUCTION_READINESS=NOT_READY\n\nI independently checked the current live GitHub main/PR mergeability, changed-file list/patches, the additive current closeout document and JSON contracts, the frozen R1/R2 gate and governance-proposal documents, selected actual S1–S6 frontend/backend auth/authorization/MCP service code, the exact-head GitHub Actions logs and historical execution provenance. This review is performed separately from Codex's preparation of the PR but is an AI-assisted COMMENTED technical review using the connected account, not human identity attestation or owner risk approval.\n\n**Confirmed:**\n1. PR #728 is OPEN/Draft/mergeable clean at the exact HEAD above, based on current main. Its diff is 15 files, entirely under offline tests and V0.18 docs/evidence; no backend/app/, frontend production code, algorithms, migrations, CI workflow, dependencies, or S0–S6 frozen evidence changed. Previous R1/R2 historical bytes/expected hashes remain protected by fixed-commit checks.\n2. Exact-head PR Actions run #39045692189 (pull_request, attempt 1) completed success, with 12/12 successful jobs. Raw logs: Canary 10366 passed, 5 existing skipped; Golden 9256 passed, 21 skipped / 1002 deselected; frontend E2E 144 passed. Job success does not eliminate historical skipped/warnings.\n3. The source-bound Git first/second-parent and CI event/attempt evidence is consistent for S0–S6 and #729–#732. Historical #718 failed push, #726 cancelled/success attempts and #731 failed/cancelled push plus #732 successful fixture correction remain distinct, not overwritten. The four recent PR reviews are explicitly COMMENTED and SCOPED, not human APPROVED or full-main A acceptance.\n4. Scoped current-main implementation supports local sessions/CSRF/exact forecast and Quality grants, authorized saved-run discovery, SERVICE_ACCOUNT_ONLY MCP tools, authenticated 5-page dashboard, fail-closed client scenario binding, and the corrected pre-read revocation admission + response release for tested PostgreSQL concurrency. The two backend production files in #731 were separately reviewed and original RED → real 49-case green proof retained. The evidence is **isolated synthetic / same-host tested**, not deployed operational security or model accuracy.\n5. The 29 formal plus 12 planning historical approval provenance gaps are still preserved; G01–G07 remain BLOCKED, G08–G13 retain historical PASS_TESTED_SCOPE, G14–G16 remain PENDING. No historical event is backdated or re-signed. The merged #729 rule is a proposal, not an activated Option B exception.\n6. All 15 original production-blocking entries remain OPEN_NOT_VALIDATED. Current Operational Peak does not have a proven rolling-seven maximum/report/factory authority, prospective accuracy, calibrated bounds, real ROI or actual-data authority; preserving those negative claims is correct.\n\n**Important open source-level security question, requiring explicit disposition before a full S1 security acceptance:** `AuthService.login` obtains PREAUTH via `Sessions.load(..., preauth=True)` before obtaining HMAC advisory locks. The code does not visibly refresh/lock that PREAUTH row after waiting and before consuming `preauth.revoked_at`/rotating into a session. That creates a plausible concurrency/replay window for simultaneous login requests with the same PREAUTH and otherwise valid credentials. It has NOT been reproduced in real PostgreSQL, so this review does not claim exploitation, password bypass, or leaked data. `BACKEND_LEAD_2=PREAUTH_RACE_NOT_TESTED_PENDING` remains correct and should not be silently converted to PASS. Owner H historical-provenance risk acceptance is NOT security-risk approval.\n\n### Independent A–G evidence disposition\nA=REVIEWED_TESTED_SCOPE_WITH_PREAUTH_OPEN_FINDING; NOT_UNQUALIFIED_FULL_SECURITY_ACCEPTANCE\nB=SUPPORTABLE_WITH_HISTORICAL_APPROVAL_GAPS_UNCHANGED\nC=PASS_EXACT_HEAD_CI_VERIFIED\nD=PASS_HISTORICAL_FAILURES_PRESERVED\nE=PASS_SYNTHETIC_SCOPE_AND_LIMITATIONS_PRESERVED\nF=PASS_SEMANTIC_BOUNDARIES_PRESERVED\nG=PASS_PRODUCTION_RISK_REGISTER_PRESERVED\n\nThese are evidence review findings, **not** the Owner's formal activation of an exception or a claim that all compensating controls have been signed. In particular A is not unconditionally accepted. Do not modify the committed PENDING statuses to PASS based merely on this comment. `H_OWNER_RISK_ACCEPTANCE=false`, `GOVERNANCE_EXCEPTION_APPROVED=false`, and `VERSION_CLOSEOUT_FORMAL_COMPLETE=false`.\n\n**Release recommendation:** This is a reviewable *non-production GitHub engineering artifact candidate*, not currently an authorized `v0.18.0` Release. Before asserting formal engineering version completion under Option B, the Owner must explicitly decide the limited historical exception and H acceptance, and the open PREAUTH finding needs a clear, separate safety disposition for the intended engineering-only scope. Only after applicable closeout acceptance can #728 receive separate Ready/Merge authorization and postmerge CI; an annotated Tag/Release still requires its own explicit authorization. No need for more historical chat recovery or another governance PR.\n\nREADY_AUTHORIZED=false\nMERGE_AUTHORIZED=false\nTAG_AUTHORIZED=false\nRELEASE_AUTHORIZED=false\nDEPLOY_AUTHORIZED=false\nSTOP=true",
+    "commit_id": "772503823320c48c6920fc66c5164d8a30844fd9",
+    "html_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/728#pullrequestreview-5561062016",
+    "id": 5561062016,
+    "node_id": "PRR_kwDOS_gTTs8AAAABS3cSgA",
+    "pull_request_url": "https://api.github.com/repos/xuezhiorange-png/blueberry-peak-forecast-agent/pulls/728",
+    "state": "COMMENTED",
+    "submitted_at": "2026-10-18T02:09:32Z",
+    "user": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/295156777?u=36eab043b9abef13e14c58f18435c913f83368e9&v=4",
+      "events_url": "https://api.github.com/users/xuezhiorange-png/events{/privacy}",
+      "followers_url": "https://api.github.com/users/xuezhiorange-png/followers",
+      "following_url": "https://api.github.com/users/xuezhiorange-png/following{/other_user}",
+      "gists_url": "https://api.github.com/users/xuezhiorange-png/gists{/gist_id}",
+      "gravatar_id": "",
+      "html_url": "https://github.com/xuezhiorange-png",
+      "id": 295156777,
+      "login": "xuezhiorange-png",
+      "node_id": "U_kgDOEZe8KQ",
+      "organizations_url": "https://api.github.com/users/xuezhiorange-png/orgs",
+      "received_events_url": "https://api.github.com/users/xuezhiorange-png/received_events",
+      "repos_url": "https://api.github.com/users/xuezhiorange-png/repos",
+      "site_admin": false,
+      "starred_url": "https://api.github.com/users/xuezhiorange-png/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/xuezhiorange-png/subscriptions",
+      "type": "User",
+      "url": "https://api.github.com/users/xuezhiorange-png",
+      "user_view_type": "public"
+    }
+  },
+  "repository": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "review_scope": "RECORDED_AI_ASSISTED_PREAUTH_FIX_ONLY_NOT_A_G_ACCEPTANCE",
+  "reviewed_main_sha": "8f6cae4004c663b9ccaf2061869cc7cb6e80adc4",
+  "source_endpoints": [
+    "pulls/733",
+    "pulls/733/reviews/5561705476",
+    "actions/runs/39097619239",
+    "actions/runs/39105220096",
+    "actions/runs/39045692189"
+  ]
+}

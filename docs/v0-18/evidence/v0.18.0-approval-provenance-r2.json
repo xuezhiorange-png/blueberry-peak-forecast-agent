@@ -1,0 +1,871 @@
+{
+  "accepted_channels": [
+    "GITHUB_ISSUE_COMMENT",
+    "GITHUB_REVIEW",
+    "ORIGINAL_CHATGPT_CONVERSATION",
+    "OTHER_AUTHENTIC_ORIGINAL_RECORD",
+    "VERIFIABLE_CODEX_TRANSCRIPT"
+  ],
+  "approval_audit": [
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "VERIFIED",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S0_SCOPE",
+      "evidence_ids": [
+        "GITHUB_REVIEW:5477145147:INDEPENDENT_REVIEW"
+      ],
+      "head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 710
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "VERIFIED",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S1_PREFLIGHT_NOT_RUNTIME",
+      "evidence_ids": [
+        "GITHUB_REVIEW:5477662925:INDEPENDENT_REVIEW"
+      ],
+      "head_sha": "be32c1084601d2b02e89c952ccc78312e213112a",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 711
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "VERIFIED",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "ROADMAP_ASSESSMENT_NOT_STAGE_REPLACEMENT",
+      "evidence_ids": [
+        "GITHUB_REVIEW:5478142230:INDEPENDENT_REVIEW"
+      ],
+      "head_sha": "13ac4381ebcea1094f07a0ab260dc4b5e9f7ac72",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 712
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "VERIFIED",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "SEPARATE_PEAK_BUSINESS_CONTRACT_NOT_V018_IMPLEMENTATION",
+      "evidence_ids": [
+        "GITHUB_REVIEW:5478733638:INDEPENDENT_REVIEW"
+      ],
+      "head_sha": "7d9a6d8f878e3c8e4d80d94c38bb7556e51e7d44",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 713
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "NOT_FOUND",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "LOCAL_AUTH_REPLAN_NOT_RUNTIME",
+      "evidence_ids": [],
+      "head_sha": "52714a6bfdd498dddda7d9f95ff5908b558d28c6",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 714
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "NOT_FOUND",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S0_SCOPE_ADDENDUM",
+      "evidence_ids": [],
+      "head_sha": "13d3cf4d8a08d156a3f75a9044a8163bcd8d4720",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 715
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "NOT_FOUND",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S1_IMPLEMENTATION_CONTRACT_NOT_RUNTIME",
+      "evidence_ids": [],
+      "head_sha": "d9a8d49854bb87e83f7ecae5265d7ca4a0d443af",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 716
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "NOT_FOUND",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S1_RUNTIME",
+      "evidence_ids": [],
+      "head_sha": "442ce84f0d15702d284ec65413d479db680fe50b",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 717
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "NOT_FOUND",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S1_SIMPLE_ADMIN_D03",
+      "evidence_ids": [],
+      "head_sha": "d3381356ae1773138e69b0430f9162deab5824e9",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 718
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "NOT_FOUND",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S1_POSTMERGE_TIMESTAMP_CORRECTION",
+      "evidence_ids": [],
+      "head_sha": "0417937f9fb0cc05509ad4a30695e4ba3f989caa",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 721
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "NOT_FOUND",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S2_AUTHORIZED_DISCOVERY",
+      "evidence_ids": [],
+      "head_sha": "68d6ee14000471f82d4712f5c2456e519519f2c6",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 723
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "NOT_FOUND",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S3_SERVICE_ACCOUNT_SAFETY",
+      "evidence_ids": [],
+      "head_sha": "b334138ad2fe2300265115758b18dc9f9bc54128",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 724
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "NOT_FOUND",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S4_DASHBOARD",
+      "evidence_ids": [],
+      "head_sha": "47a656b215eb9c4e202763fd16f3dc148ada9a77",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 725
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "NOT_FOUND",
+        "OWNER_MERGE": "NOT_FOUND",
+        "OWNER_READY": "NOT_FOUND"
+      },
+      "classification": "S5_ISOLATED_PILOT",
+      "evidence_ids": [],
+      "head_sha": "e3078f044a36f053627c91f293aba12dabaf66b6",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 726
+    },
+    {
+      "actions": {
+        "INDEPENDENT_REVIEW": "PARTIAL_EVIDENCE",
+        "OWNER_MERGE": "PARTIAL_EVIDENCE",
+        "OWNER_READY": "PARTIAL_EVIDENCE"
+      },
+      "classification": "S6_ACCEPTANCE",
+      "evidence_ids": [
+        "ORIGINAL_CHATGPT_CONVERSATION:e868a9e7-a6c7-4e2e-8942-3538899de569:OWNER_READY",
+        "ORIGINAL_CHATGPT_CONVERSATION:e868a9e7-a6c7-4e2e-8942-3538899de569:OWNER_MERGE",
+        "ORIGINAL_CHATGPT_CONVERSATION:b158150d-4794-4941-ba02-944b7e65f3d7:INDEPENDENT_REVIEW"
+      ],
+      "head_sha": "293fdee41f402f1086fa6a8cca64142a362a34f8",
+      "merge_is_not_prior_permission": true,
+      "missing_records": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "pr_number": 727
+    }
+  ],
+  "approval_records": [
+    {
+      "action_type": "INDEPENDENT_REVIEW",
+      "actor": "xuezhiorange-png",
+      "actor_role": "INDEPENDENT_REVIEWER",
+      "authorization_scope": [
+        "INDEPENDENT_REVIEW"
+      ],
+      "captured_timestamp": "2026-10-16T05:50:04.427911+00:00",
+      "decision": "PASS",
+      "evidence_id": "GITHUB_REVIEW:5477145147:INDEPENDENT_REVIEW",
+      "evidence_status": "VERIFIED",
+      "head_binding_verified": true,
+      "independent_from_implementer": true,
+      "original_source_verified": true,
+      "original_timestamp": "2026-10-10T02:31:38Z",
+      "pr_number": 710,
+      "reason": "Original channel, head, scope and time verified",
+      "reviewed_head_sha": "504ca8eca78bfdeb083de5fe0cb1b3a9da1e55a4",
+      "source_integrity_hash": "49a71dac6d328e48bff5210b823f026cde4d8cba9346561473f290fcc263e80c",
+      "source_locator": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/710#pullrequestreview-5477145147",
+      "source_record_id": "5477145147",
+      "source_type": "GITHUB_REVIEW",
+      "temporal_order_verified": true
+    },
+    {
+      "action_type": "INDEPENDENT_REVIEW",
+      "actor": "xuezhiorange-png",
+      "actor_role": "INDEPENDENT_REVIEWER",
+      "authorization_scope": [
+        "INDEPENDENT_REVIEW"
+      ],
+      "captured_timestamp": "2026-10-16T05:50:04.427911+00:00",
+      "decision": "PASS",
+      "evidence_id": "GITHUB_REVIEW:5477662925:INDEPENDENT_REVIEW",
+      "evidence_status": "VERIFIED",
+      "head_binding_verified": true,
+      "independent_from_implementer": true,
+      "original_source_verified": true,
+      "original_timestamp": "2026-10-10T04:52:46Z",
+      "pr_number": 711,
+      "reason": "Original channel, head, scope and time verified",
+      "reviewed_head_sha": "be32c1084601d2b02e89c952ccc78312e213112a",
+      "source_integrity_hash": "4581866841b42eac44075c9e2c081ff6b1f60c3318e8447ed5cb06349d3b29cb",
+      "source_locator": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/711#pullrequestreview-5477662925",
+      "source_record_id": "5477662925",
+      "source_type": "GITHUB_REVIEW",
+      "temporal_order_verified": true
+    },
+    {
+      "action_type": "INDEPENDENT_REVIEW",
+      "actor": "xuezhiorange-png",
+      "actor_role": "INDEPENDENT_REVIEWER",
+      "authorization_scope": [
+        "INDEPENDENT_REVIEW"
+      ],
+      "captured_timestamp": "2026-10-16T05:50:04.427911+00:00",
+      "decision": "PASS",
+      "evidence_id": "GITHUB_REVIEW:5478142230:INDEPENDENT_REVIEW",
+      "evidence_status": "VERIFIED",
+      "head_binding_verified": true,
+      "independent_from_implementer": true,
+      "original_source_verified": true,
+      "original_timestamp": "2026-10-10T07:32:00Z",
+      "pr_number": 712,
+      "reason": "Original channel, head, scope and time verified",
+      "reviewed_head_sha": "13ac4381ebcea1094f07a0ab260dc4b5e9f7ac72",
+      "source_integrity_hash": "c952143f24c49b7b47551be16ef46bfb2739266c9fa85e3e21caa735a707cfa7",
+      "source_locator": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/712#pullrequestreview-5478142230",
+      "source_record_id": "5478142230",
+      "source_type": "GITHUB_REVIEW",
+      "temporal_order_verified": true
+    },
+    {
+      "action_type": "INDEPENDENT_REVIEW",
+      "actor": "xuezhiorange-png",
+      "actor_role": "INDEPENDENT_REVIEWER",
+      "authorization_scope": [
+        "INDEPENDENT_REVIEW"
+      ],
+      "captured_timestamp": "2026-10-16T05:50:04.427911+00:00",
+      "decision": "PASS",
+      "evidence_id": "GITHUB_REVIEW:5478733638:INDEPENDENT_REVIEW",
+      "evidence_status": "VERIFIED",
+      "head_binding_verified": true,
+      "independent_from_implementer": true,
+      "original_source_verified": true,
+      "original_timestamp": "2026-10-10T11:11:12Z",
+      "pr_number": 713,
+      "reason": "Original channel, head, scope and time verified",
+      "reviewed_head_sha": "7d9a6d8f878e3c8e4d80d94c38bb7556e51e7d44",
+      "source_integrity_hash": "0fd7ef8d2e8a9c49a94ea8603098fb706921d64d34f87dcafbe3236c7039dfaa",
+      "source_locator": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/713#pullrequestreview-5478733638",
+      "source_record_id": "5478733638",
+      "source_type": "GITHUB_REVIEW",
+      "temporal_order_verified": true
+    },
+    {
+      "action_type": "OWNER_READY",
+      "actor": "Owner original user",
+      "actor_role": "OWNER",
+      "authorization_scope": [
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "captured_timestamp": "2026-10-16T05:53:47.868217+00:00",
+      "decision": "PASS",
+      "evidence_id": "ORIGINAL_CHATGPT_CONVERSATION:e868a9e7-a6c7-4e2e-8942-3538899de569:OWNER_READY",
+      "evidence_status": "PARTIAL_EVIDENCE",
+      "head_binding_verified": false,
+      "independent_from_implementer": false,
+      "original_source_verified": true,
+      "original_timestamp": "2026-10-15T23:53:55.229000+00:00",
+      "pr_number": 727,
+      "reason": "Incomplete exact-head context, prior time, action scope or independent actor",
+      "reviewed_head_sha": null,
+      "source_integrity_hash": "31d09678ab201f61796bc806e03534f865641f7225014e200f4826ba2a0ab0a2",
+      "source_locator": "https://chatgpt.com/c/6ad0db11-c08c-83e9-8078-5b6a7caf822f#message-e868a9e7-a6c7-4e2e-8942-3538899de569",
+      "source_record_id": "e868a9e7-a6c7-4e2e-8942-3538899de569",
+      "source_type": "ORIGINAL_CHATGPT_CONVERSATION",
+      "temporal_order_verified": true
+    },
+    {
+      "action_type": "OWNER_MERGE",
+      "actor": "Owner original user",
+      "actor_role": "OWNER",
+      "authorization_scope": [
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "captured_timestamp": "2026-10-16T05:53:47.868217+00:00",
+      "decision": "PASS",
+      "evidence_id": "ORIGINAL_CHATGPT_CONVERSATION:e868a9e7-a6c7-4e2e-8942-3538899de569:OWNER_MERGE",
+      "evidence_status": "PARTIAL_EVIDENCE",
+      "head_binding_verified": false,
+      "independent_from_implementer": false,
+      "original_source_verified": true,
+      "original_timestamp": "2026-10-15T23:53:55.229000+00:00",
+      "pr_number": 727,
+      "reason": "Incomplete exact-head context, prior time, action scope or independent actor",
+      "reviewed_head_sha": null,
+      "source_integrity_hash": "31d09678ab201f61796bc806e03534f865641f7225014e200f4826ba2a0ab0a2",
+      "source_locator": "https://chatgpt.com/c/6ad0db11-c08c-83e9-8078-5b6a7caf822f#message-e868a9e7-a6c7-4e2e-8942-3538899de569",
+      "source_record_id": "e868a9e7-a6c7-4e2e-8942-3538899de569",
+      "source_type": "ORIGINAL_CHATGPT_CONVERSATION",
+      "temporal_order_verified": true
+    },
+    {
+      "action_type": "INDEPENDENT_REVIEW",
+      "actor": "ChatGPT retrospective assistant",
+      "actor_role": "INDEPENDENT_REVIEWER",
+      "authorization_scope": [
+        "INDEPENDENT_REVIEW"
+      ],
+      "captured_timestamp": "2026-10-16T05:53:47.868217+00:00",
+      "decision": "PASS",
+      "evidence_id": "ORIGINAL_CHATGPT_CONVERSATION:b158150d-4794-4941-ba02-944b7e65f3d7:INDEPENDENT_REVIEW",
+      "evidence_status": "PENDING_SOURCE_VERIFICATION",
+      "head_binding_verified": false,
+      "independent_from_implementer": false,
+      "original_source_verified": false,
+      "original_timestamp": "2026-10-16T05:20:01.208066+00:00",
+      "pr_number": 727,
+      "reason": "Channel, original-source identity or integrity unverified",
+      "reviewed_head_sha": null,
+      "source_integrity_hash": "d707e8042949ca73f7cf212d582fb27c98c8c5c2acfda6b440af73709aa38aeb",
+      "source_locator": "https://chatgpt.com/c/6ad0db11-c08c-83e9-8078-5b6a7caf822f#message-b158150d-4794-4941-ba02-944b7e65f3d7",
+      "source_record_id": "b158150d-4794-4941-ba02-944b7e65f3d7",
+      "source_type": "ORIGINAL_CHATGPT_CONVERSATION",
+      "temporal_order_verified": false
+    }
+  ],
+  "base_main_sha": "2b890d8e68a47ca506e7cf6b04bd187472138b2d",
+  "chat_source_verification": {
+    "codex_transcript_search": "Scoped original user-message search found implementation instructions, no Ready/Merge permission; not an exhaustive proof of historical absence",
+    "full_private_chat_published": false,
+    "older_context_not_available": true,
+    "original_chat_approval_chain_verified": false,
+    "original_chat_message_accessible": true,
+    "original_message_count": 1,
+    "other_stage_original_approvals": "NOT_FOUND_WITHIN_ACCESSED_SOURCES",
+    "provider_has_more": false,
+    "provider_returned_turns": 5,
+    "unverified_chat_leads": [
+      "PR727 independent PASS_SCOPED exact-head review; original preceding message not returned"
+    ]
+  },
+  "current_head_ci": "POST_COMMIT_EXTERNAL_EXACT_HEAD_RECEIPT_REQUIRED",
+  "evidence_statuses": [
+    "CONFLICTING_EVIDENCE",
+    "NOT_FOUND",
+    "PARTIAL_EVIDENCE",
+    "PENDING_SOURCE_VERIFICATION",
+    "POST_HOC_ATTESTATION",
+    "VERIFIED"
+  ],
+  "gate_counts": {
+    "BLOCKED": 7,
+    "FAIL": 0,
+    "PASS": 6,
+    "PENDING": 3
+  },
+  "governance": {
+    "deploy_authorized": false,
+    "external_final_head_ci_receipt": "PENDING_POST_COMMIT_SEPARATE_RECEIPT",
+    "merge_authorized": false,
+    "owner_closeout_authorized": true,
+    "owner_provenance_recovery_authorized": true,
+    "ready_authorized": false,
+    "release_authorized": false,
+    "stop": true,
+    "tag_authorized": false,
+    "v0_18_version_complete": false,
+    "v0_19_authorized": false,
+    "version_closeout_formal_complete": false
+  },
+  "historical_failure_chain": [
+    {
+      "cause": "EXPORT_TIMESTAMP_BOUNDARY",
+      "conclusion": "failure",
+      "corrected_by_pr": 721,
+      "corrected_main_ci": 38425016611,
+      "pr": 718,
+      "run": 38326155853
+    },
+    {
+      "attempt": 1,
+      "conclusion": "cancelled",
+      "not_relabelled_as_initial_success": true,
+      "pr": 726,
+      "run": 38703671252,
+      "successful_attempt": 2
+    }
+  ],
+  "historical_pr_count": 15,
+  "original_r1_gate_counts": {
+    "BLOCKED": 7,
+    "FAIL": 0,
+    "PASS": 6,
+    "PENDING": 3
+  },
+  "original_r1_snapshot_preserved": true,
+  "production_readiness": "NOT_READY",
+  "recovered_record_counts": {
+    "INDEPENDENT_REVIEW": 4,
+    "OWNER_MERGE": 0,
+    "OWNER_READY": 0
+  },
+  "result": "BLOCKED",
+  "source_evidence_sha256": {
+    "backend/tests/forecast_intelligence/build_v0_18_approval_provenance_r2.py": "fc0efbcc05f887ec64c65b197c0ef94700b9248c77ba786e7acb5dd525fa7219",
+    "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py": "e580ae071ca0143dece21787ff759cc79b869b2ce4f7bfd6790670368eb2d397",
+    "backend/tests/forecast_intelligence/test_v0_18_approval_provenance_r2.py": "7610e08fcf4ed155adf0c2e6f96c5530b7304bc7732725bbb1091485a1e7d56c",
+    "backend/tests/forecast_intelligence/test_v0_18_version_closeout.py": "cfee7f729956f963e59144e7a562196041e703161514b1a3081416b5e54cc143",
+    "docs/v0-18/evidence/v0.18.0-approval-sources-r2.json": "32feedb5a8294a95aa5192ce92f185b013229ee3c5f84b326587c7507d161218",
+    "docs/v0-18/evidence/v0.18.0-closeout-github-snapshot-r1.json": "b16dc66e7ed2e72e711ecf7117b335db67a34a0ad1901bc7a248f751723c7c94",
+    "docs/v0-18/evidence/v0.18.0-version-closeout-manifest-r1.json": "36dfd99675b313af0f4ec963763edd14b165d97426eee09cd83d5e90a6e4620d",
+    "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json": "47074e70ba503988d7b424ae9a2c0af3d46b7553ba720b830840d4f1a4ff4513",
+    "docs/v0-18/v0.18.0-closeout-provenance-recovery-r2.md": "1f640b3dfd68098db1640a5b98cd49906dcb5d5cb944b3b0110aa9755f870b5e",
+    "docs/v0-18/v0.18.0-closeout.md": "ab782c0251efee31aea108aadb9a3a23de518210ae1145cd309c50fcec97585f"
+  },
+  "start_head_sha": "63a044b39bb0c7a9a6698b1700628c4ee31a1050",
+  "task_id": "V0_18_CLOSEOUT_APPROVAL_PROVENANCE_RECOVERY_R2",
+  "version_complete_gates": [
+    {
+      "approval_requirements": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "id": "G01",
+      "required_prs": [
+        710,
+        715
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "approval_requirements": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "id": "G02",
+      "required_prs": [
+        717,
+        718,
+        721
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "approval_requirements": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "id": "G03",
+      "required_prs": [
+        723
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "approval_requirements": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "id": "G04",
+      "required_prs": [
+        724
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "approval_requirements": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "id": "G05",
+      "required_prs": [
+        725
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "approval_requirements": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "id": "G06",
+      "required_prs": [
+        726
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "approval_requirements": [
+        "INDEPENDENT_REVIEW",
+        "OWNER_READY",
+        "OWNER_MERGE"
+      ],
+      "id": "G07",
+      "required_prs": [
+        727
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "id": "G08",
+      "status": "PASS",
+      "validation": {
+        "artifacts": 107,
+        "browser_cases": 48,
+        "canonical_levels": 3,
+        "evidence_level": "AUDIT_OF_BOUND_ACTUAL_EXECUTION_NOT_NEW_RUNTIME",
+        "parity_rows": 54,
+        "raw_browser_observations": 28
+      }
+    },
+    {
+      "id": "G09",
+      "status": "PASS",
+      "validation": {
+        "inflight_tls_release_cases": 2,
+        "scope": {
+          "admin_implicit_business_access": false,
+          "bytes_already_sent_retractable": false,
+          "end_user_delegation": false,
+          "independent_quality_grant": true,
+          "mcp_mode": "SERVICE_ACCOUNT_ONLY",
+          "mcp_tool_count": 8,
+          "revocation_scope": "SAME_HOST_POSIX_LOCAL_FILESYSTEM"
+        },
+        "zero_work_cases": 8
+      }
+    },
+    {
+      "id": "G10",
+      "status": "PASS",
+      "validation": {
+        "fixed_git_commits_not_future_runtime_freeze": true,
+        "frozen_backend_modules": 557,
+        "historical_files": 888
+      }
+    },
+    {
+      "id": "G11",
+      "status": "PASS",
+      "validation": {
+        "known_limits": {
+          "cross_host_nfs_windows_revocation": "NOT_VALIDATED",
+          "jwt_issuer_audience": "NOT_APPLICABLE_LOCAL_OPAQUE_SESSION_AND_SERVICE_ACCOUNT",
+          "open_frontend_dependency_advisories": "S5_OPEN_ADVISORIES_PRESERVED",
+          "production_credentials_network_certificates": "NOT_VALIDATED",
+          "real_ios_safari": "NOT_VALIDATED",
+          "rolling_seven_day_maximum_four_surface_metric": "NOT_VALIDATED_SOURCE_CAPABILITY_UNAVAILABLE",
+          "screen_reader": "NOT_VALIDATED",
+          "soft_keyboard": "NOT_VALIDATED"
+        },
+        "raw_quality_responses": 18,
+        "semantic_boundaries": {
+          "H15": "D1..D15_PREFIX_CUMULATIVE",
+          "H7": "D1..D7_PREFIX_CUMULATIVE",
+          "attribution_is_causal": false,
+          "automatic_scheduling_or_optimization": false,
+          "bounds_are_calibrated_quantiles": false,
+          "historical_m1_is_operational_peak_accuracy": false,
+          "loss_unit": "SYNTHETIC_LOSS_UNIT",
+          "point_is_proven_p50": false,
+          "real_roi_validated": false,
+          "rolling_seven_day_maximum": "NOT_VALIDATED_SOURCE_CAPABILITY_UNAVAILABLE",
+          "strict_pit": false,
+          "unavailable": [
+            "RUN_BOUND_UPPER80",
+            "RUN_BOUND_UPPER90",
+            "ATTRIBUTION",
+            "CHILD_CONTRIBUTION"
+          ]
+        }
+      }
+    },
+    {
+      "id": "G12",
+      "status": "PASS",
+      "validation": {
+        "external_unobservable_actions": "NOT_VALIDATED",
+        "r1_added_files": [
+          "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py",
+          "backend/tests/forecast_intelligence/test_v0_18_version_closeout.py",
+          "docs/v0-18/evidence/v0.18.0-closeout-github-snapshot-r1.json",
+          "docs/v0-18/evidence/v0.18.0-version-closeout-manifest-r1.json",
+          "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+          "docs/v0-18/v0.18.0-closeout.md"
+        ],
+        "r2_allowlist": [
+          "docs/v0-18/v0.18.0-closeout-provenance-recovery-r2.md",
+          "docs/v0-18/evidence/v0.18.0-approval-provenance-r2.json",
+          "docs/v0-18/evidence/v0.18.0-approval-sources-r2.json",
+          "backend/tests/forecast_intelligence/build_v0_18_approval_provenance_r2.py",
+          "backend/tests/forecast_intelligence/test_v0_18_approval_provenance_r2.py"
+        ],
+        "range_policy": "FIXED_CLOSEOUT_MERGE_SECOND_PARENT_OR_CURRENT_UNMERGED_DELIVERY",
+        "scope": "OBSERVABLE_GIT_DELIVERY_AND_BOUND_EXECUTION_ONLY"
+      }
+    },
+    {
+      "id": "G13",
+      "status": "PASS",
+      "validation": {
+        "advisory_source": "docs/v0-18/s5/frontend-dependency-security-review-r1.md",
+        "gap_count": 15,
+        "not_a_new_dependency_audit": true,
+        "production_readiness": "NOT_READY",
+        "risk_register": [
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "REAL_ADMIN_ORGANIZATION_CATALOG",
+            "missing_evidence": "Owner designated bootstrap administrator and verified real resource catalog",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "REAL_SERVICE_ACCOUNTS_GRANTS",
+            "missing_evidence": "Real service-account secrets and approved exact grants",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "PRODUCTION_TLS_NETWORK",
+            "missing_evidence": "Production certificate, HTTPS renewal and network isolation proof",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "LEGACY_NETWORK_DENIAL",
+            "missing_evidence": "Real deployed legacy-entry denial proof",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "PRODUCTION_BACKUP_RESTORE",
+            "missing_evidence": "Actual production backup encryption, restore and reauthorization rehearsal",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "BINARY_VERSION_ROLLBACK",
+            "missing_evidence": "Real binary-version and schema-compatible rollback rehearsal",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "RPO_RTO",
+            "missing_evidence": "Owner approved RPO/RTO, with measured environment evidence",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "LOG_RETENTION_SECRETS",
+            "missing_evidence": "Approved retention/access/deletion/secrets operations",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "OPERATIONS_RESPONSIBILITY",
+            "missing_evidence": "Named operators, escalation thresholds and explicit risk acceptance",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "REAL_IOS_SAFARI",
+            "missing_evidence": "Real iOS Safari device acceptance",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "SOFT_KEYBOARD",
+            "missing_evidence": "Real software keyboard interaction acceptance",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "SCREEN_READER",
+            "missing_evidence": "Actual assistive-technology acceptance",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "CROSS_HOST_NFS_WINDOWS",
+            "missing_evidence": "Cross-host, NFS and Windows revocation safety evidence or topology exclusion",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "FRONTEND_DEPENDENCY_ADVISORIES",
+            "missing_evidence": "Seven affected frontend packages: five high and two moderate, not remediated",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          },
+          {
+            "current_evidence": "S5/S6 isolated synthetic tested scope only; see frozen stage reports",
+            "id": "CURRENT_ACTUAL_PROSPECTIVE_ACCURACY",
+            "missing_evidence": "Separately authorized real current-season actual data and prospective protocol",
+            "production_blocking": true,
+            "required_owner_decision": "SEPARATE_AUTHORIZATION_AND_ENVIRONMENT_ACCEPTANCE",
+            "status": "OPEN_NOT_VALIDATED"
+          }
+        ]
+      }
+    },
+    {
+      "id": "G14",
+      "reason": "SEPARATE_FUTURE_OWNER_GATE",
+      "status": "PENDING"
+    },
+    {
+      "id": "G15",
+      "reason": "SEPARATE_FUTURE_OWNER_GATE",
+      "status": "PENDING"
+    },
+    {
+      "id": "G16",
+      "reason": "SEPARATE_FUTURE_OWNER_GATE",
+      "status": "PENDING"
+    }
+  ]
+}
