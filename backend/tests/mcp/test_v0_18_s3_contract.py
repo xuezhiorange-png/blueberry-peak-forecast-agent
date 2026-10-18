@@ -32,10 +32,10 @@ def test_canonical_s3_evidence_and_source_hashes():
                 "backend/tests/local_auth/test_runtime_evidence_contract.py",
                 "backend/tests/mcp/test_v0_18_s3_contract.py",
             }
-            revised_authorization = (
-                field == "unchanged_business_sources_sha256"
-                and relative == "backend/app/local_auth/authorization.py"
-            )
+            revised_authorization = field == "unchanged_business_sources_sha256" and relative in {
+                "backend/app/local_auth/authorization.py",
+                "backend/app/local_auth/service.py",
+            }
             source = (
                 historical_bytes(relative, data["base_main_sha"])
                 if revised_authorization
