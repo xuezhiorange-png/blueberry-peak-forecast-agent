@@ -12,6 +12,8 @@ from backend.tests.forecast_intelligence.build_v0_18_version_closeout import git
 
 ROOT = Path(__file__).resolve().parents[3]
 BASE = "816d8299f007eab7da140fc5c7547d941c026f8f"
+SNAPSHOT_COMMIT = "772503823320c48c6920fc66c5164d8a30844fd9"
+CURRENT_MAIN = "8f6cae4004c663b9ccaf2061869cc7cb6e80adc4"
 OLD = "93e9660f6ef2c494178be825c66d11898c6fff97"
 EVIDENCE = "docs/v0-18/evidence/v0.18.0-final-closeout-status.json"
 SNAPSHOT = "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json"
@@ -73,13 +75,23 @@ def test_current_state_and_canonical_sources():
     for path in (EVIDENCE, SNAPSHOT):
         assert (ROOT / path).read_bytes() == canonical(load(path))
     for path, expected in value["source_evidence_sha256"].items():
-        assert sha((ROOT / path).read_bytes()) == expected, path
+        source = (
+            blob(SNAPSHOT_COMMIT, path)
+            if path == "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+            else (ROOT / path).read_bytes()
+        )
+        assert sha(source) == expected, path
     for path, expected in value["historical_snapshot_sha256"].items():
         assert sha((ROOT / path).read_bytes()) == sha(blob(OLD, path)) == expected, path
     for path, expected in value["historical_audit_code_sha256"].items():
         assert sha(blob(OLD, path)) == expected, path
     for path, expected in value["current_main_source_sha256"].items():
-        assert sha(blob(BASE, path)) == sha((ROOT / path).read_bytes()) == expected, path
+        assert sha(blob(BASE, path)) == expected, path
+        # This is the preserved 816d8299 snapshot, not the new PREAUTH runtime.
+        # Only the reviewed PR #733 service change reads historical bytes here;
+        # the appended current-state contract checks ALL latest-main sources.
+        if path != "backend/app/local_auth/service.py":
+            assert sha((ROOT / path).read_bytes()) == expected, path
     for path, expected in value["artifact_sha256"].items():
         assert sha((ROOT / path).read_bytes()) == expected, path
 
@@ -163,9 +175,18 @@ def test_current_delivery_is_audit_only_not_production_mutation():
         SNAPSHOT,
         "docs/v0-18/v0.18.0-final-closeout-status.md",
         "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "docs/v0-18/v0.18.0-final-closeout-preauth-update.md",
+        "docs/v0-18/evidence/v0.18.0-final-closeout-preauth-update.json",
+        "docs/v0-18/evidence/v0.18.0-final-closeout-preauth-github-snapshot.json",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py",
+        "docs/v0-18/evidence/final-closeout-preauth-current/backend.xml",
+        "docs/v0-18/evidence/final-closeout-preauth-current/execution.log",
+        "docs/v0-18/evidence/final-closeout-preauth-current/owned-resources.json",
+        "docs/v0-18/evidence/final-closeout-preauth-current/main-canary.xml",
+        "docs/v0-18/evidence/final-closeout-preauth-current/pr-canary.xml",
     }
     changed = (
-        subprocess.check_output(["git", "diff", "--name-only", BASE], cwd=ROOT)
+        subprocess.check_output(["git", "diff", "--name-only", CURRENT_MAIN], cwd=ROOT)
         .decode()
         .splitlines()
     )
