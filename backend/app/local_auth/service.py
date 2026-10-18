@@ -12,7 +12,12 @@ from sqlalchemy import cast, func, or_, select, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.local_auth.models import AuthAccount, AuthAuditEvent, AuthResourceGrant
+from backend.app.local_auth.models import (
+    AuthAccount,
+    AuthAuditEvent,
+    AuthResourceGrant,
+    AuthSession,
+)
 from backend.app.local_auth.passwords import HASHER, hash_password, verify_password
 from backend.app.local_auth.schemas import (
     CreateAccount,
@@ -22,7 +27,7 @@ from backend.app.local_auth.schemas import (
     QualityGrantRequest,
     SimpleAdminCatalog,
 )
-from backend.app.local_auth.sessions import AuthError, Principal, Sessions, now
+from backend.app.local_auth.sessions import AuthError, Principal, Sessions, digest, now
 
 
 def summary(account: AuthAccount) -> dict[str, Any]:
@@ -195,6 +200,24 @@ class AuthService(Sessions):
                         audit(db, "LOGIN_LIMIT_STARTED", bucket=bucket, code="LOGIN_LIMITED")
                 failed = True
             else:
+                # Preserve lock order: login buckets -> account -> PREAUTH.
+                # The pre-lock ORM snapshot is not permission to consume. Lock
+                # the actual session row and refresh before reusing validation.
+                preauth_id = preauth.session_id
+                locked_preauth = await db.scalar(
+                    select(AuthSession)
+                    .where(
+                        AuthSession.session_id == preauth_id,
+                        AuthSession.token_digest == digest(self.token(request)),
+                    )
+                    .with_for_update()
+                    .execution_options(populate_existing=True)
+                )
+                if locked_preauth is None:
+                    raise AuthError("UNAUTHENTICATED", 401)
+                preauth, _ = await self.load(db, request, preauth=True, csrf=True)
+                if preauth.session_id != preauth_id:
+                    raise AuthError("UNAUTHENTICATED", 401)
                 if HASHER.check_needs_rehash(account.password_hash):
                     account.password_hash = await asyncio.to_thread(hash_password, payload.password)
                 preauth.revoked_at, preauth.revoke_reason = now(), "LOGIN_ROTATION"

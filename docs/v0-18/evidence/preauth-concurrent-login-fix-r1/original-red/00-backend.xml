@@ -1,0 +1,445 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="9.158" timestamp="2026-10-18T03:06:55.768119+00:00" hostname="chengxuezhideMacBook-Air-3.local"><testcase classname="backend.tests.preauth_repro_r1.test_concurrent_login" name="test_01_real_login_and_consumed_preauth_sequential_replay" time="2.624"><properties><property name="PREAUTH_REPRO" value="{&quot;SYNTHETIC&quot;: true, &quot;case&quot;: &quot;POSITIVE_AND_SEQUENTIAL_NEGATIVE_CONTROLS&quot;, &quot;database&quot;: {&quot;login_success_audit_ids&quot;: [&quot;b1764a94-47fa-4aa0-b4b2-e70eaf6a1088&quot;], &quot;preauth&quot;: {&quot;kind&quot;: &quot;PREAUTH&quot;, &quot;revoke_reason&quot;: &quot;LOGIN_ROTATION&quot;, &quot;revoked&quot;: true, &quot;session_id&quot;: &quot;ef631bdf-80e5-4a83-b4c8-83e163e91611&quot;}, &quot;sessions&quot;: [{&quot;kind&quot;: &quot;END_USER&quot;, &quot;revoked&quot;: false, &quot;session_id&quot;: &quot;0d4bc371-06b0-4713-a361-511db6a9418e&quot;}]}, &quot;first_status&quot;: 200, &quot;old_preauth_me_status&quot;: 401, &quot;sequential_replay_status&quot;: 401, &quot;source_sha256&quot;: {&quot;backend/app/api/local_auth.py&quot;: &quot;51d050b3f90834777505cf246f74437d0e84195e55fb8a145834e9d7465b6338&quot;, &quot;backend/app/local_auth/models.py&quot;: &quot;c1c8ee2eeef0e24125a85300d4849f0f33c75e16cd2728b765f208458a3c0049&quot;, &quot;backend/app/local_auth/service.py&quot;: &quot;d1e5e4c531aa948a9c1791888d9c627ae5195deb4ab512930ab669a95ecf167f&quot;, &quot;backend/app/local_auth/sessions.py&quot;: &quot;8a99a5dfc5e8f229a14f1cecd80c53730c5f1f5ebd8d712c2245f9f062807f6b&quot;, &quot;backend/app/main.py&quot;: &quot;951239a381f3d1cfb0074411e745396a782db46b849da475902eb619730138ac&quot;, &quot;backend/tests/local_auth/conftest.py&quot;: &quot;94cf8e1674f92ce3c048c5c19bd6a2a1114da50e3658f448e0955d0a8f46dd5d&quot;, &quot;backend/tests/preauth_repro_r1/test_concurrent_login.py&quot;: &quot;c718fd3dfb62f97c71e450b5f5ffed01daed21848d06d7eb90e1b7cc62fb4fdb&quot;, &quot;backend/tests/safe_pilot/run.py&quot;: &quot;36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43&quot;}, &quot;transport&quot;: &quot;PRODUCTION_CREATE_APP_HTTPX_ASGI_TRANSPORT_NOT_NETWORK_TLS&quot;}" /></properties></testcase><testcase classname="backend.tests.preauth_repro_r1.test_concurrent_login" name="test_02_one_preauth_must_not_issue_two_valid_sessions" time="1.913"><failure message="sqlalchemy.exc.DBAPIError: (sqlalchemy.dialects.postgresql.asyncpg.Error) &lt;class 'asyncpg.exceptions.DataError'&gt;: invalid input for query argument $1: '747' (an integer is required)&#10;[SQL: SELECT pg_xact_status(CAST($1 AS xid8))]&#10;[parameters: ('747',)]&#10;(Background on this error at: https://sqlalche.me/e/20/dbapi)">&gt;   ???
+
+asyncpg/protocol/prepared_stmt.pyx:175: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+asyncpg/protocol/codecs/base.pyx:251: in asyncpg.protocol.protocol.Codec.encode
+    ???
+asyncpg/protocol/codecs/base.pyx:153: in asyncpg.protocol.protocol.Codec.encode_scalar
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+&gt;   ???
+E   TypeError: an integer is required
+
+asyncpg/pgproto/codecs/int.pyx:130: TypeError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_cursor object at 0x114699360&gt;
+operation = 'SELECT pg_xact_status(CAST($1 AS xid8))', parameters = ('747',)
+
+    async def _prepare_and_execute(self, operation, parameters):
+        adapt_connection = self._adapt_connection
+    
+        async with adapt_connection._execute_mutex:
+            if not adapt_connection._started:
+                await adapt_connection._start_transaction()
+    
+            if parameters is None:
+                parameters = ()
+    
+            try:
+                prepared_stmt, attributes = await adapt_connection._prepare(
+                    operation, self._invalidate_schema_cache_asof
+                )
+    
+                if attributes:
+                    self.description = [
+                        (
+                            attr.name,
+                            attr.type.oid,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                        )
+                        for attr in attributes
+                    ]
+                else:
+                    self.description = None
+    
+                if self.server_side:
+                    self._cursor = await prepared_stmt.cursor(*parameters)
+                    self.rowcount = -1
+                else:
+&gt;                   self._rows = deque(await prepared_stmt.fetch(*parameters))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:550: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/asyncpg/prepared_stmt.py:177: in fetch
+    data = await self.__bind_execute(args, 0, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/asyncpg/prepared_stmt.py:268: in __bind_execute
+    data, status, _ = await self.__do_execute(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/asyncpg/prepared_stmt.py:257: in __do_execute
+    return await executor(protocol)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+asyncpg/protocol/protocol.pyx:184: in bind_execute
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+&gt;   ???
+E   asyncpg.exceptions.DataError: invalid input for query argument $1: '747' (an integer is required)
+
+asyncpg/protocol/prepared_stmt.pyx:204: DataError
+
+The above exception was the direct cause of the following exception:
+
+self = &lt;sqlalchemy.engine.base.Connection object at 0x1146bcce0&gt;
+dialect = &lt;sqlalchemy.dialects.postgresql.asyncpg.PGDialect_asyncpg object at 0x113eb5d60&gt;
+context = &lt;sqlalchemy.dialects.postgresql.asyncpg.PGExecutionContext_asyncpg object at 0x1146e2120&gt;
+statement = &lt;sqlalchemy.dialects.postgresql.asyncpg.PGCompiler_asyncpg object at 0x1146e1cd0&gt;
+parameters = [('747',)]
+
+    def _exec_single_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+        statement: Union[str, Compiled],
+        parameters: Optional[_AnyMultiExecuteParams],
+    ) -&gt; CursorResult[Any]:
+        """continue the _execute_context() method for a single DBAPI
+        cursor.execute() or cursor.executemany() call.
+    
+        """
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+    
+            if generic_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor, generic_setinputsizes, context
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e, str(statement), parameters, None, context
+                    )
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters: Optional[_AnyExecuteParams]
+    
+        if not context.executemany:
+            effective_parameters = parameters[0]
+        else:
+            effective_parameters = parameters
+    
+        if self._has_events or self.engine._has_events:
+            for fn in self.dispatch.before_cursor_execute:
+                str_statement, effective_parameters = fn(
+                    self,
+                    cursor,
+                    str_statement,
+                    effective_parameters,
+                    context,
+                    context.executemany,
+                )
+    
+        if self._echo:
+            self._log_info(str_statement)
+    
+            stats = context._get_cache_stats()
+    
+            if not self.engine.hide_parameters:
+                self._log_info(
+                    "[%s] %r",
+                    stats,
+                    sql_util._repr_params(
+                        effective_parameters,
+                        batches=10,
+                        ismulti=context.executemany,
+                    ),
+                )
+            else:
+                self._log_info(
+                    "[%s] [SQL parameters hidden due to hide_parameters=True]",
+                    stats,
+                )
+    
+        evt_handled: bool = False
+        try:
+            if context.execute_style is ExecuteStyle.EXECUTEMANY:
+                effective_parameters = cast(
+                    "_CoreMultiExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_executemany(
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+                    )
+            elif not effective_parameters and context.no_parameters:
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute_no_params:
+                        if fn(cursor, str_statement, context):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+                    self.dialect.do_execute_no_params(
+                        cursor, str_statement, context
+                    )
+            else:
+                effective_parameters = cast(
+                    "_CoreSingleExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_execute:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+&gt;                   self.dialect.do_execute(
+                        cursor, str_statement, effective_parameters, context
+                    )
+
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1969: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:585: in execute
+    self._adapt_connection.await_(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:563: in _prepare_and_execute
+    self._handle_exception(error)
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:513: in _handle_exception
+    self._adapt_connection._handle_exception(error)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;AdaptedConnection &lt;asyncpg.connection.Connection object at 0x1146c0c80&gt;&gt;
+error = DataError("invalid input for query argument $1: '747' (an integer is required)")
+
+    def _handle_exception(self, error):
+        if self._connection.is_closed():
+            self._transaction = None
+            self._started = False
+    
+        if not isinstance(error, AsyncAdapt_asyncpg_dbapi.Error):
+            exception_mapping = self.dbapi._asyncpg_error_translate
+    
+            for super_ in type(error).__mro__:
+                if super_ in exception_mapping:
+                    translated_error = exception_mapping[super_](
+                        "%s: %s" % (type(error), error)
+                    )
+                    translated_error.pgcode = translated_error.sqlstate = (
+                        getattr(error, "sqlstate", None)
+                    )
+&gt;                   raise translated_error from error
+E                   sqlalchemy.dialects.postgresql.asyncpg.AsyncAdapt_asyncpg_dbapi.Error: &lt;class 'asyncpg.exceptions.DataError'&gt;: invalid input for query argument $1: '747' (an integer is required)
+
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:797: Error
+
+The above exception was the direct cause of the following exception:
+
+pg_auth = (&lt;backend.app.local_auth.service.AuthService object at 0x1145e3500&gt;, async_sessionmaker(class_='AsyncSession', bind=&lt;s...ckend.app.local_auth.models.AuthAccount object at 0x11464b710&gt;, 'blueberry_test_auth_dbe894b8e6f941caa63ae256ed429cba')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x1145e20c0&gt;
+tmp_path = PosixPath('/private/tmp/SYNTHETIC-v018-preauth-repro-20261018-r1/pytest/test_02_one_preauth_must_not_i0')
+record_property = &lt;function record_property.&lt;locals&gt;.append_property at 0x11466f380&gt;
+
+    async def test_02_one_preauth_must_not_issue_two_valid_sessions(
+        pg_auth, monkeypatch, tmp_path, record_property
+    ):
+        auth, factory, _, user, _ = pg_auth
+        app = application(auth)
+        loaded_a, resume_a = asyncio.Event(), asyncio.Event()
+        timeline, transactions = [], {}
+        engine = factory.kw["bind"]
+        original_load, original_issue = auth.load, auth.issue
+    
+        def observe(kind, **details):
+            timeline.append(
+                {
+                    "sequence": len(timeline),
+                    "monotonic_ns": time.monotonic_ns(),
+                    "request": LABEL.get(),
+                    "event": kind,
+                    **details,
+                }
+            )
+    
+        def before(conn, cursor, statement, parameters, context, many):
+            del conn, cursor, statement, parameters, many
+            context.preauth_probe_start = time.monotonic_ns()
+    
+        def after(conn, cursor, statement, parameters, context, many):
+            del cursor, parameters, many
+            lower = statement.lower()
+            kind = None
+            if "pg_advisory_xact_lock" in lower:
+                kind = "ADVISORY_LOCK_GRANTED"
+            elif "auth_account" in lower and "for update" in lower:
+                kind = "ACCOUNT_ROW_LOCK_GRANTED"
+            elif lower.startswith("insert into auth_session"):
+                kind = "SESSION_INSERT_EXECUTED"
+            elif lower.startswith("update auth_session"):
+                kind = "SESSION_UPDATE_EXECUTED"
+            elif lower.startswith("insert into auth_audit_event"):
+                kind = "AUDIT_INSERT_EXECUTED"
+            if kind:
+                observe(
+                    kind,
+                    pid=conn.connection.driver_connection.get_server_pid(),
+                    duration_ns=time.monotonic_ns() - context.preauth_probe_start,
+                )
+    
+        async def load_barrier(db, request, **kwargs):
+            value = await original_load(db, request, **kwargs)
+            label = LABEL.get()
+            if kwargs.get("preauth") and label in {"A", "B"}:
+                assert kwargs.get("csrf") is True
+                meta = await identity(db)
+                transactions[label] = meta
+                observe(
+                    "PREAUTH_VALIDATED",
+                    session_id=value[0].session_id,
+                    cached_revoked=value[0].revoked_at is not None,
+                    **meta,
+                )
+                if label == "A":
+                    loaded_a.set()
+                    await asyncio.wait_for(resume_a.wait(), 30)
+                    # Observe the original ORM object only; do not refresh/repair it.
+                    observe(
+                        "A_RESUMED_WITH_ORIGINAL_OBJECT", cached_revoked=value[0].revoked_at is not None
+                    )
+            return value
+    
+        async def issue_observer(db, account):
+            if account is not None and LABEL.get() in {"A", "B"}:
+                meta = await identity(db)
+                assert meta == transactions[LABEL.get()]
+                locks = (
+                    (
+                        await db.execute(
+                            text(
+                                "SELECT locktype, mode, granted FROM pg_locks "
+                                "WHERE pid=pg_backend_pid() ORDER BY locktype, mode"
+                            )
+                        )
+                    )
+                    .mappings()
+                    .all()
+                )
+                observe("BEFORE_REAL_SESSION_ISSUE", **meta, locks=[dict(x) for x in locks])
+            return await original_issue(db, account)
+    
+        monkeypatch.setattr(auth, "load", load_barrier)
+        monkeypatch.setattr(auth, "issue", issue_observer)
+        event.listen(engine.sync_engine, "before_cursor_execute", before)
+        event.listen(engine.sync_engine, "after_cursor_execute", after)
+        pending = None
+        async with (
+            AsyncClient(transport=ASGITransport(app=app), base_url=ORIGIN) as client_a,
+            AsyncClient(transport=ASGITransport(app=app), base_url=ORIGIN) as client_b,
+        ):
+            try:
+                raw, preauth_id, headers = await handshake(client_a, factory)
+    
+                async def call(label, client):
+                    token = LABEL.set(label)
+                    try:
+                        reply = await post(client, raw, headers)
+                        observe(
+                            "HTTP_RESPONSE_COMPLETE_COMMIT_CONTEXT_EXITED", status=reply.status_code
+                        )
+                        return reply
+                    finally:
+                        LABEL.reset(token)
+    
+                pending = asyncio.create_task(call("A", client_a))
+                await asyncio.wait_for(loaded_a.wait(), 10)
+                observe("A_BARRIER_REACHED_BEFORE_ANY_LOGIN_LOCK")
+                reply_b = await asyncio.wait_for(call("B", client_b), 10)
+                state_after_b = await inspect(factory, user.account_id, preauth_id)
+                async with factory() as observer:
+&gt;                   commit_b = await observer.scalar(
+                        text("SELECT pg_xact_status(CAST(:xid AS xid8))"),
+                        {"xid": transactions["B"]["transaction"]},
+                    )
+
+backend/tests/preauth_repro_r1/test_concurrent_login.py:253: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/session.py:504: in scalar
+    return await greenlet_spawn(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py:201: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:2421: in scalar
+    return self._execute_internal(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py:2266: in _execute_internal
+    return conn.scalar(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1310: in scalar
+    return meth(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py:544: in _execute_on_scalar
+    return self._execute_on_connection(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1848: in _execute_context
+    return self._exec_single_context(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:585: in execute
+    self._adapt_connection.await_(
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py:132: in await_only
+    return current.parent.switch(awaitable)  # type: ignore[no-any-return,attr-defined] # noqa: E501
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/util/_concurrency_py3k.py:196: in greenlet_spawn
+    value = await result
+            ^^^^^^^^^^^^
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:563: in _prepare_and_execute
+    self._handle_exception(error)
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:513: in _handle_exception
+    self._adapt_connection._handle_exception(error)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;AdaptedConnection &lt;asyncpg.connection.Connection object at 0x1146c0c80&gt;&gt;
+error = DataError("invalid input for query argument $1: '747' (an integer is required)")
+
+    def _handle_exception(self, error):
+        if self._connection.is_closed():
+            self._transaction = None
+            self._started = False
+    
+        if not isinstance(error, AsyncAdapt_asyncpg_dbapi.Error):
+            exception_mapping = self.dbapi._asyncpg_error_translate
+    
+            for super_ in type(error).__mro__:
+                if super_ in exception_mapping:
+                    translated_error = exception_mapping[super_](
+                        "%s: %s" % (type(error), error)
+                    )
+                    translated_error.pgcode = translated_error.sqlstate = (
+                        getattr(error, "sqlstate", None)
+                    )
+&gt;                   raise translated_error from error
+E                   sqlalchemy.exc.DBAPIError: (sqlalchemy.dialects.postgresql.asyncpg.Error) &lt;class 'asyncpg.exceptions.DataError'&gt;: invalid input for query argument $1: '747' (an integer is required)
+E                   [SQL: SELECT pg_xact_status(CAST($1 AS xid8))]
+E                   [parameters: ('747',)]
+E                   (Background on this error at: https://sqlalche.me/e/20/dbapi)
+
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/asyncpg.py:797: DBAPIError</failure></testcase></testsuite></testsuites>

@@ -9,6 +9,7 @@ from backend.tests.historical_source import historical_bytes
 ROOT = Path(__file__).resolve().parents[3]
 MERGED_D03 = "c35524174865785164fe4529f35067037ccddc2a"
 S2_REVISED_SOURCES = {
+    "backend/app/local_auth/service.py",
     "backend/app/core/config.py",
     "backend/tests/local_auth/test_runtime_evidence_contract.py",
     "backend/tests/local_auth/test_simple_admin_decision_contract.py",

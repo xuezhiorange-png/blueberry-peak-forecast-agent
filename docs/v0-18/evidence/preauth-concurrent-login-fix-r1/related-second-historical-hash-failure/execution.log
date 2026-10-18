@@ -1,0 +1,148 @@
+The files belonging to this database system will be owned by user "charles".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "C.UTF-8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+creating directory /tmp/SYNTHETIC-v018-preauth-fix-related-final/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /tmp/SYNTHETIC-v018-preauth-fix-related-final/data -l logfile start
+
+waiting for server to start.... done
+server started
+........................................................................ [ 23%]
+........................................................................ [ 47%]
+........................................................................ [ 71%]
+......................................F................................. [ 95%]
+..............                                                           [100%]
+=================================== FAILURES ===================================
+___________________ test_canonical_evidence_and_source_bytes ___________________
+
+    MERGED_REVOKE_FIX = "8c6f8cdb579b97669e7cc27edea3e75ea32090e6"
+    PREAUTH_REVISED_TEST_SOURCES = {
+        "backend/tests/business_access/test_contract.py",
+        "backend/tests/mcp/test_v0_18_s3_contract.py",
+        "backend/tests/revoke_read_race/test_evidence_contract.py",
+    }
+    
+    
+    def test_canonical_evidence_and_source_bytes():
+>       raw = (ARCHIVE / "evidence.json").read_bytes()
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert '0787a536d4da...4083a1206ad28' == 'e6ad3cae0d46...1a0ef5e367e7a'
+E         
+E         - e6ad3cae0d4664a235a4809a3cd4e6b816e7707e41418b19e961a0ef5e367e7a
+E         + 0787a536d4da84d3513ae0097eed9e204b39d94c2a4b0475c224083a1206ad28
+
+backend/tests/revoke_read_race/test_evidence_contract.py:22: AssertionError
+=============================== warnings summary ===============================
+../blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: 12 warnings
+  /Users/charles/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/pydantic/_internal/_generate_schema.py:325: PydanticDeprecatedSince20: `json_encoders` is deprecated. See https://docs.pydantic.dev/2.13/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    warnings.warn(
+
+backend/tests/preauth_repro_r1/test_concurrent_login.py::test_01_real_login_and_consumed_preauth_sequential_replay
+  backend/tests/preauth_repro_r1/test_concurrent_login.py:105: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_01_real_login_and_consumed_preauth_sequential_replay(
+
+backend/tests/preauth_repro_r1/test_concurrent_login.py::test_02_one_preauth_must_not_issue_two_valid_sessions
+  backend/tests/preauth_repro_r1/test_concurrent_login.py:137: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_02_one_preauth_must_not_issue_two_valid_sessions(
+
+backend/tests/preauth_repro_r1/test_fix_safety.py::test_distinct_preauth_can_both_login_with_real_session_row_locks
+  backend/tests/preauth_repro_r1/test_fix_safety.py:36: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_distinct_preauth_can_both_login_with_real_session_row_locks(
+
+backend/tests/preauth_repro_r1/test_fix_safety.py::test_locked_final_preauth_validation_rejects_inflight_changes[idle_expiry]
+backend/tests/preauth_repro_r1/test_fix_safety.py::test_locked_final_preauth_validation_rejects_inflight_changes[absolute_expiry]
+backend/tests/preauth_repro_r1/test_fix_safety.py::test_locked_final_preauth_validation_rejects_inflight_changes[revoked]
+backend/tests/preauth_repro_r1/test_fix_safety.py::test_locked_final_preauth_validation_rejects_inflight_changes[csrf]
+backend/tests/preauth_repro_r1/test_fix_safety.py::test_locked_final_preauth_validation_rejects_inflight_changes[digest]
+  backend/tests/preauth_repro_r1/test_fix_safety.py:87: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.parametrize("change", ["idle_expiry", "absolute_expiry", "revoked", "csrf", "digest"])
+
+backend/tests/preauth_repro_r1/test_fix_safety.py::test_concurrent_wrong_passwords_use_postgres_cross_worker_limits
+  backend/tests/preauth_repro_r1/test_fix_safety.py:159: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_concurrent_wrong_passwords_use_postgres_cross_worker_limits(
+
+backend/tests/preauth_repro_r1/test_fix_safety.py::test_transaction_rollback_has_no_ghost_session_or_success_audit[after_issue_exception]
+backend/tests/preauth_repro_r1/test_fix_safety.py::test_transaction_rollback_has_no_ghost_session_or_success_audit[after_issue_cancel]
+backend/tests/preauth_repro_r1/test_fix_safety.py::test_transaction_rollback_has_no_ghost_session_or_success_audit[audit_exception]
+  backend/tests/preauth_repro_r1/test_fix_safety.py:206: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.parametrize(
+
+backend/tests/safe_pilot/test_mcp_and_rollback.py::test_operational_factory_all_eight_real_tls_payload_parity_rotation_rollback
+  /Users/charles/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/websockets/legacy/__init__.py:6: DeprecationWarning: websockets.legacy is deprecated; see https://websockets.readthedocs.io/en/stable/howto/upgrade.html for upgrade instructions
+    warnings.warn(  # deprecated in 14.0 - 2024-11-09
+
+backend/tests/safe_pilot/test_mcp_and_rollback.py::test_operational_factory_all_eight_real_tls_payload_parity_rotation_rollback
+  /Users/charles/blueberry-simple-admin-r1/.venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/websockets_impl.py:17: DeprecationWarning: websockets.server.WebSocketServerProtocol is deprecated
+    from websockets.server import WebSocketServerProtocol
+
+backend/tests/safe_pilot/test_restore_and_ingress.py::test_full_backup_restore_reapproval_and_fail_closed_rollback
+  backend/tests/safe_pilot/test_restore_and_ingress.py:146: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_full_backup_restore_reapproval_and_fail_closed_rollback(
+
+backend/tests/safe_pilot/test_runner_cleanup.py::test_sigterm_during_pg_ctl_start_cleans_postmaster
+  backend/tests/safe_pilot/test_runner_cleanup.py:261: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_sigterm_during_pg_ctl_start_cleans_postmaster(runners):
+
+backend/tests/safe_pilot/test_runner_cleanup.py::test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster
+  backend/tests/safe_pilot/test_runner_cleanup.py:274: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_sigterm_running_and_repeated_during_cleanup_preserves_other_cluster(runners):
+
+backend/tests/safe_pilot/test_runner_cleanup.py::test_failed_test_exit_still_cleans_postgres_and_preserves_failure
+  backend/tests/safe_pilot/test_runner_cleanup.py:297: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_failed_test_exit_still_cleans_postgres_and_preserves_failure(runners):
+
+backend/tests/safe_pilot/test_runner_cleanup.py::test_start_command_failure_after_postmaster_spawn_still_cleans
+  backend/tests/safe_pilot/test_runner_cleanup.py:306: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_start_command_failure_after_postmaster_spawn_still_cleans(runners):
+
+backend/tests/safe_pilot/test_runner_cleanup.py::test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup
+  backend/tests/safe_pilot/test_runner_cleanup.py:315: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    def test_reviewed_baseline_reproduces_startup_leak_before_fixture_cleanup(runners, record_property):
+
+backend/tests/safe_pilot/test_two_worker_accounts.py::test_two_posix_sdk_workers_never_mix_accounts_and_refresh_policy
+  backend/tests/safe_pilot/test_two_worker_accounts.py:80: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_two_posix_sdk_workers_never_mix_accounts_and_refresh_policy(
+
+backend/tests/revoke_read_race/test_admission.py: 35 warnings
+  backend/tests/revoke_read_race/test_admission.py:159: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.parametrize("revocation", REVOCATIONS)
+
+backend/tests/revoke_read_race/test_admission.py::test_admitted_read_precedes_commit_and_cancellation_releases_lock[False]
+backend/tests/revoke_read_race/test_admission.py::test_admitted_read_precedes_commit_and_cancellation_releases_lock[True]
+  backend/tests/revoke_read_race/test_admission.py:284: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.parametrize("cancel", [False, True])
+
+backend/tests/revoke_read_race/test_admission.py: 10 warnings
+  backend/tests/revoke_read_race/test_admission.py:451: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.parametrize("operation", ["simulate", "compare"])
+
+backend/tests/revoke_read_race/test_original_repro.py::test_lead_1_disable_after_authentication_before_grant_and_read
+  backend/tests/revoke_read_race/test_original_repro.py:18: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    async def test_lead_1_disable_after_authentication_before_grant_and_read(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED backend/tests/revoke_read_race/test_evidence_contract.py::test_canonical_evidence_and_source_bytes
+1 failed, 301 passed, 81 warnings in 454.42s (0:07:34)
+pg_ctl: server is running (PID: 25282)
+/opt/homebrew/Cellar/postgresql@16/16.15_1/bin/postgres "-D" "/tmp/SYNTHETIC-v018-preauth-fix-related-final/data" "-h" "127.0.0.1" "-p" "58261" "-k" "/tmp/SYNTHETIC-v018-preauth-fix-related-final"
+waiting for server to shut down.... done
+server stopped
+pg_ctl: no server running

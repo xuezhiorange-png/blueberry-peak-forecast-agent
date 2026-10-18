@@ -1,0 +1,22 @@
+"""Runtime-before-evidence phase; the new metadata contract runs after generation."""
+
+import sys
+from pathlib import Path
+
+from backend.tests.safe_pilot import run as owned
+
+auth_cases = sorted(Path("backend/tests/local_auth").glob("test_*.py"))
+# This newly authored contract needs THIS run's artifact before it can execute.
+# It is separately executed after evidence generation, and included in full CI.
+auth_cases = [p for p in auth_cases if p.name != "test_preauth_fix_evidence_contract.py"]
+owned.TESTS = [
+    "backend/tests/preauth_repro_r1",
+    "backend/tests/safe_pilot",
+    *(str(p) for p in auth_cases),
+    "backend/tests/business_access",
+    "backend/tests/revoke_read_race",
+    "backend/tests/mcp/test_v0_18_s3_policy.py",
+    "backend/tests/mcp/test_v0_18_s3_postgres.py",
+]
+sys.argv = [sys.argv[0], "--output", "/tmp/SYNTHETIC-v018-preauth-fix-related-final"]
+owned.main()
