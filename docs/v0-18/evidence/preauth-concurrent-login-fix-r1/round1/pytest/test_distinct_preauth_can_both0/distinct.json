@@ -1,0 +1,51 @@
+{
+  "SYNTHETIC": true,
+  "case": "DISTINCT_PREAUTH_LEGAL",
+  "database": {
+    "login_success_audit_ids": [
+      "24dd4235-3049-48fc-b6fc-b3130305ce49",
+      "10e02b3a-50a2-4ced-b1b4-a5a152c163f2"
+    ],
+    "preauth": {
+      "kind": "PREAUTH",
+      "revoke_reason": "LOGIN_ROTATION",
+      "revoked": true,
+      "session_id": "de386076-e496-4523-a47d-d3b159db746f"
+    },
+    "sessions": [
+      {
+        "kind": "END_USER",
+        "revoked": false,
+        "session_id": "7735733d-ad07-48da-9bd3-48c8c3d90e94"
+      },
+      {
+        "kind": "END_USER",
+        "revoked": false,
+        "session_id": "515d68a4-76ac-4871-8a82-166fe36eb0bb"
+      }
+    ]
+  },
+  "session_for_update_observations": [
+    {
+      "pid": 15910
+    },
+    {
+      "pid": 15914
+    }
+  ],
+  "source_sha256": {
+    "backend/app/api/local_auth.py": "51d050b3f90834777505cf246f74437d0e84195e55fb8a145834e9d7465b6338",
+    "backend/app/local_auth/models.py": "c1c8ee2eeef0e24125a85300d4849f0f33c75e16cd2728b765f208458a3c0049",
+    "backend/app/local_auth/service.py": "65b957479e45a994317d5d7dfcba98319197686130a4912575c2da8894e4f393",
+    "backend/app/local_auth/sessions.py": "8a99a5dfc5e8f229a14f1cecd80c53730c5f1f5ebd8d712c2245f9f062807f6b",
+    "backend/app/main.py": "951239a381f3d1cfb0074411e745396a782db46b849da475902eb619730138ac",
+    "backend/tests/local_auth/conftest.py": "94cf8e1674f92ce3c048c5c19bd6a2a1114da50e3658f448e0955d0a8f46dd5d",
+    "backend/tests/preauth_repro_r1/test_concurrent_login.py": "35d4c982c39c8737d8f43b949f2228a7c0cc9ddb08cffdd350aedbffaf9bafdb",
+    "backend/tests/safe_pilot/run.py": "36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43"
+  },
+  "statuses": [
+    200,
+    200
+  ],
+  "transport": "PRODUCTION_CREATE_APP_HTTPX_ASGI_TRANSPORT_NOT_NETWORK_TLS"
+}

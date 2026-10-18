@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="6.615" timestamp="2026-10-18T03:20:20.522901+00:00" hostname="chengxuezhideMacBook-Air-3.local"><testcase classname="backend.tests.preauth_repro_r1.test_concurrent_login" name="test_01_real_login_and_consumed_preauth_sequential_replay" time="2.107"><properties><property name="PREAUTH_REPRO" value="{&quot;SYNTHETIC&quot;: true, &quot;case&quot;: &quot;POSITIVE_AND_SEQUENTIAL_NEGATIVE_CONTROLS&quot;, &quot;database&quot;: {&quot;login_success_audit_ids&quot;: [&quot;5aad8373-4624-4231-84bd-25a024e715d6&quot;], &quot;preauth&quot;: {&quot;kind&quot;: &quot;PREAUTH&quot;, &quot;revoke_reason&quot;: &quot;LOGIN_ROTATION&quot;, &quot;revoked&quot;: true, &quot;session_id&quot;: &quot;a70da13f-5240-4cc4-b61f-6a922ee17e87&quot;}, &quot;sessions&quot;: [{&quot;kind&quot;: &quot;END_USER&quot;, &quot;revoked&quot;: false, &quot;session_id&quot;: &quot;dd392b7e-db11-499c-a178-ebff28ba0d18&quot;}]}, &quot;first_status&quot;: 200, &quot;old_preauth_me_status&quot;: 401, &quot;sequential_replay_status&quot;: 401, &quot;source_sha256&quot;: {&quot;backend/app/api/local_auth.py&quot;: &quot;51d050b3f90834777505cf246f74437d0e84195e55fb8a145834e9d7465b6338&quot;, &quot;backend/app/local_auth/models.py&quot;: &quot;c1c8ee2eeef0e24125a85300d4849f0f33c75e16cd2728b765f208458a3c0049&quot;, &quot;backend/app/local_auth/service.py&quot;: &quot;d1e5e4c531aa948a9c1791888d9c627ae5195deb4ab512930ab669a95ecf167f&quot;, &quot;backend/app/local_auth/sessions.py&quot;: &quot;8a99a5dfc5e8f229a14f1cecd80c53730c5f1f5ebd8d712c2245f9f062807f6b&quot;, &quot;backend/app/main.py&quot;: &quot;951239a381f3d1cfb0074411e745396a782db46b849da475902eb619730138ac&quot;, &quot;backend/tests/local_auth/conftest.py&quot;: &quot;94cf8e1674f92ce3c048c5c19bd6a2a1114da50e3658f448e0955d0a8f46dd5d&quot;, &quot;backend/tests/preauth_repro_r1/test_concurrent_login.py&quot;: &quot;35d4c982c39c8737d8f43b949f2228a7c0cc9ddb08cffdd350aedbffaf9bafdb&quot;, &quot;backend/tests/safe_pilot/run.py&quot;: &quot;36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43&quot;}, &quot;transport&quot;: &quot;PRODUCTION_CREATE_APP_HTTPX_ASGI_TRANSPORT_NOT_NETWORK_TLS&quot;}" /></properties></testcase><testcase classname="backend.tests.preauth_repro_r1.test_concurrent_login" name="test_02_one_preauth_must_not_issue_two_valid_sessions" time="1.804"><properties><property name="PREAUTH_REPRO" value="{&quot;SYNTHETIC&quot;: true, &quot;a_transaction_final_status&quot;: &quot;committed&quot;, &quot;b_transaction_before_a_resume&quot;: &quot;committed&quot;, &quot;case&quot;: &quot;A_LOAD_B_COMMIT_A_RESUME&quot;, &quot;classification&quot;: &quot;RED_CONFIRMED&quot;, &quot;cookie_session_ids&quot;: [&quot;14fb4e55-fd29-4e9b-a321-9cd54ac7b932&quot;, &quot;f098e0f4-072b-468e-b05b-44e56c674457&quot;], &quot;database&quot;: {&quot;login_success_audit_ids&quot;: [&quot;d8149ea4-fea1-4dea-88e8-09b302d8b3aa&quot;, &quot;bf26cd70-27a8-40a8-92cf-c6c4a0562fc2&quot;], &quot;preauth&quot;: {&quot;kind&quot;: &quot;PREAUTH&quot;, &quot;revoke_reason&quot;: &quot;LOGIN_ROTATION&quot;, &quot;revoked&quot;: true, &quot;session_id&quot;: &quot;c1b490fa-9429-48db-87dc-bc5a14356636&quot;}, &quot;sessions&quot;: [{&quot;kind&quot;: &quot;END_USER&quot;, &quot;revoked&quot;: false, &quot;session_id&quot;: &quot;f098e0f4-072b-468e-b05b-44e56c674457&quot;}, {&quot;kind&quot;: &quot;END_USER&quot;, &quot;revoked&quot;: false, &quot;session_id&quot;: &quot;14fb4e55-fd29-4e9b-a321-9cd54ac7b932&quot;}]}, &quot;deterministic_barrier&quot;: true, &quot;independently_valid_cookie_count&quot;: 2, &quot;login_success_audit_count&quot;: 2, &quot;me_a_status&quot;: 200, &quot;me_b_status&quot;: 200, &quot;new_auth_session_count&quot;: 2, &quot;old_preauth_me_status&quot;: 401, &quot;request_a_status&quot;: 200, &quot;request_b_status&quot;: 200, &quot;shared_preauth_session_id&quot;: &quot;c1b490fa-9429-48db-87dc-bc5a14356636&quot;, &quot;source_sha256&quot;: {&quot;backend/app/api/local_auth.py&quot;: &quot;51d050b3f90834777505cf246f74437d0e84195e55fb8a145834e9d7465b6338&quot;, &quot;backend/app/local_auth/models.py&quot;: &quot;c1c8ee2eeef0e24125a85300d4849f0f33c75e16cd2728b765f208458a3c0049&quot;, &quot;backend/app/local_auth/service.py&quot;: &quot;d1e5e4c531aa948a9c1791888d9c627ae5195deb4ab512930ab669a95ecf167f&quot;, &quot;backend/app/local_auth/sessions.py&quot;: &quot;8a99a5dfc5e8f229a14f1cecd80c53730c5f1f5ebd8d712c2245f9f062807f6b&quot;, &quot;backend/app/main.py&quot;: &quot;951239a381f3d1cfb0074411e745396a782db46b849da475902eb619730138ac&quot;, &quot;backend/tests/local_auth/conftest.py&quot;: &quot;94cf8e1674f92ce3c048c5c19bd6a2a1114da50e3658f448e0955d0a8f46dd5d&quot;, &quot;backend/tests/preauth_repro_r1/test_concurrent_login.py&quot;: &quot;35d4c982c39c8737d8f43b949f2228a7c0cc9ddb08cffdd350aedbffaf9bafdb&quot;, &quot;backend/tests/safe_pilot/run.py&quot;: &quot;36746e9138955a3d0b6f4c96dbec3fb512ca28f7b1bd12a1c686aba03835cc43&quot;}, &quot;successful_login_count&quot;: 2, &quot;timeline&quot;: [{&quot;duration_ns&quot;: 1013292, &quot;event&quot;: &quot;SESSION_INSERT_EXECUTED&quot;, &quot;monotonic_ns&quot;: 172406767483291, &quot;pid&quot;: 12490, &quot;request&quot;: &quot;observer&quot;, &quot;sequence&quot;: 0}, {&quot;cached_revoked&quot;: false, &quot;event&quot;: &quot;PREAUTH_VALIDATED&quot;, &quot;isolation&quot;: &quot;read committed&quot;, &quot;monotonic_ns&quot;: 172406771573250, &quot;pid&quot;: 12490, &quot;postgresql&quot;: &quot;16.15 (Homebrew)&quot;, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 1, &quot;session_id&quot;: &quot;c1b490fa-9429-48db-87dc-bc5a14356636&quot;, &quot;transaction&quot;: &quot;746&quot;}, {&quot;event&quot;: &quot;A_BARRIER_REACHED_BEFORE_ANY_LOGIN_LOCK&quot;, &quot;monotonic_ns&quot;: 172406771604500, &quot;request&quot;: &quot;observer&quot;, &quot;sequence&quot;: 2}, {&quot;cached_revoked&quot;: false, &quot;event&quot;: &quot;PREAUTH_VALIDATED&quot;, &quot;isolation&quot;: &quot;read committed&quot;, &quot;monotonic_ns&quot;: 172406788196583, &quot;pid&quot;: 12491, &quot;postgresql&quot;: &quot;16.15 (Homebrew)&quot;, &quot;request&quot;: &quot;B&quot;, &quot;sequence&quot;: 3, &quot;session_id&quot;: &quot;c1b490fa-9429-48db-87dc-bc5a14356636&quot;, &quot;transaction&quot;: &quot;747&quot;}, {&quot;duration_ns&quot;: 261875, &quot;event&quot;: &quot;ADVISORY_LOCK_GRANTED&quot;, &quot;monotonic_ns&quot;: 172406789104541, &quot;pid&quot;: 12491, &quot;request&quot;: &quot;B&quot;, &quot;sequence&quot;: 4}, {&quot;duration_ns&quot;: 121833, &quot;event&quot;: &quot;ADVISORY_LOCK_GRANTED&quot;, &quot;monotonic_ns&quot;: 172406791193333, &quot;pid&quot;: 12491, &quot;request&quot;: &quot;B&quot;, &quot;sequence&quot;: 5}, {&quot;duration_ns&quot;: 137667, &quot;event&quot;: &quot;ADVISORY_LOCK_GRANTED&quot;, &quot;monotonic_ns&quot;: 172406792037291, &quot;pid&quot;: 12491, &quot;request&quot;: &quot;B&quot;, &quot;sequence&quot;: 6}, {&quot;duration_ns&quot;: 503542, &quot;event&quot;: &quot;ACCOUNT_ROW_LOCK_GRANTED&quot;, &quot;monotonic_ns&quot;: 172406793396791, &quot;pid&quot;: 12491, &quot;request&quot;: &quot;B&quot;, &quot;sequence&quot;: 7}, {&quot;event&quot;: &quot;BEFORE_REAL_SESSION_ISSUE&quot;, &quot;isolation&quot;: &quot;read committed&quot;, &quot;locks&quot;: [{&quot;granted&quot;: true, &quot;locktype&quot;: &quot;advisory&quot;, &quot;mode&quot;: &quot;ExclusiveLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;advisory&quot;, &quot;mode&quot;: &quot;ExclusiveLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;advisory&quot;, &quot;mode&quot;: &quot;ExclusiveLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;RowShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;RowShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;RowShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;RowShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;transactionid&quot;, &quot;mode&quot;: &quot;ExclusiveLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;virtualxid&quot;, &quot;mode&quot;: &quot;ExclusiveLock&quot;}], &quot;monotonic_ns&quot;: 172406815726416, &quot;pid&quot;: 12491, &quot;postgresql&quot;: &quot;16.15 (Homebrew)&quot;, &quot;request&quot;: &quot;B&quot;, &quot;sequence&quot;: 8, &quot;transaction&quot;: &quot;747&quot;}, {&quot;duration_ns&quot;: 474333, &quot;event&quot;: &quot;SESSION_UPDATE_EXECUTED&quot;, &quot;monotonic_ns&quot;: 172406816628416, &quot;pid&quot;: 12491, &quot;request&quot;: &quot;B&quot;, &quot;sequence&quot;: 9}, {&quot;duration_ns&quot;: 385875, &quot;event&quot;: &quot;SESSION_INSERT_EXECUTED&quot;, &quot;monotonic_ns&quot;: 172406817079458, &quot;pid&quot;: 12491, &quot;request&quot;: &quot;B&quot;, &quot;sequence&quot;: 10}, {&quot;duration_ns&quot;: 450792, &quot;event&quot;: &quot;AUDIT_INSERT_EXECUTED&quot;, &quot;monotonic_ns&quot;: 172406817963166, &quot;pid&quot;: 12491, &quot;request&quot;: &quot;B&quot;, &quot;sequence&quot;: 11}, {&quot;event&quot;: &quot;HTTP_RESPONSE_COMPLETE_COMMIT_CONTEXT_EXITED&quot;, &quot;monotonic_ns&quot;: 172406818567500, &quot;request&quot;: &quot;B&quot;, &quot;sequence&quot;: 12, &quot;status&quot;: 200}, {&quot;activity&quot;: [{&quot;blocking_pids&quot;: [], &quot;pid&quot;: 12490, &quot;state&quot;: &quot;idle in transaction&quot;, &quot;wait_event&quot;: &quot;ClientRead&quot;, &quot;wait_event_type&quot;: &quot;Client&quot;}, {&quot;blocking_pids&quot;: [], &quot;pid&quot;: 12491, &quot;state&quot;: &quot;active&quot;, &quot;wait_event&quot;: null, &quot;wait_event_type&quot;: null}], &quot;database&quot;: {&quot;login_success_audit_ids&quot;: [&quot;d8149ea4-fea1-4dea-88e8-09b302d8b3aa&quot;], &quot;preauth&quot;: {&quot;kind&quot;: &quot;PREAUTH&quot;, &quot;revoke_reason&quot;: &quot;LOGIN_ROTATION&quot;, &quot;revoked&quot;: true, &quot;session_id&quot;: &quot;c1b490fa-9429-48db-87dc-bc5a14356636&quot;}, &quot;sessions&quot;: [{&quot;kind&quot;: &quot;END_USER&quot;, &quot;revoked&quot;: false, &quot;session_id&quot;: &quot;f098e0f4-072b-468e-b05b-44e56c674457&quot;}]}, &quot;event&quot;: &quot;B_COMMIT_INDEPENDENTLY_CONFIRMED_BEFORE_A_RESUME&quot;, &quot;monotonic_ns&quot;: 172406827645375, &quot;pg_xact_status&quot;: &quot;committed&quot;, &quot;request&quot;: &quot;observer&quot;, &quot;sequence&quot;: 13}, {&quot;cached_revoked&quot;: false, &quot;event&quot;: &quot;A_RESUMED_WITH_ORIGINAL_OBJECT&quot;, &quot;monotonic_ns&quot;: 172406827679291, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 14}, {&quot;duration_ns&quot;: 217459, &quot;event&quot;: &quot;ADVISORY_LOCK_GRANTED&quot;, &quot;monotonic_ns&quot;: 172406828422625, &quot;pid&quot;: 12490, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 15}, {&quot;duration_ns&quot;: 93250, &quot;event&quot;: &quot;ADVISORY_LOCK_GRANTED&quot;, &quot;monotonic_ns&quot;: 172406829705041, &quot;pid&quot;: 12490, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 16}, {&quot;duration_ns&quot;: 87125, &quot;event&quot;: &quot;ADVISORY_LOCK_GRANTED&quot;, &quot;monotonic_ns&quot;: 172406830345833, &quot;pid&quot;: 12490, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 17}, {&quot;duration_ns&quot;: 293958, &quot;event&quot;: &quot;ACCOUNT_ROW_LOCK_GRANTED&quot;, &quot;monotonic_ns&quot;: 172406831201791, &quot;pid&quot;: 12490, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 18}, {&quot;event&quot;: &quot;BEFORE_REAL_SESSION_ISSUE&quot;, &quot;isolation&quot;: &quot;read committed&quot;, &quot;locks&quot;: [{&quot;granted&quot;: true, &quot;locktype&quot;: &quot;advisory&quot;, &quot;mode&quot;: &quot;ExclusiveLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;advisory&quot;, &quot;mode&quot;: &quot;ExclusiveLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;advisory&quot;, &quot;mode&quot;: &quot;ExclusiveLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;AccessShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;RowShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;RowShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;RowShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;relation&quot;, &quot;mode&quot;: &quot;RowShareLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;transactionid&quot;, &quot;mode&quot;: &quot;ExclusiveLock&quot;}, {&quot;granted&quot;: true, &quot;locktype&quot;: &quot;virtualxid&quot;, &quot;mode&quot;: &quot;ExclusiveLock&quot;}], &quot;monotonic_ns&quot;: 172406853393041, &quot;pid&quot;: 12490, &quot;postgresql&quot;: &quot;16.15 (Homebrew)&quot;, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 19, &quot;transaction&quot;: &quot;746&quot;}, {&quot;duration_ns&quot;: 409709, &quot;event&quot;: &quot;SESSION_UPDATE_EXECUTED&quot;, &quot;monotonic_ns&quot;: 172406853999125, &quot;pid&quot;: 12490, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 20}, {&quot;duration_ns&quot;: 225458, &quot;event&quot;: &quot;SESSION_INSERT_EXECUTED&quot;, &quot;monotonic_ns&quot;: 172406854289875, &quot;pid&quot;: 12490, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 21}, {&quot;duration_ns&quot;: 293875, &quot;event&quot;: &quot;AUDIT_INSERT_EXECUTED&quot;, &quot;monotonic_ns&quot;: 172406854772166, &quot;pid&quot;: 12490, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 22}, {&quot;event&quot;: &quot;HTTP_RESPONSE_COMPLETE_COMMIT_CONTEXT_EXITED&quot;, &quot;monotonic_ns&quot;: 172406855385333, &quot;request&quot;: &quot;A&quot;, &quot;sequence&quot;: 23, &quot;status&quot;: 200}, {&quot;duration_ns&quot;: 278417, &quot;event&quot;: &quot;SESSION_UPDATE_EXECUTED&quot;, &quot;monotonic_ns&quot;: 172406859158583, &quot;pid&quot;: 12490, &quot;request&quot;: &quot;observer&quot;, &quot;sequence&quot;: 24}, {&quot;duration_ns&quot;: 355375, &quot;event&quot;: &quot;SESSION_UPDATE_EXECUTED&quot;, &quot;monotonic_ns&quot;: 172406861080583, &quot;pid&quot;: 12491, &quot;request&quot;: &quot;observer&quot;, &quot;sequence&quot;: 25}], &quot;transactions&quot;: {&quot;A&quot;: {&quot;isolation&quot;: &quot;read committed&quot;, &quot;pid&quot;: 12490, &quot;postgresql&quot;: &quot;16.15 (Homebrew)&quot;, &quot;transaction&quot;: &quot;746&quot;}, &quot;B&quot;: {&quot;isolation&quot;: &quot;read committed&quot;, &quot;pid&quot;: 12491, &quot;postgresql&quot;: &quot;16.15 (Homebrew)&quot;, &quot;transaction&quot;: &quot;747&quot;}}, &quot;transport&quot;: &quot;PRODUCTION_CREATE_APP_HTTPX_ASGI_TRANSPORT_NOT_NETWORK_TLS&quot;}" /></properties><failure message="AssertionError: PREAUTH consumed twice by committed production login transactions&#10;assert 2 &lt;= 1">pg_auth = (&lt;backend.app.local_auth.service.AuthService object at 0x1161ca720&gt;, async_sessionmaker(class_='AsyncSession', bind=&lt;s...ckend.app.local_auth.models.AuthAccount object at 0x1161e4ec0&gt;, 'blueberry_test_auth_1bb84ca891604189b9328d6160fb6de5')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x1161c90a0&gt;
+tmp_path = PosixPath('/private/tmp/SYNTHETIC-v018-preauth-repro-20261018-verified-observer/pytest/test_02_one_preauth_must_not_i0')
+record_property = &lt;function record_property.&lt;locals&gt;.append_property at 0x116259940&gt;
+
+    async def test_02_one_preauth_must_not_issue_two_valid_sessions(
+        pg_auth, monkeypatch, tmp_path, record_property
+    ):
+        auth, factory, _, user, _ = pg_auth
+        app = application(auth)
+        loaded_a, resume_a = asyncio.Event(), asyncio.Event()
+        timeline, transactions = [], {}
+        engine = factory.kw["bind"]
+        original_load, original_issue = auth.load, auth.issue
+    
+        def observe(kind, **details):
+            timeline.append(
+                {
+                    "sequence": len(timeline),
+                    "monotonic_ns": time.monotonic_ns(),
+                    "request": LABEL.get(),
+                    "event": kind,
+                    **details,
+                }
+            )
+    
+        def before(conn, cursor, statement, parameters, context, many):
+            del conn, cursor, statement, parameters, many
+            context.preauth_probe_start = time.monotonic_ns()
+    
+        def after(conn, cursor, statement, parameters, context, many):
+            del cursor, parameters, many
+            lower = statement.lower()
+            kind = None
+            if "pg_advisory_xact_lock" in lower:
+                kind = "ADVISORY_LOCK_GRANTED"
+            elif "auth_account" in lower and "for update" in lower:
+                kind = "ACCOUNT_ROW_LOCK_GRANTED"
+            elif lower.startswith("insert into auth_session"):
+                kind = "SESSION_INSERT_EXECUTED"
+            elif lower.startswith("update auth_session"):
+                kind = "SESSION_UPDATE_EXECUTED"
+            elif lower.startswith("insert into auth_audit_event"):
+                kind = "AUDIT_INSERT_EXECUTED"
+            if kind:
+                observe(
+                    kind,
+                    pid=conn.connection.driver_connection.get_server_pid(),
+                    duration_ns=time.monotonic_ns() - context.preauth_probe_start,
+                )
+    
+        async def load_barrier(db, request, **kwargs):
+            value = await original_load(db, request, **kwargs)
+            label = LABEL.get()
+            if kwargs.get("preauth") and label in {"A", "B"}:
+                assert kwargs.get("csrf") is True
+                meta = await identity(db)
+                transactions[label] = meta
+                observe(
+                    "PREAUTH_VALIDATED",
+                    session_id=value[0].session_id,
+                    cached_revoked=value[0].revoked_at is not None,
+                    **meta,
+                )
+                if label == "A":
+                    loaded_a.set()
+                    await asyncio.wait_for(resume_a.wait(), 30)
+                    # Observe the original ORM object only; do not refresh/repair it.
+                    observe(
+                        "A_RESUMED_WITH_ORIGINAL_OBJECT", cached_revoked=value[0].revoked_at is not None
+                    )
+            return value
+    
+        async def issue_observer(db, account):
+            if account is not None and LABEL.get() in {"A", "B"}:
+                meta = await identity(db)
+                assert meta == transactions[LABEL.get()]
+                locks = (
+                    (
+                        await db.execute(
+                            text(
+                                "SELECT locktype, mode, granted FROM pg_locks "
+                                "WHERE pid=pg_backend_pid() ORDER BY locktype, mode"
+                            )
+                        )
+                    )
+                    .mappings()
+                    .all()
+                )
+                observe("BEFORE_REAL_SESSION_ISSUE", **meta, locks=[dict(x) for x in locks])
+            return await original_issue(db, account)
+    
+        monkeypatch.setattr(auth, "load", load_barrier)
+        monkeypatch.setattr(auth, "issue", issue_observer)
+        event.listen(engine.sync_engine, "before_cursor_execute", before)
+        event.listen(engine.sync_engine, "after_cursor_execute", after)
+        pending = None
+        async with (
+            AsyncClient(transport=ASGITransport(app=app), base_url=ORIGIN) as client_a,
+            AsyncClient(transport=ASGITransport(app=app), base_url=ORIGIN) as client_b,
+        ):
+            try:
+                raw, preauth_id, headers = await handshake(client_a, factory)
+    
+                async def call(label, client):
+                    token = LABEL.set(label)
+                    try:
+                        reply = await post(client, raw, headers)
+                        observe(
+                            "HTTP_RESPONSE_COMPLETE_COMMIT_CONTEXT_EXITED", status=reply.status_code
+                        )
+                        return reply
+                    finally:
+                        LABEL.reset(token)
+    
+                pending = asyncio.create_task(call("A", client_a))
+                await asyncio.wait_for(loaded_a.wait(), 10)
+                observe("A_BARRIER_REACHED_BEFORE_ANY_LOGIN_LOCK")
+                reply_b = await asyncio.wait_for(call("B", client_b), 10)
+                state_after_b = await inspect(factory, user.account_id, preauth_id)
+                async with factory() as observer:
+                    commit_b = await observer.scalar(
+                        text("SELECT pg_xact_status(CAST(:xid AS xid8))"),
+                        {"xid": int(transactions["B"]["transaction"])},
+                    )
+                    activity = (
+                        (
+                            await observer.execute(
+                                text(
+                                    "SELECT pid, state, wait_event_type, wait_event, "
+                                    "pg_blocking_pids(pid) AS blocking_pids FROM pg_stat_activity "
+                                    "WHERE pid IN (:a,:b) ORDER BY pid"
+                                ),
+                                {"a": transactions["A"]["pid"], "b": transactions["B"]["pid"]},
+                            )
+                        )
+                        .mappings()
+                        .all()
+                    )
+                assert commit_b == "committed" and reply_b.status_code == 200
+                assert state_after_b["preauth"]["revoked"] and len(state_after_b["sessions"]) == 1
+                observe(
+                    "B_COMMIT_INDEPENDENTLY_CONFIRMED_BEFORE_A_RESUME",
+                    pg_xact_status=commit_b,
+                    database=state_after_b,
+                    activity=[dict(x) for x in activity],
+                )
+                resume_a.set()
+                reply_a = await asyncio.wait_for(pending, 10)
+                state = await inspect(factory, user.account_id, preauth_id)
+                me_a, me_b = (
+                    await client_a.get("/api/v1/auth/me"),
+                    await client_b.get("/api/v1/auth/me"),
+                )
+                cookies = [client_a.cookies.get(COOKIE), client_b.cookies.get(COOKIE)]
+                mapped = []
+                async with factory() as db:
+                    commit_a = await db.scalar(
+                        text("SELECT pg_xact_status(CAST(:xid AS xid8))"),
+                        {"xid": int(transactions["A"]["transaction"])},
+                    )
+                    for raw_cookie in cookies:
+                        row = (
+                            await db.scalar(
+                                select(AuthSession).where(
+                                    AuthSession.token_digest == digest(raw_cookie)
+                                )
+                            )
+                            if raw_cookie
+                            else None
+                        )
+                        mapped.append(row.session_id if row else None)
+                old_me = await client_b.get("/api/v1/auth/me", headers={"Cookie": f"{COOKIE}={raw}"})
+                state_final = await inspect(factory, user.account_id, preauth_id)
+                assert transactions["A"]["pid"] != transactions["B"]["pid"]
+                assert transactions["A"]["transaction"] != transactions["B"]["transaction"]
+                assert state_final["preauth"]["revoked"] and old_me.status_code == 401
+                assert all(t["isolation"] == "read committed" for t in transactions.values())
+                valid_count = sum(reply.status_code == 200 for reply in (me_a, me_b))
+                classification = "INCONCLUSIVE"
+                if (
+                    reply_a.status_code == reply_b.status_code == 200
+                    and valid_count == len(set(mapped)) == len(state["sessions"]) == 2
+                    and len(state["login_success_audit_ids"]) == 2
+                    and commit_a == commit_b == "committed"
+                ):
+                    classification = "RED_CONFIRMED"
+                elif (
+                    reply_a.status_code in {401, 403}
+                    and reply_b.status_code == 200
+                    and valid_count == len(state["sessions"]) == 1
+                    and len(state["login_success_audit_ids"]) == 1
+                ):
+                    classification = "GREEN_NOT_REPRODUCED"
+                result = {
+                    "case": "A_LOAD_B_COMMIT_A_RESUME",
+                    "classification": classification,
+                    "deterministic_barrier": True,
+                    "shared_preauth_session_id": preauth_id,
+                    "request_a_status": reply_a.status_code,
+                    "request_b_status": reply_b.status_code,
+                    "me_a_status": me_a.status_code,
+                    "me_b_status": me_b.status_code,
+                    "successful_login_count": sum(r.status_code == 200 for r in (reply_a, reply_b)),
+                    "new_auth_session_count": len(state["sessions"]),
+                    "independently_valid_cookie_count": valid_count,
+                    "cookie_session_ids": mapped,
+                    "login_success_audit_count": len(state["login_success_audit_ids"]),
+                    "a_transaction_final_status": commit_a,
+                    "b_transaction_before_a_resume": commit_b,
+                    "database": state_final,
+                    "transactions": transactions,
+                    "timeline": timeline,
+                    "old_preauth_me_status": old_me.status_code,
+                }
+                save(tmp_path / "concurrent.json", result, record_property)
+                assert classification != "INCONCLUSIVE", "Target outcome was not established"
+                # Actual security invariant; leave RED as a real failing test.
+&gt;               assert result["successful_login_count"] &lt;= 1, (
+                    "PREAUTH consumed twice by committed production login transactions"
+                )
+E               AssertionError: PREAUTH consumed twice by committed production login transactions
+E               assert 2 &lt;= 1
+
+backend/tests/preauth_repro_r1/test_concurrent_login.py:350: AssertionError</failure></testcase></testsuite></testsuites>
