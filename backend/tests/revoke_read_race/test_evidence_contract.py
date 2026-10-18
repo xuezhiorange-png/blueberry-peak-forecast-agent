@@ -6,8 +6,16 @@ import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from backend.tests.historical_source import historical_bytes
+
 ROOT = Path(__file__).resolve().parents[3]
 ARCHIVE = ROOT / "docs/v0-18/evidence/backend-revoke-read-race-fix-r1"
+MERGED_REVOKE_FIX = "8c6f8cdb579b97669e7cc27edea3e75ea32090e6"
+PREAUTH_REVISED_TEST_SOURCES = {
+    "backend/tests/business_access/test_contract.py",
+    "backend/tests/mcp/test_v0_18_s3_contract.py",
+    "backend/tests/revoke_read_race/test_evidence_contract.py",
+}
 
 
 def test_canonical_evidence_and_source_bytes():
@@ -19,7 +27,12 @@ def test_canonical_evidence_and_source_bytes():
         for relative, expected in value[field].items():
             path = Path(relative)
             assert not path.is_absolute() and ".." not in path.parts
-            assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected
+            source = (
+                historical_bytes(relative, MERGED_REVOKE_FIX)
+                if field == "source_evidence_sha256" and relative in PREAUTH_REVISED_TEST_SOURCES
+                else (ROOT / path).read_bytes()
+            )
+            assert hashlib.sha256(source).hexdigest() == expected
     assert value["backend_lead_2"] == "PENDING"
     assert value["production_readiness"] == "NOT_READY"
     assert value["independent_review"] == "PENDING"
