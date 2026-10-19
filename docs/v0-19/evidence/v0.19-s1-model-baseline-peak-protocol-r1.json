@@ -1,0 +1,383 @@
+{
+  "base_main_sha": "47f774bfa823af9849cda7d56668ab81c73548c5",
+  "comparison_key": [
+    "comparison_family",
+    "subpolicy",
+    "model_version_and_fit_hash",
+    "organization_entity_area_basis",
+    "target_season",
+    "origin",
+    "timezone",
+    "issued_at",
+    "window_and_expected_dates",
+    "profile_input_source_hashes",
+    "physical_basis",
+    "unit",
+    "label_authority_hash",
+    "label_maturity",
+    "training_and_evaluation_ranges"
+  ],
+  "delivery_gate": "S0_POSTMERGE_CI_SUCCESS_BEFORE_COMMIT_PUSH_PR",
+  "delivery_gate_observed": {
+    "attempt": 1,
+    "conclusion": "success",
+    "event": "push",
+    "head_sha": "47f774bfa823af9849cda7d56668ab81c73548c5",
+    "run_id": 39215132754,
+    "skipped_jobs": [
+      "compose-smoke",
+      "postgres-concurrency",
+      "postgres-domain-1",
+      "postgres-domain-2",
+      "postgres-migration",
+      "postgres-task11",
+      "static",
+      "unit-contract-golden"
+    ],
+    "status": "completed",
+    "successful_jobs": [
+      "frontend-e2e",
+      "frontend-static",
+      "frontend-unit",
+      "full-suite-canary"
+    ],
+    "updated_at": "2026-10-19T08:16:15Z"
+  },
+  "document_sha256": {
+    "docs/v0-19/s1/model-baseline-and-historical-evidence-r1.md": "7e05f758b54d3de9f0dc3725a5bd091a6f291ad21bb502af5a22b170409fb43f",
+    "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md": "946f9212695fe4e40b3e41d757191daf01601a8d0c97a6f516c82f08edfebb27"
+  },
+  "execution": {
+    "business_database_accessed": false,
+    "candidate_implemented": false,
+    "current_actuals_accessed": false,
+    "historical_rescoring_executed": false,
+    "model_refit_executed": false,
+    "model_training_executed": false,
+    "private_history_accessed": false,
+    "production_code_changed": false
+  },
+  "governance": {
+    "deploy_authorized": false,
+    "historical_rescoring_authorized": false,
+    "merge_authorized": false,
+    "model_promotion_authorized": false,
+    "model_refit_authorized": false,
+    "model_training_authorized": false,
+    "owner_s1_authorized": true,
+    "parallel_local_preparation_authorized": true,
+    "production_code_authorized": false,
+    "ready_authorized": false,
+    "real_data_access_authorized": false,
+    "release_authorized": false,
+    "s1_formal_complete": false,
+    "s2_implementation_authorized": false,
+    "s3_implementation_authorized": false,
+    "s4_implementation_authorized": false,
+    "stop_after_draft_exact_head_ci": true,
+    "tag_authorized": false,
+    "version_research_complete": false
+  },
+  "historical_evidence": {
+    "v08": {
+      "cohorts": [
+        39,
+        30
+      ],
+      "errors_additive": false,
+      "full39_season_wape": "0.3925893218351959883557945280",
+      "shape_only_daily_wape": "0.5851588537121282064362044141"
+    },
+    "v13": {
+      "complementarity": "NOT_SUPPORTED",
+      "h15_complete_origins": 3964,
+      "peak_timing": "NOT_SUPPORTED",
+      "quantity_weather": "SUPPORTED",
+      "simple_gdd": "NOT_SUPPORTED"
+    },
+    "v15_s3": {
+      "cross_s5_ranking": false,
+      "leader": "NO_CLEAR_LEADER",
+      "origin_counts": [
+        4125,
+        6028,
+        9867
+      ]
+    },
+    "v15_s5": {
+      "oot_h15_daily_wape_m1": "0.45061746284274714676741860562477726865031957501063",
+      "oot_h7_daily_wape_m1": "0.42492240428114891228797259913152412125067904816858",
+      "oot_rolling7_start_mae_delta_days": "0.0641595441595441595441595441595441595441595441595",
+      "origin_counts": [
+        3705,
+        5412,
+        8775
+      ],
+      "quantity": "SUPPORTED_SHORT_TERM_HISTORICAL_SCOPE"
+    },
+    "v18": {
+      "engineering_acceptance_proves_accuracy": false,
+      "historical_pi_coverage": "UNDER_NOMINAL_NOT_PRODUCTION_PROOF"
+    }
+  },
+  "local_validation": {
+    "checks": {
+      "backend_mypy": "PASS_581_SOURCE_FILES",
+      "canonical_json_and_source_hashes": "PASS",
+      "ruff_check": "PASS",
+      "ruff_format": "PASS_1499_FILES",
+      "s0_files_unchanged": "PASS",
+      "s0_s1_contracts": "64_PASSED_0_FAILED_0_SKIPPED",
+      "selected_historical_and_core_metrics_regression": "197_PASSED_0_FAILED_0_SKIPPED"
+    },
+    "commands": [
+      "uv sync --frozen --extra dev",
+      ".venv/bin/pytest -q backend/tests/area_yield/test_v0_19_s1_protocol.py backend/tests/area_yield/test_v0_19_scope_contract.py",
+      ".venv/bin/pytest -q backend/tests/area_yield/test_v08_s9_scale_shape_diagnosis.py backend/tests/area_yield/test_v0_13_s5_closeout.py backend/tests/area_yield/test_v0_15_version_closeout.py backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py backend/tests/core_forecast/test_metrics.py backend/tests/core_forecast/test_metrics_schemas.py",
+      ".venv/bin/ruff check .",
+      ".venv/bin/ruff format --check .",
+      ".venv/bin/mypy backend/app",
+      "git diff --check"
+    ],
+    "full_exact_head_ci": "BOUND_BY_FINAL_PR_HEAD_AND_RUN_NOT_LOCAL_CHECKS",
+    "mypy": "2.1.0",
+    "pytest": "9.1.1",
+    "python": "3.12.13",
+    "ruff": "0.15.18",
+    "synthetic_examples_only": true,
+    "test_development_initial_red": "EXPECTED_MISSING_NEW_MACHINE_CONTRACT_BEFORE_CREATION",
+    "warnings": "101_EXISTING_CORE_METRICS_ADVERSARIAL_PYDANTIC_SERIALIZATION_WARNINGS"
+  },
+  "metrics": {
+    "BASE_BREADTH": {
+      "aggregation": "PAIRED_BASE_ERROR_SUMS_NO_ROW_COUNT_SUBSTITUTION",
+      "denominator": "COMMON_COMPUTABLE_BASES_AND_THEIR_ACTUAL_KG",
+      "formula": "delta_b=sum(abs(candidate-a))-sum(abs(baseline-a)); count(delta_b<0,=0,>0); sum(actual_improved_b)/sum(actual_all_b)",
+      "undefined": "NO_COMMON_BASE_OR_ZERO_ACTUAL_MASS_RATIO",
+      "unit": "BASE_COUNT_AND_ACTUAL_KG_RATIO"
+    },
+    "DAILY_MAE": {
+      "aggregation": "EQUAL_ORIGIN_TARGET_INSTANCE_WEIGHT",
+      "denominator": "COMMON_TARGET_INSTANCE_COUNT",
+      "formula": "sum_c_d(abs(p-a))/N_common_target_instances",
+      "undefined": "EMPTY_COHORT",
+      "unit": "KG_PER_TARGET_ROW"
+    },
+    "DAILY_WAPE": {
+      "aggregation": "MICRO_POOLED_BY_SPLIT_AND_WINDOW",
+      "denominator": "ACTUAL_KG_OF_COMMON_TARGET_INSTANCES",
+      "formula": "sum_c_d(abs(p-a))/sum_c_d(a)",
+      "undefined": "ZERO_DENOMINATOR_OR_EMPTY_COHORT",
+      "unit": "RATIO"
+    },
+    "NOT_COMPUTABLE_COUNT": {
+      "aggregation": "ONE_PRIMARY_REASON_PER_METRIC_UNIT",
+      "denominator": "FROZEN_CANDIDATE_METRIC_UNIT_COUNT",
+      "formula": "N_candidate_metric-N_common_computable_metric",
+      "undefined": "EMPTY_COHORT_COUNT_ZERO_WITH_NULL_ERROR",
+      "unit": "COUNT"
+    },
+    "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+      "aggregation": "EQUAL_WINDOW_WEIGHT_ZERO_ACTUAL_INCLUDED",
+      "denominator": "COMMON_COMPLETE_WINDOW_COUNT",
+      "formula": "sum_c(abs(max_rolling7(p)-max_rolling7(a)))/N_complete_windows",
+      "undefined": "NO_COMPLETE_7DAY_WINDOW_OR_EMPTY_COHORT",
+      "unit": "KG_PER_7DAY_WINDOW"
+    },
+    "ROLLING_7DAY_PEAK_START_MAE": {
+      "aggregation": "EQUAL_WINDOW_WEIGHT",
+      "denominator": "POSITIVE_ACTUAL_COMPLETE_WINDOW_COUNT",
+      "formula": "sum_c(abs(earliest_start(max_rolling7(p))-earliest_start(max_rolling7(a))))/N_positive_actual_windows",
+      "undefined": "NO_COMPLETE_7DAY_WINDOW_OR_NO_POSITIVE_ACTUAL_PEAK",
+      "unit": "CALENDAR_DAYS"
+    },
+    "SAMPLE_COVERAGE": {
+      "aggregation": "PER_METRIC_SPLIT_WINDOW_AND_SEPARATE_BASE_ROW_COVERAGE",
+      "denominator": "FROZEN_CANDIDATE_METRIC_UNIT_COUNT",
+      "formula": "N_common_computable_metric/N_candidate_metric",
+      "undefined": "EMPTY_COHORT",
+      "unit": "RATIO"
+    },
+    "SEASON_TOTAL_WAPE": {
+      "aggregation": "MICRO_POOLED_ONE_PREREGISTERED_ISSUANCE_PER_BASE_SEASON",
+      "denominator": "ACTUAL_KG_IN_COMPLETE_FULL_SEASONS",
+      "formula": "sum_c(abs(sum_d(p)-sum_d(a)))/sum_c_d(a)",
+      "undefined": "ZERO_DENOMINATOR_OR_INCOMPLETE_SEASON",
+      "unit": "RATIO"
+    },
+    "SINGLE_DAY_PEAK_DATE_MAE": {
+      "aggregation": "EQUAL_WINDOW_WEIGHT",
+      "denominator": "POSITIVE_ACTUAL_COMPLETE_WINDOW_COUNT",
+      "formula": "sum_c(abs(date(argmax_earliest(p))-date(argmax_earliest(a))))/N_positive_actual_windows",
+      "undefined": "NO_POSITIVE_ACTUAL_PEAK_OR_INCOMPLETE_WINDOW",
+      "unit": "CALENDAR_DAYS"
+    },
+    "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+      "aggregation": "EQUAL_WINDOW_WEIGHT_ZERO_ACTUAL_INCLUDED",
+      "denominator": "COMMON_COMPLETE_WINDOW_COUNT",
+      "formula": "sum_c(abs(max(p)-max(a)))/N_complete_windows",
+      "undefined": "INCOMPLETE_WINDOW_OR_EMPTY_COHORT",
+      "unit": "KG_PER_WINDOW"
+    }
+  },
+  "model_matrix": {
+    "AREA_FORECAST_PRODUCT": {
+      "comparability_limit": "DIFFERENT_CALENDAR_REFERENCE_AREA_NORMALIZATION_AND_SUBTOTAL_AUTHORITY",
+      "fit_state": "FROZEN_ARTIFACT_INFERENCE_NOT_REFIT",
+      "identity": "BASE_AREA_PRODUCT_AND_B1_SUBPOLICIES_RECORDED_SEPARATELY",
+      "source_paths": [
+        "backend/app/area_yield/base_product.py",
+        "backend/app/area_yield/base_product_authority.py",
+        "backend/app/area_yield/product.py",
+        "backend/app/area_yield/run_application.py"
+      ]
+    },
+    "CORE_FORECAST": {
+      "comparability_limit": "FACTORY_SCOPED_MARKETABLE_KG_NOT_HARVEST_OR_THROUGHPUT_AUTHORITY",
+      "fit_state": "PERSISTED_UPSTREAM_AUTHORITIES_NOT_SINGLE_FITTED_MODEL",
+      "identity": "TASK8_TASK9_MARKETABLE_RETENTION_COMPOSITION",
+      "source_paths": [
+        "backend/app/core_forecast/service.py",
+        "backend/app/core_forecast/metrics.py",
+        "backend/app/core_forecast/schemas.py"
+      ]
+    },
+    "OPERATIONAL_PEAK": {
+      "comparability_limit": "D1_D15_AND_REMAINING_WINDOW_NOT_FULL_SEASON_NOT_M1",
+      "fit_state": "FROZEN_PROFILE_NO_FIT",
+      "identity": "OPERATIONAL_PEAK_POLICY_V1:AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+      "source_paths": [
+        "backend/app/forecast_quality/operational_peak.py"
+      ]
+    },
+    "V0_15_BASE10_RIDGE": {
+      "comparability_limit": "S3_ROWSET_NOT_S5_COMMON_ROWSET",
+      "fit_state": "HISTORICAL_TRAIN_VALIDATION_FINAL_FIT_NOT_EXECUTED_HERE",
+      "identity": "RIDGE_LEAST_SQUARES_ALPHA10_BASE10_S3",
+      "source_paths": [
+        "backend/app/area_yield/v015_base10_benchmark.py",
+        "backend/app/area_yield/weather_aware_backtest.py"
+      ]
+    },
+    "V0_15_HARVEST_STATE_RIDGE": {
+      "comparability_limit": "RETROSPECTIVE_DATE_BOUND_NOT_STRICT_PIT_NOT_OPERATIONAL_PEAK",
+      "fit_state": "HISTORICAL_COMMON_ROWSET_REFIT_NOT_EXECUTED_HERE",
+      "identity": "V0_15_S5_M1_RIDGE_14_FEATURES",
+      "source_paths": [
+        "backend/app/area_yield/v015_harvest_incremental.py",
+        "backend/app/area_yield/v015_harvest_state.py",
+        "backend/app/area_yield/weather_aware_backtest.py"
+      ]
+    }
+  },
+  "new_paths": [
+    "docs/v0-19/s1/model-baseline-and-historical-evidence-r1.md",
+    "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md",
+    "docs/v0-19/evidence/v0.19-s1-model-baseline-peak-protocol-r1.json",
+    "backend/tests/area_yield/test_v0_19_s1_protocol.py"
+  ],
+  "preregistration": {
+    "bin_quantity": "BASELINE_DAILY_RATE_SUM_OVER_ACTUAL_SUPPORT_DAYS",
+    "boundary": "SHORT_BIN_ACTUAL_DAYS_NO_EXTRAPOLATION",
+    "candidate_method": "NOT_SELECTED_S2_SEPARATE_AUTHORIZATION_REQUIRED",
+    "cross_family_ranking": false,
+    "freeze_before_label_access": true,
+    "future_execution_gates": [
+      "S1_S2_FORMAL_COMPLETE",
+      "SEPARATE_OWNER_S3_IMPLEMENTATION_AUTHORIZATION",
+      "SEPARATE_DATA_AND_EXPERIMENT_AUTHORIZATION",
+      "SOURCE_COHORT_PHYSICAL_AND_TIME_AUTHORITY",
+      "PREDICTION_SEAL_BEFORE_LABEL_READ"
+    ],
+    "mass_conservation_scope": "EACH_SEASON_ANCHORED_BIN_ON_DECLARED_SUPPORT",
+    "max_candidates": 1,
+    "missing_authority": "BLOCKED",
+    "parameter_search": false,
+    "partial_query_renormalization": false,
+    "primary_baseline": "OPERATIONAL_PEAK:AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "quantization": "INTEGER_MICRO_KG_LARGEST_REMAINDER_EARLIEST_TIE",
+    "required_outcomes": [
+      "ALL_TEN_METRICS_AND_COVERAGE",
+      "PRESERVE_REGRESSION_AND_NO_GAIN",
+      "FULL_SEASON_AND_H15_SEPARATE",
+      "NO_AUTOMATIC_MODEL_PROMOTION"
+    ],
+    "results": "NOT_EXECUTED",
+    "selection_basis": "STRUCTURAL_SYNTHETIC_CONSTRAINTS_NOT_OBSERVED_ERRORS",
+    "statistical_significance_claim": false
+  },
+  "s0_binding": {
+    "ci_conclusion_at_preparation": "IN_PROGRESS_NOT_YET_ACCEPTED",
+    "formal_completion_not_inferred_from_local_checks": true,
+    "main_ci_run_id": 39215132754,
+    "merge_sha": "47f774bfa823af9849cda7d56668ab81c73548c5",
+    "pr": 734,
+    "pr_head_sha": "052ea8e60ed0994abe82e7e3dd467dde96101e36"
+  },
+  "scientific_limits": {
+    "attribution_run_bound_authority": "NOT_AVAILABLE",
+    "business_accuracy_threshold": null,
+    "exposed_2025_2026_is_blind_oot": false,
+    "m1_wape_is_operational_peak_accuracy": false,
+    "planning_bound_is_calibrated_quantile": false,
+    "point_is_proven_p50": false,
+    "production_ready": false,
+    "prospective_accuracy_validated": false,
+    "strict_pit": false,
+    "upper80_90_run_bound_authority": "NOT_AVAILABLE"
+  },
+  "source_evidence_sha256": {
+    "backend/app/area_yield/base_product.py": "61cae3cef687a136ff4377303865c0bac1a42137bbc1806d278890b3d2c56538",
+    "backend/app/area_yield/base_product_authority.py": "227a07dbed931d6c1431147062c3f4b1f6dd69f92ddfcbe4c5b631abc813ac18",
+    "backend/app/area_yield/product.py": "8c53f759abcd07ce60c369b50fb749b9df4c1101020372af7ff8cb6333c3653d",
+    "backend/app/area_yield/run_application.py": "e5cc01f614de18c3af507a9a7ddef795f61ba73ef11301d4f818c5fd42241e33",
+    "backend/app/area_yield/v015_base10_benchmark.py": "8a65e7fd24fda52b8d1dd0047229f770db73a54fc8aad0785ba5381b9c7ab37a",
+    "backend/app/area_yield/v015_harvest_incremental.py": "fa40866d70cb48213751d2cf6662904ff54745573847918168fe03c6f969ba71",
+    "backend/app/area_yield/v015_harvest_state.py": "55b2caefe074e12990f047390629444df15f5baecd4d017893a82a19571ccb89",
+    "backend/app/area_yield/weather_aware_backtest.py": "aae66403ddbc285c55c4133cf1379dfec00aaff17f22cf8f5f43bb9ab6e685f6",
+    "backend/app/core_forecast/metrics.py": "7621e9a81cbedb2d0097cfa83ccd4f0288df766990b065d47a6f0e1ac77aef7c",
+    "backend/app/core_forecast/schemas.py": "8c66b791b746ace0dc7c903f5a98f16fef5169869217b3a9093942eaa6b13002",
+    "backend/app/core_forecast/service.py": "f4a53ec935b9abfb2d857722a00ced5fbee3375e484cdc688b19d2915be4c0ad",
+    "backend/app/forecast_quality/operational_peak.py": "3bebc3d193052b87968b95bdfc55ae1ca3ab2bb784d6c520743489e1586fb762",
+    "backend/tests/area_yield/test_v0_19_s1_protocol.py": "c4cd0ad6de77b43f264e6b123fad69caa175d33c1888ba17c267312157c11398",
+    "backend/tests/area_yield/test_v0_19_scope_contract.py": "ac806ad57a6fc3b3af6622121866fe6f02f02b379432ffa320c3388ac462e5a4",
+    "docs/v0-13/v0.13.0-closeout.md": "0da03a64eb04547ea3d97cea5748251e70de3e8df22d94515c9b0a294faf088d",
+    "docs/v0-15/v0.15-s3-base10-model-benchmark-r1.md": "75171ad6e795c80a8501db7db99e1f607614f2a5ec500c7093499e42b221c684",
+    "docs/v0-15/v0.15-s5-harvest-state-incremental-value-r1.md": "523264b91bf2036394ed82a614e83564bab111aaf1cfdce8365eaffd41eb0227",
+    "docs/v0-15/v0.15.0-closeout.md": "ea6426434bc9eb271b8e39f8313b0032ca28449c068c33782d4f2110527a20a7",
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8",
+    "docs/v0-19/evidence/v0.19.0-scope-freeze-r1.json": "eb6a48c37df88182b3e5596da48abc046a6b1602136c7256870598989ddf3417",
+    "docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md": "c98c51b3fb107d8236703882915193df5cd97c0f380afa1eb8233479f2a3f181",
+    "docs/v0-8/s9/scale-shape-error-decomposition-and-model-diagnosis-r1.md": "60d45f0d3d0f2158255234b703c3510e4b54b2658646ac8ffbc3f8b3c40140ef"
+  },
+  "source_read_policy": {
+    "frozen_documents": "CURRENT_WORKTREE_RAW_BYTES",
+    "historical_runtime_source": "FIXED_BASE_MAIN_GIT_BLOB"
+  },
+  "task_id": "V0_19_S1_MODEL_BASELINE_AND_PEAK_ERROR_PROTOCOL_R1",
+  "version": "0.19.0",
+  "version_name": "HARVEST_CURVE_AND_PEAK_TIMING_ALGORITHM_RESEARCH",
+  "weighting": {
+    "full_season_origins": "ONE_FIXED_ISSUANCE_NOT_STITCHED_OR_BEST_ORIGIN",
+    "mae": "EQUAL_ORIGIN_TARGET_OR_WINDOW_AS_SPECIFIED",
+    "overlapping_origins_independent": false,
+    "target_date_deduplication": false,
+    "wape": "MICRO_POOLED_ACTUAL_KG_WEIGHTED"
+  },
+  "window_rules": {
+    "all_zero_prediction_positive_actual": "EARLIEST_PREDICTED_TIE_COUNTS_AS_ERROR",
+    "coverage": "METRIC_SPECIFIC_COMMON_COHORT_AND_ALL_EXCLUSIONS_REPORTED",
+    "decimal_precision": 50,
+    "full_season": "ONE_COMPLETE_PREREGISTERED_CALENDAR_PER_ISSUANCE",
+    "h15": "D1_D15_NINE_COMPLETE_ROLLING7_STARTS",
+    "h7": "D1_D7_PREFIX_NOT_ROLLING_MAX",
+    "legacy_zero_peak_definition_unchanged": true,
+    "missing": "NOT_COMPUTABLE_NO_ZERO_FILL",
+    "peak_aggregation": "AGGREGATE_DAILY_CURVES_NOT_CHILD_PEAKS",
+    "round_intermediate": false,
+    "tie": "EARLIEST_DATE_OR_START",
+    "zero_actual_peak_quantity": "INCLUDED",
+    "zero_actual_peak_timing": "NOT_COMPUTABLE_NO_POSITIVE_ACTUAL_PEAK"
+  }
+}
