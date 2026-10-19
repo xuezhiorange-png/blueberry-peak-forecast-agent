@@ -1,0 +1,754 @@
+{
+  "base_main_sha": "822f453d130ff1ff1b1f5aeaf8fdcf1c87e2da94",
+  "baseline_id": "OPERATIONAL_PEAK:AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+  "candidate_count": 1,
+  "candidate_id": "BIN_CENTER_LINEAR_PER_BIN_MASS_V1",
+  "documents_sha256": {
+    "docs/v0-19/s3/controlled-validation-preparation-r1.md": "b1f20f709a02a97ceb6ee3cc0fa5a6eae422aa33eadf76c52dedeef7ff94142b"
+  },
+  "environment": {
+    "dependency_install": "uv sync --frozen --extra dev",
+    "dependency_versions_changed": false,
+    "mypy": "2.1.0",
+    "pytest": "9.1.1",
+    "python": "3.12.13",
+    "ruff": "0.15.18"
+  },
+  "execution": {
+    "business_database_accessed": false,
+    "commit_created": false,
+    "current_actuals_accessed": false,
+    "model_artifacts_accessed": false,
+    "model_refit_executed": false,
+    "model_training_executed": false,
+    "parameter_search_executed": false,
+    "pr_created": false,
+    "private_data_accessed": false,
+    "production_code_changed": false,
+    "pushed": false,
+    "real_scoring_executed": false
+  },
+  "frozen_documents_sha256": {
+    "docs/v0-19/evidence/v0.19-s1-model-baseline-peak-protocol-r1.json": "3ddd9617975bedd83aa608ab50a166b80edab5d2ee39ef768a2d66905c674c3e",
+    "docs/v0-19/evidence/v0.19-s2-daily-curve-candidate-r1.json": "80a5ba8ff7c8bc5fe7c9de3fa2c8c18ffa73d39ee34a04737f4b0d32c84be71c",
+    "docs/v0-19/evidence/v0.19-s2-synthetic-structure-r1.json": "25336cab3c23ca8c6e9dac95d643b821f35509c14dfea7ff81ddc9c75a4694c1",
+    "docs/v0-19/evidence/v0.19.0-scope-freeze-r1.json": "eb6a48c37df88182b3e5596da48abc046a6b1602136c7256870598989ddf3417",
+    "docs/v0-19/s1/model-baseline-and-historical-evidence-r1.md": "7e05f758b54d3de9f0dc3725a5bd091a6f291ad21bb502af5a22b170409fb43f",
+    "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md": "946f9212695fe4e40b3e41d757191daf01601a8d0c97a6f516c82f08edfebb27",
+    "docs/v0-19/s2/daily-curve-candidate-r1.md": "7acdb47537716f867158e6f891ca0bc843753742956f7b31bf02aebf1299cc58",
+    "docs/v0-19/s2/daily-curve-method-config-r1.json": "b2e1f09aae99c09392c9e004ad2cf37884697494ac4fde771e1d2ad425aafbb2",
+    "docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md": "c98c51b3fb107d8236703882915193df5cd97c0f380afa1eb8233479f2a3f181"
+  },
+  "governance": {
+    "commit_authorized": false,
+    "formal_s3_pr_authorized": false,
+    "merge_authorized": false,
+    "model_promotion_authorized": false,
+    "model_training_authorized": false,
+    "offline_preparation_authorized": true,
+    "push_authorized": false,
+    "ready_authorized": false,
+    "real_data_access_authorized": false,
+    "real_scoring_authorized": false,
+    "s3_formal_complete": false
+  },
+  "historical_sources": {
+    "backend/research/v019_daily_curve.py": {
+      "commit": "822f453d130ff1ff1b1f5aeaf8fdcf1c87e2da94",
+      "sha256": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff"
+    },
+    "backend/tests/area_yield/test_v0_19_s1_protocol.py": {
+      "commit": "822f453d130ff1ff1b1f5aeaf8fdcf1c87e2da94",
+      "sha256": "810762dba307cfb9c9c7a6f14ee67d2bf561a12180b00fb90eb6ed8114856091"
+    },
+    "backend/tests/area_yield/test_v0_19_s2_daily_curve.py": {
+      "commit": "822f453d130ff1ff1b1f5aeaf8fdcf1c87e2da94",
+      "sha256": "5153814b32fb072e09b13ad3fa8f04ea6693f1414459ac4447a67ef2991d5a68"
+    },
+    "backend/tests/area_yield/test_v0_19_scope_contract.py": {
+      "commit": "822f453d130ff1ff1b1f5aeaf8fdcf1c87e2da94",
+      "sha256": "ac806ad57a6fc3b3af6622121866fe6f02f02b379432ffa320c3388ac462e5a4"
+    }
+  },
+  "local_preparation_source_sha256": {
+    "backend/research/v019_synthetic_validation.py": "fe15fa9b1c1d083608f083c7a5c06564e04e143dae4ea58ac407be37df7deae3",
+    "backend/tests/area_yield/test_v0_19_s3_synthetic_validation.py": "4a088cb13e07f4de65031fc3378e0325b3eecb11c8394c1fb107a5ca3d48caf4"
+  },
+  "local_source_hash_policy": "UNCOMMITTED_LOCAL_RECEIPT_ONLY_NOT_A_FUTURE_HISTORICAL_TEST_FREEZE",
+  "local_validation": {
+    "commands": [
+      ".venv/bin/pytest -q backend/tests/area_yield/test_v0_19_s3_synthetic_validation.py",
+      ".venv/bin/pytest -q backend/tests/area_yield/test_v0_19_s3_synthetic_validation.py backend/tests/area_yield/test_v0_19_s2_daily_curve.py backend/tests/area_yield/test_v0_19_s1_protocol.py backend/tests/area_yield/test_v0_19_scope_contract.py backend/tests/area_yield/test_v08_s9_scale_shape_diagnosis.py backend/tests/area_yield/test_v0_13_s5_closeout.py backend/tests/area_yield/test_v0_15_version_closeout.py backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py backend/tests/core_forecast/test_metrics.py backend/tests/core_forecast/test_metrics_schemas.py --no-header --tb=short --disable-warnings",
+      ".venv/bin/ruff check .",
+      ".venv/bin/ruff format --check .",
+      ".venv/bin/mypy backend/app backend/research",
+      "git diff --check"
+    ],
+    "final_local_validation": {
+      "elapsed_seconds": "13.58",
+      "exit_code": 0,
+      "failed": 0,
+      "historical_and_s0_s1_s2_cases": 323,
+      "negative_replay": {
+        "deselected": 23,
+        "exit_code": 0,
+        "failed": 0,
+        "passed": 29,
+        "skipped": 0
+      },
+      "passed": 375,
+      "skipped": 0,
+      "source_and_scope_audit": "PASS",
+      "synthetic_cases": 52,
+      "warnings": 101
+    },
+    "initial_test_before_module": {
+      "error": "ModuleNotFoundError: backend.research.v019_synthetic_validation",
+      "exit_code": 2
+    },
+    "mypy": "PASS_584_SOURCE_FILES",
+    "related_regression_before_manifest_audit": {
+      "elapsed_seconds": "76.47",
+      "exit_code": 0,
+      "failed": 0,
+      "passed": 371,
+      "skipped": 0,
+      "warnings": 101
+    },
+    "ruff_check": "PASS",
+    "ruff_format": "PASS_1504_FILES",
+    "synthetic_runtime_before_manifest_audit": {
+      "exit_code": 0,
+      "failed": 0,
+      "passed": 48,
+      "skipped": 0
+    }
+  },
+  "metrics": [
+    "SEASON_TOTAL_WAPE",
+    "DAILY_WAPE",
+    "DAILY_MAE",
+    "SINGLE_DAY_PEAK_DATE_MAE",
+    "SINGLE_DAY_PEAK_QUANTITY_MAE",
+    "ROLLING_7DAY_PEAK_START_MAE",
+    "ROLLING_7DAY_PEAK_QUANTITY_MAE",
+    "BASE_BREADTH",
+    "SAMPLE_COVERAGE",
+    "NOT_COMPUTABLE_COUNT"
+  ],
+  "missing_owner_approvals": [
+    "REAL_DATA_READ_SCOPE",
+    "REAL_EXPERIMENT_AND_SCORING",
+    "SOURCE_AUTHORITY_AND_TIME_EVIDENCE_ACCEPTANCE",
+    "FORMAL_S3_DELIVERY_AND_PR"
+  ],
+  "mode": "ISOLATED_PARALLEL_PREPARATION",
+  "new_source_commit": "NOT_COMMITTED_LOCAL_PREPARATION",
+  "prediction_label_isolation": {
+    "all_failed_origins_preserved": true,
+    "content_hash_is_signature": false,
+    "content_hash_proves_issue_time": false,
+    "phase_a": "REGISTER_C0_GENERATE_AND_SEAL_PREDICTIONS_NO_LABEL_PARAMETER_NO_IO",
+    "phase_b": "SYNTHETIC_PERMISSION_THEN_VERIFY_SEAL_THEN_LABELS_THEN_COMMON_CM",
+    "real_phase_b": "BLOCKED_SEPARATE_DATA_AND_EXPERIMENT_AUTHORIZATION_REQUIRED",
+    "subset_conclusion": "CONDITIONAL_ON_COMMON_COMPUTABLE_COHORT"
+  },
+  "real_preflight": {
+    "S3_REAL_SCORING": "BLOCKED",
+    "allowed_authority_states": [
+      "AVAILABLE",
+      "NOT_VERIFIED",
+      "MISSING",
+      "BLOCKED"
+    ],
+    "authorities": {
+      "AREA_AND_EFFECTIVE_DATE": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "AVAILABLE_AT_INGESTED_AT": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "BASE_SUBFARM_VARIETY_IDENTITY": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "COMMON_COHORT_MEMBERSHIP_HASH": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "HARVEST_DATE_AND_UNIT": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "INPUT_CUTOFF": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "LABEL_AUTHORITY": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "LABEL_MATURITY_COMPLETENESS": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "MODEL_PROFILE_FIT_HASH": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "PREDICTION_LABEL_SEALS": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "RUN_AND_ISSUED_AT": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      },
+      "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT": {
+        "evidence": null,
+        "status": "NOT_VERIFIED"
+      }
+    },
+    "data_read_authorization": "BLOCKED",
+    "experiment_authorization": "BLOCKED",
+    "formal_s3_pr_authorized": false
+  },
+  "s2_main_ci_observations": [
+    {
+      "conclusion": null,
+      "event": "push",
+      "expected_push_only_skipped_jobs": 8,
+      "head_sha": "822f453d130ff1ff1b1f5aeaf8fdcf1c87e2da94",
+      "pending_jobs": [
+        "full-suite-canary"
+      ],
+      "run_id": 39267331822,
+      "status": "in_progress",
+      "successful_jobs": [
+        "frontend-e2e",
+        "frontend-static",
+        "frontend-unit"
+      ]
+    }
+  ],
+  "scientific_limits": {
+    "business_accuracy_threshold": null,
+    "exposed_2025_2026_is_blind_oot": false,
+    "m1_wape_is_operational_peak_accuracy": false,
+    "overall_winner": null,
+    "prospective_accuracy_validated": false,
+    "strict_pit": false,
+    "synthetic_structure_proves_real_accuracy": false
+  },
+  "stage": "S3",
+  "synthetic_example": {
+    "as_of": "2001-01-01T17:00:00+08:00",
+    "conclusion_scope": "CONDITIONAL_ON_COMMON_COMPUTABLE_COHORT",
+    "data_class": "SYNTHETIC",
+    "empty_cohort": null,
+    "groups": {
+      "SYNTHETIC_EXPOSED_OOT:H15_LOCAL": {
+        "diagnostics": {
+          "baseline": {
+            "absolute_error_by_lead": {
+              "1": "2",
+              "10": "2",
+              "11": "2",
+              "12": "2",
+              "13": "2",
+              "14": "2",
+              "15": "2",
+              "2": "2",
+              "3": "2",
+              "4": "2",
+              "5": "2",
+              "6": "2",
+              "7": "2",
+              "8": "2",
+              "9": "2"
+            },
+            "day_peak_direction": {
+              "same": 1
+            },
+            "rolling7_direction": {
+              "same": 1
+            },
+            "signed_bias_kg": "-30"
+          },
+          "candidate": {
+            "absolute_error_by_lead": {
+              "1": "1",
+              "10": "1",
+              "11": "1",
+              "12": "1",
+              "13": "1",
+              "14": "1",
+              "15": "1",
+              "2": "1",
+              "3": "1",
+              "4": "1",
+              "5": "1",
+              "6": "1",
+              "7": "1",
+              "8": "1",
+              "9": "1"
+            },
+            "day_peak_direction": {
+              "same": 1
+            },
+            "rolling7_direction": {
+              "same": 1
+            },
+            "signed_bias_kg": "-15"
+          }
+        },
+        "h15_whole_base_sensitivity": {
+          "remove_top_1_bases": {
+            "metrics": {
+              "baseline": {
+                "daily_mae": {
+                  "denominator": "0",
+                  "numerator": "0",
+                  "value": null
+                },
+                "daily_wape": {
+                  "denominator": "0",
+                  "numerator": "0",
+                  "value": null
+                }
+              },
+              "candidate": {
+                "daily_mae": {
+                  "denominator": "0",
+                  "numerator": "0",
+                  "value": null
+                },
+                "daily_wape": {
+                  "denominator": "0",
+                  "numerator": "0",
+                  "value": null
+                }
+              }
+            },
+            "remaining_count": 0,
+            "removed_base_ids": [
+              "SYNTHETIC-BASE"
+            ]
+          },
+          "remove_top_2_bases": {
+            "metrics": {
+              "baseline": {
+                "daily_mae": {
+                  "denominator": "0",
+                  "numerator": "0",
+                  "value": null
+                },
+                "daily_wape": {
+                  "denominator": "0",
+                  "numerator": "0",
+                  "value": null
+                }
+              },
+              "candidate": {
+                "daily_mae": {
+                  "denominator": "0",
+                  "numerator": "0",
+                  "value": null
+                },
+                "daily_wape": {
+                  "denominator": "0",
+                  "numerator": "0",
+                  "value": null
+                }
+              }
+            },
+            "remaining_count": 0,
+            "removed_base_ids": [
+              "SYNTHETIC-BASE"
+            ]
+          }
+        },
+        "metrics": {
+          "BASE_BREADTH": {
+            "improved": 1,
+            "improved_actual_kg_share": {
+              "denominator": "45",
+              "numerator": "45",
+              "value": "1"
+            },
+            "n_base": 1,
+            "per_base_delta": {
+              "SYNTHETIC-BASE": "-15"
+            },
+            "status": "PASS_SYNTHETIC",
+            "tied": 0,
+            "worsened": 0
+          },
+          "DAILY_MAE": {
+            "base_coverage": {
+              "denominator": "1",
+              "numerator": "1",
+              "value": "1"
+            },
+            "baseline": {
+              "denominator": "15",
+              "numerator": "30",
+              "value": "2"
+            },
+            "baseline_available_count": 1,
+            "candidate": {
+              "denominator": "15",
+              "numerator": "15",
+              "value": "1"
+            },
+            "candidate_available_count": 1,
+            "candidate_count": 1,
+            "common_count": 1,
+            "common_member_ids": [
+              "SYNTHETIC-1"
+            ],
+            "common_members_sha256": "c0abd95547444d9dfe250ebfcf484d0f492229f9fbb312cf3f225a3373db8bf7",
+            "empty_reason": null,
+            "exclusions": {},
+            "not_computable_count": 0,
+            "reasons": {},
+            "sample_coverage": "1",
+            "target_row_coverage": {
+              "denominator": "15",
+              "numerator": "15",
+              "value": "1"
+            }
+          },
+          "DAILY_WAPE": {
+            "base_coverage": {
+              "denominator": "1",
+              "numerator": "1",
+              "value": "1"
+            },
+            "baseline": {
+              "denominator": "45",
+              "numerator": "30",
+              "value": "0.66666666666666666666666666666666666666666666666667"
+            },
+            "baseline_available_count": 1,
+            "candidate": {
+              "denominator": "45",
+              "numerator": "15",
+              "value": "0.33333333333333333333333333333333333333333333333333"
+            },
+            "candidate_available_count": 1,
+            "candidate_count": 1,
+            "common_count": 1,
+            "common_member_ids": [
+              "SYNTHETIC-1"
+            ],
+            "common_members_sha256": "c0abd95547444d9dfe250ebfcf484d0f492229f9fbb312cf3f225a3373db8bf7",
+            "empty_reason": null,
+            "exclusions": {},
+            "not_computable_count": 0,
+            "reasons": {},
+            "sample_coverage": "1",
+            "target_row_coverage": {
+              "denominator": "15",
+              "numerator": "15",
+              "value": "1"
+            }
+          },
+          "NOT_COMPUTABLE_COUNT": {
+            "DAILY_MAE": 0,
+            "DAILY_WAPE": 0,
+            "ROLLING_7DAY_PEAK_QUANTITY_MAE": 0,
+            "ROLLING_7DAY_PEAK_START_MAE": 0,
+            "SEASON_TOTAL_WAPE": 1,
+            "SINGLE_DAY_PEAK_DATE_MAE": 0,
+            "SINGLE_DAY_PEAK_QUANTITY_MAE": 0
+          },
+          "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+            "base_coverage": {
+              "denominator": "1",
+              "numerator": "1",
+              "value": "1"
+            },
+            "baseline": {
+              "denominator": "1",
+              "numerator": "14",
+              "value": "14"
+            },
+            "baseline_available_count": 1,
+            "candidate": {
+              "denominator": "1",
+              "numerator": "7",
+              "value": "7"
+            },
+            "candidate_available_count": 1,
+            "candidate_count": 1,
+            "common_count": 1,
+            "common_member_ids": [
+              "SYNTHETIC-1"
+            ],
+            "common_members_sha256": "c0abd95547444d9dfe250ebfcf484d0f492229f9fbb312cf3f225a3373db8bf7",
+            "empty_reason": null,
+            "exclusions": {},
+            "not_computable_count": 0,
+            "reasons": {},
+            "sample_coverage": "1",
+            "target_row_coverage": {
+              "denominator": "15",
+              "numerator": "15",
+              "value": "1"
+            }
+          },
+          "ROLLING_7DAY_PEAK_START_MAE": {
+            "base_coverage": {
+              "denominator": "1",
+              "numerator": "1",
+              "value": "1"
+            },
+            "baseline": {
+              "denominator": "1",
+              "numerator": "0",
+              "value": "0"
+            },
+            "baseline_available_count": 1,
+            "candidate": {
+              "denominator": "1",
+              "numerator": "0",
+              "value": "0"
+            },
+            "candidate_available_count": 1,
+            "candidate_count": 1,
+            "common_count": 1,
+            "common_member_ids": [
+              "SYNTHETIC-1"
+            ],
+            "common_members_sha256": "c0abd95547444d9dfe250ebfcf484d0f492229f9fbb312cf3f225a3373db8bf7",
+            "empty_reason": null,
+            "exclusions": {},
+            "not_computable_count": 0,
+            "reasons": {},
+            "sample_coverage": "1",
+            "target_row_coverage": {
+              "denominator": "15",
+              "numerator": "15",
+              "value": "1"
+            }
+          },
+          "SAMPLE_COVERAGE": {
+            "DAILY_MAE": "1",
+            "DAILY_WAPE": "1",
+            "ROLLING_7DAY_PEAK_QUANTITY_MAE": "1",
+            "ROLLING_7DAY_PEAK_START_MAE": "1",
+            "SEASON_TOTAL_WAPE": "0",
+            "SINGLE_DAY_PEAK_DATE_MAE": "1",
+            "SINGLE_DAY_PEAK_QUANTITY_MAE": "1"
+          },
+          "SEASON_TOTAL_WAPE": {
+            "base_coverage": {
+              "denominator": "1",
+              "numerator": "0",
+              "value": "0"
+            },
+            "baseline": {
+              "denominator": "0",
+              "numerator": "0",
+              "value": null
+            },
+            "baseline_available_count": 1,
+            "candidate": {
+              "denominator": "0",
+              "numerator": "0",
+              "value": null
+            },
+            "candidate_available_count": 1,
+            "candidate_count": 1,
+            "common_count": 0,
+            "common_member_ids": [],
+            "common_members_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+            "empty_reason": null,
+            "exclusions": {
+              "SYNTHETIC-1": "INCOMPLETE_CALENDAR"
+            },
+            "not_computable_count": 1,
+            "reasons": {
+              "INCOMPLETE_CALENDAR": 1
+            },
+            "sample_coverage": "0",
+            "target_row_coverage": {
+              "denominator": "15",
+              "numerator": "0",
+              "value": "0"
+            }
+          },
+          "SINGLE_DAY_PEAK_DATE_MAE": {
+            "base_coverage": {
+              "denominator": "1",
+              "numerator": "1",
+              "value": "1"
+            },
+            "baseline": {
+              "denominator": "1",
+              "numerator": "0",
+              "value": "0"
+            },
+            "baseline_available_count": 1,
+            "candidate": {
+              "denominator": "1",
+              "numerator": "0",
+              "value": "0"
+            },
+            "candidate_available_count": 1,
+            "candidate_count": 1,
+            "common_count": 1,
+            "common_member_ids": [
+              "SYNTHETIC-1"
+            ],
+            "common_members_sha256": "c0abd95547444d9dfe250ebfcf484d0f492229f9fbb312cf3f225a3373db8bf7",
+            "empty_reason": null,
+            "exclusions": {},
+            "not_computable_count": 0,
+            "reasons": {},
+            "sample_coverage": "1",
+            "target_row_coverage": {
+              "denominator": "15",
+              "numerator": "15",
+              "value": "1"
+            }
+          },
+          "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+            "base_coverage": {
+              "denominator": "1",
+              "numerator": "1",
+              "value": "1"
+            },
+            "baseline": {
+              "denominator": "1",
+              "numerator": "2",
+              "value": "2"
+            },
+            "baseline_available_count": 1,
+            "candidate": {
+              "denominator": "1",
+              "numerator": "1",
+              "value": "1"
+            },
+            "candidate_available_count": 1,
+            "candidate_count": 1,
+            "common_count": 1,
+            "common_member_ids": [
+              "SYNTHETIC-1"
+            ],
+            "common_members_sha256": "c0abd95547444d9dfe250ebfcf484d0f492229f9fbb312cf3f225a3373db8bf7",
+            "empty_reason": null,
+            "exclusions": {},
+            "not_computable_count": 0,
+            "reasons": {},
+            "sample_coverage": "1",
+            "target_row_coverage": {
+              "denominator": "15",
+              "numerator": "15",
+              "value": "1"
+            }
+          }
+        }
+      }
+    },
+    "labels_sha256": "5358550066f0cf28d2bd9e6bf93c67e9638ac5b98dbb988c6442f6348a95f896",
+    "overall_winner": null,
+    "prediction_seal_sha256": "5e77b59db1c9d778c58b71a8e1bd4cb1713a48fe8650bfa10d069eb147487c09",
+    "prospective_accuracy_validated": false,
+    "real_scoring_executed": false,
+    "result_sha256": "3171fceb5e4808b01acb12fb37e48ca1816c9f4d3c265e4df26988f809f40287",
+    "strict_pit": false
+  },
+  "synthetic_matrix": [
+    {
+      "id": "T01_SAME_MASS_DIFFERENT_TIMING",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_same_total_different_timing_and_all_ten_metrics"
+    },
+    {
+      "id": "T02_QUANTITY_BETTER_TIMING_WORSE",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_quantity_and_timing_tradeoffs_are_not_hidden"
+    },
+    {
+      "id": "T03_QUANTITY_WORSE_TIMING_BETTER",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_quantity_and_timing_tradeoffs_are_not_hidden"
+    },
+    {
+      "id": "T04_BOTH_BETTER",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_quantity_and_timing_tradeoffs_are_not_hidden"
+    },
+    {
+      "id": "T05_BOTH_WORSE",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_quantity_and_timing_tradeoffs_are_not_hidden"
+    },
+    {
+      "id": "T06_ZERO_ACTUAL",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_zero_actual_has_no_fake_timing_or_wape_but_valid_quantity"
+    },
+    {
+      "id": "T07_MISSING_DUPLICATE_DATES",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_bad_prediction_calendar_or_value_retained_in_c0"
+    },
+    {
+      "id": "T08_NO_COMPLETE_SEVEN_DAYS",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_short_full_season_has_daily_metrics_but_no_rolling7"
+    },
+    {
+      "id": "T09_OVERLAPPING_ORIGINS",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_overlapping_origins_remain_distinct_and_micro_pool_zero_rows"
+    },
+    {
+      "id": "T10_AREA_PHYSICAL_MISMATCH",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_stale_prediction_identity_detects_changed_common_basis"
+    },
+    {
+      "id": "T11_MODEL_LABEL_SOURCE_MISMATCH",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_authority_identity_physical_and_label_failures_are_not_zero_errors"
+    },
+    {
+      "id": "T12_IMMATURE_LABELS",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_authority_identity_physical_and_label_failures_are_not_zero_errors"
+    },
+    {
+      "id": "T13_MISSING_AVAILABLE_AT",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_authority_identity_physical_and_label_failures_are_not_zero_errors"
+    },
+    {
+      "id": "T14_COVERAGE_ASYMMETRY",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_missing_model_prediction_coverage_and_breadth_use_common_set"
+    },
+    {
+      "id": "T15_PERMISSION_MISSING",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_label_permission_checked_before_iteration_and_real_scoring_stays_blocked"
+    },
+    {
+      "id": "T16_SEAL_TAMPERED",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_seal_tamper_duplicate_cohort_and_unregistered_labels_rejected"
+    },
+    {
+      "id": "T17_REPEAT_HASH",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_determinism_across_ambient_decimal_precision_and_input_order"
+    }
+  ],
+  "task_id": "V0_19_S3_CONTROLLED_VALIDATION_PARALLEL_PREPARATION_R1",
+  "version": "0.19.0"
+}
