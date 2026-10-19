@@ -16,6 +16,7 @@ BASE = "8f6cae4004c663b9ccaf2061869cc7cb6e80adc4"
 PREVIOUS = "772503823320c48c6920fc66c5164d8a30844fd9"
 OLD_MAIN = "816d8299f007eab7da140fc5c7547d941c026f8f"
 FIX_HEAD = "f151f0e6aca3577c5ee959a220c16e9756179649"
+APPEND_COMMIT = "da3552bf1dbc182a82535c0e0a032199e67a3d9e"
 V0_18_RELEASE_HEAD = "b6ac2e658edbace357c575bb42ee46b03bb863b9"
 PREFIX = "docs/v0-18/evidence/"
 EVIDENCE = PREFIX + "v0.18.0-final-closeout-preauth-update.json"
@@ -39,7 +40,18 @@ def canonical(value):
 def v018_source_bytes(path: str) -> bytes:
     """Audit the released V0.18 code snapshot, but the present historical evidence bytes."""
     if path.startswith(("backend/", "frontend/")):
-        return historical_bytes(path, V0_18_RELEASE_HEAD)
+        # Both closeout tests were added/updated in the append delivery; they do
+        # not exist with these bytes at the main snapshot reviewed by that package.
+        commit = (
+            APPEND_COMMIT
+            if path
+            in {
+                "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+                "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py",
+            }
+            else BASE
+        )
+        return historical_bytes(path, commit)
     return (ROOT / path).read_bytes()
 
 
@@ -50,6 +62,10 @@ def v018_preauth_delivery_paths() -> list[str]:
         .decode()
         .splitlines()
     )
+
+
+def assert_v018_preauth_source_hash(path: str, expected: str) -> None:
+    assert sha(v018_source_bytes(path)) == expected, path
 
 
 def assert_no_v018_preauth_production_changes(changed: list[str]) -> None:
@@ -102,7 +118,7 @@ def test_canonical_append_sources_and_preserved_snapshots():
     for path in (EVIDENCE, SNAPSHOT):
         assert (ROOT / path).read_bytes() == canonical(load(path))
     for path, expected in value["source_evidence_sha256"].items():
-        assert sha(v018_source_bytes(path)) == expected, path
+        assert_v018_preauth_source_hash(path, expected)
     for path, expected in value["artifact_sha256"].items():
         assert sha((ROOT / path).read_bytes()) == expected, path
     for path, expected in value["preserved_snapshot_sha256"].items():
@@ -226,12 +242,14 @@ def test_current_pr_contains_no_extra_production_changes():
     assert_no_v018_preauth_production_changes(changed)
     assert (
         subprocess.run(
-            ["git", "merge-base", "--is-ancestor", PREVIOUS, "HEAD"], cwd=ROOT
+            ["git", "merge-base", "--is-ancestor", PREVIOUS, V0_18_RELEASE_HEAD], cwd=ROOT
         ).returncode
         == 0
     )
     assert (
-        subprocess.run(["git", "merge-base", "--is-ancestor", BASE, "HEAD"], cwd=ROOT).returncode
+        subprocess.run(
+            ["git", "merge-base", "--is-ancestor", BASE, V0_18_RELEASE_HEAD], cwd=ROOT
+        ).returncode
         == 0
     )
 
@@ -275,6 +293,21 @@ def test_preauth_source_pins_check_released_tests_not_new_worktree(path):
     expected = load(EVIDENCE)["source_evidence_sha256"][path]
     assert sha(historical_bytes(path, V0_18_RELEASE_HEAD)) == expected
     assert sha(v018_source_bytes(path)) == expected
+
+
+@pytest.mark.parametrize("path", list(load(EVIDENCE)["source_evidence_sha256"]))
+def test_preauth_source_hash_tampering_is_rejected(path):
+    with pytest.raises(AssertionError):
+        assert_v018_preauth_source_hash(path, "0" * 64)
+
+
+@pytest.mark.parametrize("commit", [BASE, "0" * 40])
+def test_preauth_wrong_or_missing_append_commit_fails_closed(monkeypatch, commit):
+    path = "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py"
+    expected = load(EVIDENCE)["source_evidence_sha256"][path]
+    monkeypatch.setitem(globals(), "APPEND_COMMIT", commit)
+    with pytest.raises(AssertionError):
+        assert_v018_preauth_source_hash(path, expected)
 
 
 @pytest.mark.parametrize(

@@ -37,15 +37,19 @@ def blob(commit, path):
 
 def v018_source_evidence_bytes(path: str) -> bytes:
     """Retain original V0.18 test-source pins without constraining later PR source."""
-    if path == "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py":
-        return blob(SNAPSHOT_COMMIT, path)
     if path.startswith(("backend/", "frontend/")):
-        return blob(V0_18_RELEASE_HEAD, path)
+        # Source pins belong to the original status delivery, not its later merge.
+        # The older R2 audit-code pins below deliberately retain their OLD commit.
+        return blob(SNAPSHOT_COMMIT, path)
     return (ROOT / path).read_bytes()
 
 
 def sha(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+def assert_v018_source_hash(path: str, expected: str) -> None:
+    assert sha(v018_source_evidence_bytes(path)) == expected, path
 
 
 def validate(value):
@@ -85,7 +89,7 @@ def test_current_state_and_canonical_sources():
     for path in (EVIDENCE, SNAPSHOT):
         assert (ROOT / path).read_bytes() == canonical(load(path))
     for path, expected in value["source_evidence_sha256"].items():
-        assert sha(v018_source_evidence_bytes(path)) == expected, path
+        assert_v018_source_hash(path, expected)
     for path, expected in value["historical_snapshot_sha256"].items():
         assert sha((ROOT / path).read_bytes()) == sha(blob(OLD, path)) == expected, path
     for path, expected in value["historical_audit_code_sha256"].items():
@@ -191,6 +195,22 @@ def test_v018_current_main_snapshot_never_depends_on_later_worktree(path):
     assert sha(blob(BASE, path)) == expected
 
 
+@pytest.mark.parametrize("path", list(load(EVIDENCE)["source_evidence_sha256"]))
+def test_v018_source_hash_tampering_is_rejected(path):
+    # Mutate only the proposed digest, never the frozen evidence or actual source.
+    with pytest.raises(AssertionError):
+        assert_v018_source_hash(path, "0" * 64)
+
+
+@pytest.mark.parametrize("commit", [CURRENT_MAIN, "0" * 40])
+def test_v018_wrong_or_missing_source_commit_fails_closed(monkeypatch, commit):
+    path = "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+    expected = load(EVIDENCE)["source_evidence_sha256"][path]
+    monkeypatch.setitem(globals(), "SNAPSHOT_COMMIT", commit)
+    with pytest.raises((AssertionError, subprocess.CalledProcessError)):
+        assert_v018_source_hash(path, expected)
+
+
 def v018_delivery_changed_paths() -> list[str]:
     """Inspect the immutable V0.18 delivery range, not a later PR's working tree."""
     return (
@@ -243,6 +263,28 @@ def test_v018_delivery_diff_uses_only_frozen_commit_range(monkeypatch):
     monkeypatch.setattr(subprocess, "check_output", fake_check_output)
     assert v018_delivery_changed_paths() == ["docs/v0-18/v0.18.0-closeout.md"]
     assert calls == [(["git", "diff", "--name-only", CURRENT_MAIN, V0_18_RELEASE_HEAD], ROOT)]
+
+
+def test_future_files_do_not_enter_v018_historical_delivery(monkeypatch):
+    historical = v018_delivery_changed_paths()
+    future = [
+        "backend/tests/area_yield/test_v0_19_scope_contract.py",
+        "docs/v0-19/evidence/v0.19.0-scope-freeze-r1.json",
+        "docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md",
+    ]
+    original = subprocess.check_output
+
+    def future_worktree(args, *, cwd):
+        if args == ["git", "diff", "--name-only", CURRENT_MAIN]:
+            return ("\n".join(historical + future) + "\n").encode()
+        if args == ["git", "ls-files", "--others", "--exclude-standard"]:
+            return ("\n".join(future) + "\n").encode()
+        return original(args, cwd=cwd)
+
+    monkeypatch.setattr(subprocess, "check_output", future_worktree)
+    assert v018_delivery_changed_paths() == historical
+    assert set(historical).isdisjoint(future)
+    test_current_delivery_is_audit_only_not_production_mutation()
 
 
 @pytest.mark.parametrize(
