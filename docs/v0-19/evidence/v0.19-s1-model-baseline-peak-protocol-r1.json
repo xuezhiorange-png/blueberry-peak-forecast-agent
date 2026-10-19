@@ -339,7 +339,7 @@
     "backend/app/core_forecast/schemas.py": "8c66b791b746ace0dc7c903f5a98f16fef5169869217b3a9093942eaa6b13002",
     "backend/app/core_forecast/service.py": "f4a53ec935b9abfb2d857722a00ced5fbee3375e484cdc688b19d2915be4c0ad",
     "backend/app/forecast_quality/operational_peak.py": "3bebc3d193052b87968b95bdfc55ae1ca3ab2bb784d6c520743489e1586fb762",
-    "backend/tests/area_yield/test_v0_19_s1_protocol.py": "c4cd0ad6de77b43f264e6b123fad69caa175d33c1888ba17c267312157c11398",
+    "backend/tests/area_yield/test_v0_19_s1_protocol.py": "e1b6478fe56caea9d3e8d6e4d3652db8e862e61731a2b870ede1801eb38367a3",
     "backend/tests/area_yield/test_v0_19_scope_contract.py": "ac806ad57a6fc3b3af6622121866fe6f02f02b379432ffa320c3388ac462e5a4",
     "docs/v0-13/v0.13.0-closeout.md": "0da03a64eb04547ea3d97cea5748251e70de3e8df22d94515c9b0a294faf088d",
     "docs/v0-15/v0.15-s3-base10-model-benchmark-r1.md": "75171ad6e795c80a8501db7db99e1f607614f2a5ec500c7093499e42b221c684",

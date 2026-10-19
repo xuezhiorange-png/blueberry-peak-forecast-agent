@@ -142,6 +142,14 @@ def test_complete_contract_canonical_and_metrics():
         ).encode()
     )
     scope = json.loads((ROOT / "docs/v0-19/evidence/v0.19.0-scope-freeze-r1.json").read_bytes())
+    assert data["version"] == scope["version"] == "0.19.0"
+    assert data["version_name"] == scope["version_name"]
+    assert data["new_paths"] == [
+        "docs/v0-19/s1/model-baseline-and-historical-evidence-r1.md",
+        "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md",
+        "docs/v0-19/evidence/v0.19-s1-model-baseline-peak-protocol-r1.json",
+        "backend/tests/area_yield/test_v0_19_s1_protocol.py",
+    ]
     assert list(data["metrics"]) == sorted(scope["metrics"])
     assert set(data["model_matrix"]) == set(scope["model_families"])
     assert all(
