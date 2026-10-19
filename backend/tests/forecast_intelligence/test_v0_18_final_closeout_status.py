@@ -216,7 +216,7 @@ def test_v018_delivery_diff_uses_only_frozen_commit_range(monkeypatch):
 
     def fake_check_output(args, *, cwd):
         calls.append((args, cwd))
-        return b"docs/v0-18/v0.18.0-closeout.md\\n"
+        return b"docs/v0-18/v0.18.0-closeout.md"
 
     monkeypatch.setattr(subprocess, "check_output", fake_check_output)
     assert v018_delivery_changed_paths() == ["docs/v0-18/v0.18.0-closeout.md"]
