@@ -35,6 +35,15 @@ def blob(commit, path):
     return subprocess.check_output(["git", "show", f"{commit}:{path}"], cwd=ROOT)
 
 
+def v018_source_evidence_bytes(path: str) -> bytes:
+    """Retain original V0.18 test-source pins without constraining later PR source."""
+    if path == "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py":
+        return blob(SNAPSHOT_COMMIT, path)
+    if path.startswith(("backend/", "frontend/")):
+        return blob(V0_18_RELEASE_HEAD, path)
+    return (ROOT / path).read_bytes()
+
+
 def sha(raw):
     return hashlib.sha256(raw).hexdigest()
 
@@ -76,23 +85,14 @@ def test_current_state_and_canonical_sources():
     for path in (EVIDENCE, SNAPSHOT):
         assert (ROOT / path).read_bytes() == canonical(load(path))
     for path, expected in value["source_evidence_sha256"].items():
-        source = (
-            blob(SNAPSHOT_COMMIT, path)
-            if path == "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
-            else (ROOT / path).read_bytes()
-        )
-        assert sha(source) == expected, path
+        assert sha(v018_source_evidence_bytes(path)) == expected, path
     for path, expected in value["historical_snapshot_sha256"].items():
         assert sha((ROOT / path).read_bytes()) == sha(blob(OLD, path)) == expected, path
     for path, expected in value["historical_audit_code_sha256"].items():
         assert sha(blob(OLD, path)) == expected, path
     for path, expected in value["current_main_source_sha256"].items():
+        # Frozen 816d8299 audit: later approved source changes do not rewrite history.
         assert sha(blob(BASE, path)) == expected, path
-        # This is the preserved 816d8299 snapshot, not the new PREAUTH runtime.
-        # Only the reviewed PR #733 service change reads historical bytes here;
-        # the appended current-state contract checks ALL latest-main sources.
-        if path != "backend/app/local_auth/service.py":
-            assert sha((ROOT / path).read_bytes()) == expected, path
     for path, expected in value["artifact_sha256"].items():
         assert sha((ROOT / path).read_bytes()) == expected, path
 
@@ -164,6 +164,31 @@ def test_original_gaps_risks_and_semantics_are_not_replaced():
     frozen = r1["frozen_model_and_math_sha256"]
     current = git_blobs(ROOT, dict.fromkeys(frozen, BASE))
     assert all(sha(current[path]) == expected for path, expected in frozen.items())
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "backend/tests/forecast_intelligence/build_v0_18_approval_provenance_r2.py",
+        "backend/tests/forecast_intelligence/test_v0_18_approval_provenance_r2.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+    ],
+)
+def test_v018_historical_source_pins_use_immutable_git_bytes(path):
+    expected = load(EVIDENCE)["source_evidence_sha256"][path]
+    assert sha(v018_source_evidence_bytes(path)) == expected
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "backend/app/api/business_access.py",
+        "frontend/src/dashboard/app/Dashboard.tsx",
+    ],
+)
+def test_v018_current_main_snapshot_never_depends_on_later_worktree(path):
+    expected = load(EVIDENCE)["current_main_source_sha256"][path]
+    assert sha(blob(BASE, path)) == expected
 
 
 def v018_delivery_changed_paths() -> list[str]:
