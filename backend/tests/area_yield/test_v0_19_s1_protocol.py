@@ -16,12 +16,34 @@ from backend.tests.historical_source import historical_bytes
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 ROOT = Path(__file__).resolve().parents[3]
 BASE = "47f774bfa823af9849cda7d56668ab81c73548c5"
+S1_REVIEWED_COMMIT = "07eb531e9c4cc2aafe150ea5ed38c5fc4d0952dd"
+TEST_SOURCE_COMMITS = {
+    "backend/tests/area_yield/test_v0_19_scope_contract.py": BASE,
+    "backend/tests/area_yield/test_v0_19_s1_protocol.py": S1_REVIEWED_COMMIT,
+}
 FILE = ROOT / "docs/v0-19/evidence/v0.19-s1-model-baseline-peak-protocol-r1.json"
 D = Decimal
 
 
 def contract():
     return json.loads(FILE.read_bytes())
+
+
+def verified_historical_source(path: str, commit: str, expected: str) -> bytes:
+    raw = historical_bytes(path, commit, root=ROOT)
+    assert hashlib.sha256(raw).hexdigest() == expected, path
+    return raw
+
+
+def verified_bound_source(path: str, expected: str, *, worktree: Path = ROOT) -> bytes:
+    # Reviewed code is historical evidence, not a freeze on future code edits.
+    # Documents, JSON and reports deliberately retain worktree immutability checks.
+    commit = BASE if path.startswith("backend/app/") else TEST_SOURCE_COMMITS.get(path)
+    if commit is not None:
+        return verified_historical_source(path, commit, expected)
+    raw = (worktree / path).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == expected, path
+    return raw
 
 
 def curve(values: Sequence[str]) -> list[tuple[date, Decimal]]:
@@ -166,12 +188,7 @@ def test_complete_contract_canonical_and_metrics():
 def test_all_bound_sources_and_frozen_s0_bytes():
     data = contract()
     for path, expected in data["source_evidence_sha256"].items():
-        raw = (
-            historical_bytes(path, BASE, root=ROOT)
-            if path.startswith("backend/app/")
-            else (ROOT / path).read_bytes()
-        )
-        assert hashlib.sha256(raw).hexdigest() == expected, path
+        verified_bound_source(path, expected)
     for path, expected in data["document_sha256"].items():
         assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected
     assert data["source_read_policy"] == {
@@ -416,6 +433,49 @@ def test_source_digest_corruption_is_detected_without_updating_expected():
     assert hashlib.sha256(original).hexdigest() == expected
     assert hashlib.sha256(original + b"\nSYNTHETIC_CORRUPTION").hexdigest() != expected
     assert hashlib.sha256(original).hexdigest() != "0" * 64
+
+
+def test_wrong_existing_historical_commit_is_rejected():
+    path = "backend/tests/area_yield/test_v0_19_s1_protocol.py"
+    expected = contract()["source_evidence_sha256"][path]
+    # The initial S1 delivery has this file, but not its reviewed final bytes.
+    with pytest.raises(AssertionError, match=path):
+        verified_historical_source(path, "31a471839cc6de4409d80381e28b187d5c8ef979", expected)
+
+
+@pytest.mark.parametrize("path", list(TEST_SOURCE_COMMITS))
+def test_historical_test_source_hash_mismatch_is_rejected(path):
+    expected = contract()["source_evidence_sha256"][path]
+    corrupted = ("0" if expected[0] != "0" else "1") + expected[1:]
+    with pytest.raises(AssertionError, match=path):
+        verified_bound_source(path, corrupted)
+
+
+def test_future_test_source_edits_do_not_change_historical_audit(tmp_path):
+    sources = contract()["source_evidence_sha256"]
+    assert TEST_SOURCE_COMMITS == {
+        "backend/tests/area_yield/test_v0_19_scope_contract.py": BASE,
+        "backend/tests/area_yield/test_v0_19_s1_protocol.py": S1_REVIEWED_COMMIT,
+    }
+    for path, commit in TEST_SOURCE_COMMITS.items():
+        original = historical_bytes(path, commit, root=ROOT)
+        future = tmp_path / path
+        future.parent.mkdir(parents=True, exist_ok=True)
+        future.write_bytes(original + b"\n# SYNTHETIC future legitimate test addition\n")
+        assert hashlib.sha256(future.read_bytes()).hexdigest() != sources[path]
+        assert verified_bound_source(path, sources[path], worktree=tmp_path) == original
+
+
+def test_frozen_document_edits_still_fail_current_worktree_audit(tmp_path):
+    sources = contract()["source_evidence_sha256"]
+    for path, expected in sources.items():
+        if not path.startswith("docs/"):
+            continue
+        altered = tmp_path / path
+        altered.parent.mkdir(parents=True, exist_ok=True)
+        altered.write_bytes((ROOT / path).read_bytes() + b"\nSYNTHETIC corruption\n")
+        with pytest.raises(AssertionError, match=path):
+            verified_bound_source(path, expected, worktree=tmp_path)
 
 
 def test_every_model_source_is_bound_and_versioned():
