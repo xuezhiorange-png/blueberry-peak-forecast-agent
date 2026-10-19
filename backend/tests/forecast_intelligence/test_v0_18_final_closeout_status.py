@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[3]
 BASE = "816d8299f007eab7da140fc5c7547d941c026f8f"
 SNAPSHOT_COMMIT = "772503823320c48c6920fc66c5164d8a30844fd9"
 CURRENT_MAIN = "8f6cae4004c663b9ccaf2061869cc7cb6e80adc4"
+V0_18_RELEASE_HEAD = "b6ac2e658edbace357c575bb42ee46b03bb863b9"
 OLD = "93e9660f6ef2c494178be825c66d11898c6fff97"
 EVIDENCE = "docs/v0-18/evidence/v0.18.0-final-closeout-status.json"
 SNAPSHOT = "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json"
@@ -34,8 +35,21 @@ def blob(commit, path):
     return subprocess.check_output(["git", "show", f"{commit}:{path}"], cwd=ROOT)
 
 
+def v018_source_evidence_bytes(path: str) -> bytes:
+    """Retain original V0.18 test-source pins without constraining later PR source."""
+    if path.startswith(("backend/", "frontend/")):
+        # Source pins belong to the original status delivery, not its later merge.
+        # The older R2 audit-code pins below deliberately retain their OLD commit.
+        return blob(SNAPSHOT_COMMIT, path)
+    return (ROOT / path).read_bytes()
+
+
 def sha(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+def assert_v018_source_hash(path: str, expected: str) -> None:
+    assert sha(v018_source_evidence_bytes(path)) == expected, path
 
 
 def validate(value):
@@ -75,23 +89,14 @@ def test_current_state_and_canonical_sources():
     for path in (EVIDENCE, SNAPSHOT):
         assert (ROOT / path).read_bytes() == canonical(load(path))
     for path, expected in value["source_evidence_sha256"].items():
-        source = (
-            blob(SNAPSHOT_COMMIT, path)
-            if path == "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
-            else (ROOT / path).read_bytes()
-        )
-        assert sha(source) == expected, path
+        assert_v018_source_hash(path, expected)
     for path, expected in value["historical_snapshot_sha256"].items():
         assert sha((ROOT / path).read_bytes()) == sha(blob(OLD, path)) == expected, path
     for path, expected in value["historical_audit_code_sha256"].items():
         assert sha(blob(OLD, path)) == expected, path
     for path, expected in value["current_main_source_sha256"].items():
+        # Frozen 816d8299 audit: later approved source changes do not rewrite history.
         assert sha(blob(BASE, path)) == expected, path
-        # This is the preserved 816d8299 snapshot, not the new PREAUTH runtime.
-        # Only the reviewed PR #733 service change reads historical bytes here;
-        # the appended current-state contract checks ALL latest-main sources.
-        if path != "backend/app/local_auth/service.py":
-            assert sha((ROOT / path).read_bytes()) == expected, path
     for path, expected in value["artifact_sha256"].items():
         assert sha((ROOT / path).read_bytes()) == expected, path
 
@@ -165,6 +170,64 @@ def test_original_gaps_risks_and_semantics_are_not_replaced():
     assert all(sha(current[path]) == expected for path, expected in frozen.items())
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "backend/tests/forecast_intelligence/build_v0_18_approval_provenance_r2.py",
+        "backend/tests/forecast_intelligence/test_v0_18_approval_provenance_r2.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+    ],
+)
+def test_v018_historical_source_pins_use_immutable_git_bytes(path):
+    expected = load(EVIDENCE)["source_evidence_sha256"][path]
+    assert sha(v018_source_evidence_bytes(path)) == expected
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "backend/app/api/business_access.py",
+        "frontend/src/dashboard/app/Dashboard.tsx",
+    ],
+)
+def test_v018_current_main_snapshot_never_depends_on_later_worktree(path):
+    expected = load(EVIDENCE)["current_main_source_sha256"][path]
+    assert sha(blob(BASE, path)) == expected
+
+
+@pytest.mark.parametrize("path", list(load(EVIDENCE)["source_evidence_sha256"]))
+def test_v018_source_hash_tampering_is_rejected(path):
+    # Mutate only the proposed digest, never the frozen evidence or actual source.
+    with pytest.raises(AssertionError):
+        assert_v018_source_hash(path, "0" * 64)
+
+
+@pytest.mark.parametrize("commit", [CURRENT_MAIN, "0" * 40])
+def test_v018_wrong_or_missing_source_commit_fails_closed(monkeypatch, commit):
+    path = "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+    expected = load(EVIDENCE)["source_evidence_sha256"][path]
+    monkeypatch.setitem(globals(), "SNAPSHOT_COMMIT", commit)
+    with pytest.raises((AssertionError, subprocess.CalledProcessError)):
+        assert_v018_source_hash(path, expected)
+
+
+def v018_delivery_changed_paths() -> list[str]:
+    """Inspect the immutable V0.18 delivery range, not a later PR's working tree."""
+    return (
+        subprocess.check_output(
+            ["git", "diff", "--name-only", CURRENT_MAIN, V0_18_RELEASE_HEAD], cwd=ROOT
+        )
+        .decode()
+        .splitlines()
+    )
+
+
+def assert_v018_delivery_scope(changed: list[str], allowed: set[str]) -> None:
+    """Preserve both the historical allowlist and the production-path prohibition."""
+    assert set(changed) <= allowed
+    assert not any(path.startswith(("backend/app/", "frontend/", ".github/")) for path in changed)
+
+
 def test_current_delivery_is_audit_only_not_production_mutation():
     value = load(EVIDENCE)
     historical = set(value["historical_snapshot_sha256"]) | set(
@@ -185,18 +248,82 @@ def test_current_delivery_is_audit_only_not_production_mutation():
         "docs/v0-18/evidence/final-closeout-preauth-current/main-canary.xml",
         "docs/v0-18/evidence/final-closeout-preauth-current/pr-canary.xml",
     }
-    changed = (
-        subprocess.check_output(["git", "diff", "--name-only", CURRENT_MAIN], cwd=ROOT)
-        .decode()
-        .splitlines()
+    # This is a historical V0.18 audit. Later-version commits are out of scope.
+    changed = v018_delivery_changed_paths()
+    assert_v018_delivery_scope(changed, historical | added)
+
+
+def test_v018_delivery_diff_uses_only_frozen_commit_range(monkeypatch):
+    calls = []
+
+    def fake_check_output(args, *, cwd):
+        calls.append((args, cwd))
+        return b"docs/v0-18/v0.18.0-closeout.md"
+
+    monkeypatch.setattr(subprocess, "check_output", fake_check_output)
+    assert v018_delivery_changed_paths() == ["docs/v0-18/v0.18.0-closeout.md"]
+    assert calls == [(["git", "diff", "--name-only", CURRENT_MAIN, V0_18_RELEASE_HEAD], ROOT)]
+
+
+def test_future_files_do_not_enter_v018_historical_delivery(monkeypatch):
+    historical = v018_delivery_changed_paths()
+    future = [
+        "backend/tests/area_yield/test_v0_19_scope_contract.py",
+        "docs/v0-19/evidence/v0.19.0-scope-freeze-r1.json",
+        "docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md",
+    ]
+    original = subprocess.check_output
+
+    def future_worktree(args, *, cwd):
+        if args == ["git", "diff", "--name-only", CURRENT_MAIN]:
+            return ("\n".join(historical + future) + "\n").encode()
+        if args == ["git", "ls-files", "--others", "--exclude-standard"]:
+            return ("\n".join(future) + "\n").encode()
+        return original(args, cwd=cwd)
+
+    monkeypatch.setattr(subprocess, "check_output", future_worktree)
+    assert v018_delivery_changed_paths() == historical
+    assert set(historical).isdisjoint(future)
+    test_current_delivery_is_audit_only_not_production_mutation()
+
+
+@pytest.mark.parametrize(
+    "unauthorized_path",
+    [
+        "backend/app/_v018_delivery_scope_probe.py",
+        "frontend/_v018_delivery_scope_probe.ts",
+        ".github/workflows/_v018_delivery_scope_probe.yml",
+        "docs/_v018_delivery_scope_probe.md",
+    ],
+)
+def test_v018_historical_delivery_rejects_unauthorized_paths(unauthorized_path):
+    value = load(EVIDENCE)
+    allowed = (
+        set(value["historical_snapshot_sha256"])
+        | set(value["historical_audit_code_sha256"])
+        | {
+            EVIDENCE,
+            SNAPSHOT,
+            "docs/v0-18/v0.18.0-final-closeout-status.md",
+            "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+            "docs/v0-18/v0.18.0-final-closeout-preauth-update.md",
+            "docs/v0-18/evidence/v0.18.0-final-closeout-preauth-update.json",
+            "docs/v0-18/evidence/v0.18.0-final-closeout-preauth-github-snapshot.json",
+            "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py",
+            "docs/v0-18/evidence/final-closeout-preauth-current/backend.xml",
+            "docs/v0-18/evidence/final-closeout-preauth-current/execution.log",
+            "docs/v0-18/evidence/final-closeout-preauth-current/owned-resources.json",
+            "docs/v0-18/evidence/final-closeout-preauth-current/main-canary.xml",
+            "docs/v0-18/evidence/final-closeout-preauth-current/pr-canary.xml",
+        }
     )
-    untracked = (
-        subprocess.check_output(["git", "ls-files", "--others", "--exclude-standard"], cwd=ROOT)
-        .decode()
-        .splitlines()
-    )
-    assert set(changed + untracked) <= historical | added
-    assert not any(path.startswith(("backend/app/", "frontend/", ".github/")) for path in changed)
+    assert unauthorized_path not in allowed
+    with pytest.raises(AssertionError):
+        assert_v018_delivery_scope([unauthorized_path], allowed)
+    # Verify the production-path guard independently of the historical allowlist.
+    if unauthorized_path.startswith(("backend/app/", "frontend/", ".github/")):
+        with pytest.raises(AssertionError):
+            assert_v018_delivery_scope([unauthorized_path], allowed | {unauthorized_path})
 
 
 @pytest.mark.parametrize(
