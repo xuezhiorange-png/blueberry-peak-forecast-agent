@@ -16,6 +16,7 @@ BASE = "8f6cae4004c663b9ccaf2061869cc7cb6e80adc4"
 PREVIOUS = "772503823320c48c6920fc66c5164d8a30844fd9"
 OLD_MAIN = "816d8299f007eab7da140fc5c7547d941c026f8f"
 FIX_HEAD = "f151f0e6aca3577c5ee959a220c16e9756179649"
+V0_18_RELEASE_HEAD = "b6ac2e658edbace357c575bb42ee46b03bb863b9"
 PREFIX = "docs/v0-18/evidence/"
 EVIDENCE = PREFIX + "v0.18.0-final-closeout-preauth-update.json"
 SNAPSHOT = PREFIX + "v0.18.0-final-closeout-preauth-github-snapshot.json"
@@ -33,6 +34,30 @@ def sha(raw):
 
 def canonical(value):
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
+
+
+def v018_source_bytes(path: str) -> bytes:
+    """Audit the released V0.18 code snapshot, but the present historical evidence bytes."""
+    if path.startswith(("backend/", "frontend/")):
+        return historical_bytes(path, V0_18_RELEASE_HEAD)
+    return (ROOT / path).read_bytes()
+
+
+def v018_preauth_delivery_paths() -> list[str]:
+    """Check the bounded V0.18 delivery; later PR working trees are not V0.18 evidence."""
+    return (
+        subprocess.check_output(["git", "diff", "--name-only", BASE, V0_18_RELEASE_HEAD], cwd=ROOT)
+        .decode()
+        .splitlines()
+    )
+
+
+def assert_no_v018_preauth_production_changes(changed: list[str]) -> None:
+    assert not any(
+        p.startswith(("backend/app/", "frontend/", "backend/alembic/", ".github/"))
+        or p in {"pyproject.toml", "uv.lock"}
+        for p in changed
+    )
 
 
 def validate(value):
@@ -76,13 +101,15 @@ def test_canonical_append_sources_and_preserved_snapshots():
     validate(value)
     for path in (EVIDENCE, SNAPSHOT):
         assert (ROOT / path).read_bytes() == canonical(load(path))
-    for field in ("source_evidence_sha256", "artifact_sha256"):
-        for path, expected in value[field].items():
-            assert sha((ROOT / path).read_bytes()) == expected, path
+    for path, expected in value["source_evidence_sha256"].items():
+        assert sha(v018_source_bytes(path)) == expected, path
+    for path, expected in value["artifact_sha256"].items():
+        assert sha((ROOT / path).read_bytes()) == expected, path
     for path, expected in value["preserved_snapshot_sha256"].items():
         assert sha((ROOT / path).read_bytes()) == sha(historical_bytes(path, PREVIOUS)) == expected
     for path, expected in value["current_main_source_sha256"].items():
-        assert sha((ROOT / path).read_bytes()) == sha(historical_bytes(path, BASE)) == expected
+        # This is the preauth-era main snapshot, not a restriction on later source changes.
+        assert sha(historical_bytes(path, BASE)) == expected
     previous = load(OLD_EVIDENCE)
     assert previous["reviewed_main_sha"] == OLD_MAIN
     assert previous["backend_lead_2"] == "PREAUTH_RACE_NOT_TESTED_PENDING"
@@ -174,7 +201,7 @@ def test_red_two_green_rounds_and_current_postgres_security_regression():
     assert concurrent["database"]["preauth"]["revoked"]
     assert concurrent["database"]["preauth"]["revoke_reason"] == "LOGIN_ROTATION"
     for path, expected in concurrent["source_sha256"].items():
-        assert sha((ROOT / path).read_bytes()) == expected
+        assert sha(v018_source_bytes(path)) == expected
     manifest = load(runtime["owned_manifest"])
     assert manifest["exit"] == 0 and manifest["cleanup"]["state"] == "STOPPED"
     assert manifest["cleanup"]["listener_closed"] and manifest["cleanup"]["postmaster_absent"]
@@ -195,16 +222,8 @@ def test_current_pr_contains_no_extra_production_changes():
         .split()[1:]
     )
     assert parents == sync["parents"] == [PREVIOUS, BASE]
-    changed = (
-        subprocess.check_output(["git", "diff", "--name-only", BASE], cwd=ROOT)
-        .decode()
-        .splitlines()
-    )
-    assert not any(
-        p.startswith(("backend/app/", "frontend/", "backend/alembic/", ".github/"))
-        or p in {"pyproject.toml", "uv.lock"}
-        for p in changed
-    )
+    changed = v018_preauth_delivery_paths()
+    assert_no_v018_preauth_production_changes(changed)
     assert (
         subprocess.run(
             ["git", "merge-base", "--is-ancestor", PREVIOUS, "HEAD"], cwd=ROOT
@@ -215,6 +234,47 @@ def test_current_pr_contains_no_extra_production_changes():
         subprocess.run(["git", "merge-base", "--is-ancestor", BASE, "HEAD"], cwd=ROOT).returncode
         == 0
     )
+
+
+def test_preauth_delivery_git_diff_uses_released_commit_range(monkeypatch):
+    calls = []
+
+    def fake_check_output(args, *, cwd):
+        calls.append((args, cwd))
+        return b"docs/v0-18/v0.18.0-final-closeout-status.md"
+
+    monkeypatch.setattr(subprocess, "check_output", fake_check_output)
+    assert v018_preauth_delivery_paths() == ["docs/v0-18/v0.18.0-final-closeout-status.md"]
+    assert calls == [(["git", "diff", "--name-only", BASE, V0_18_RELEASE_HEAD], ROOT)]
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "backend/app/_v018_scope_negative.py",
+        "frontend/_v018_scope_negative.ts",
+        "backend/alembic/_v018_scope_negative.py",
+        ".github/workflows/_v018_scope_negative.yml",
+        "pyproject.toml",
+        "uv.lock",
+    ],
+)
+def test_preauth_delivery_rejects_production_scope_mutations(path):
+    with pytest.raises(AssertionError):
+        assert_no_v018_preauth_production_changes([path])
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py",
+    ],
+)
+def test_preauth_source_pins_check_released_tests_not_new_worktree(path):
+    expected = load(EVIDENCE)["source_evidence_sha256"][path]
+    assert sha(historical_bytes(path, V0_18_RELEASE_HEAD)) == expected
+    assert sha(v018_source_bytes(path)) == expected
 
 
 @pytest.mark.parametrize(
