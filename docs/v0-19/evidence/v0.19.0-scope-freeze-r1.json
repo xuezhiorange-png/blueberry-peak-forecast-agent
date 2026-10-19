@@ -1,0 +1,310 @@
+{
+  "agronomic": {
+    "allowed_conclusions": [
+      "SUPPORTED_FOR_FURTHER_RESEARCH",
+      "NOT_SUPPORTED",
+      "INCONCLUSIVE",
+      "BLOCKED"
+    ],
+    "assumed_statistical_gain": false,
+    "automatic_production_db_integration": false,
+    "full_production_biophysical_model_training": false,
+    "new_event_system": false,
+    "priority": [
+      "FLOWERING_START_FULL_END",
+      "CULTIVAR_PLOT_AREA_LINK",
+      "FORCING_ACTION_AND_TIME",
+      "PRUNING_TYPE_TIME_INTENSITY",
+      "EXISTING_HARVEST_STATE",
+      "WEATHER_AND_PHENOLOGY_TIME"
+    ],
+    "reuse": [
+      "V0_9_MANAGEMENT_EVENT",
+      "PHENOLOGY_OBSERVATION",
+      "PIT"
+    ],
+    "supported_implies_production_approval": false
+  },
+  "allowed_new_paths": [
+    "docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md",
+    "docs/v0-19/evidence/v0.19.0-scope-freeze-r1.json",
+    "backend/tests/area_yield/test_v0_19_scope_contract.py"
+  ],
+  "base_main_sha": "b6ac2e658edbace357c575bb42ee46b03bb863b9",
+  "candidate_constraints": {
+    "accuracy_improvement_claim_in_s2": false,
+    "continuous_dates": true,
+    "deterministic": true,
+    "fixed_artificial_peak_shift_allowed": false,
+    "future_target_actuals_allowed": false,
+    "hidden_parameters": false,
+    "isolated_research_path": true,
+    "mass_conserving": true,
+    "max_new_daily_curve_candidates": 1,
+    "method_parameter_rules_frozen_before_results": true,
+    "method_selected_in_s0": false,
+    "nonnegative": true,
+    "numerically_stable": true,
+    "operational_peak_baseline_preserved": true
+  },
+  "controlled_validation": {
+    "current_2026_2027_access_authorized": false,
+    "exposed_2025_2026_is_blind_oot": false,
+    "insufficient_data_or_time_evidence": "BLOCKED",
+    "parameters_from_allowed_training_validation_only": true,
+    "prediction_label_isolation": true,
+    "preserve_failures_regressions_not_computable": true,
+    "same_samples_and_physical_basis": true,
+    "same_source": true,
+    "same_target": true,
+    "same_training_evaluation_range": true,
+    "seal_predictions_before_label_scoring": true,
+    "strict_pit": false
+  },
+  "document_sha256": {
+    "docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md": "c98c51b3fb107d8236703882915193df5cd97c0f380afa1eb8233479f2a3f181"
+  },
+  "execution": {
+    "business_database_accessed": false,
+    "candidate_implemented": false,
+    "current_actuals_accessed": false,
+    "historical_rescoring_executed": false,
+    "model_refit_executed": false,
+    "model_training_executed": false,
+    "private_history_accessed": false,
+    "production_code_changed": false
+  },
+  "governance": {
+    "deploy_authorized": false,
+    "historical_rescoring_authorized": false,
+    "merge_authorized": false,
+    "model_promotion_authorized": false,
+    "model_refit_authorized": false,
+    "model_training_authorized": false,
+    "owner_authorized": true,
+    "production_code_authorized": false,
+    "ready_authorized": false,
+    "real_data_access_authorized": false,
+    "release_authorized": false,
+    "s0_formal_complete": false,
+    "s1_implementation_authorized": false,
+    "s2_implementation_authorized": false,
+    "s3_implementation_authorized": false,
+    "s4_implementation_authorized": false,
+    "stop_after_draft_exact_head_ci": true,
+    "tag_authorized": false
+  },
+  "historical_findings": {
+    "cross_family_or_sample_ranking_allowed": false,
+    "h7_prefix_is_rolling7_max": false,
+    "old_research_is_new_discovery": false,
+    "operational_peak": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "production_accuracy_proven": false,
+    "v08": "SCALE_AND_SHAPE_ERRORS_NON_ADDITIVE",
+    "v13_simple_gdd": "NO_STABLE_GAIN_PROVEN",
+    "v13_weather_gdd_timing": "NOT_SUPPORTED",
+    "v13_weather_quantity": "SUPPORTED_IN_FROZEN_HISTORICAL_SCOPE",
+    "v15_base10": "NO_CLEAR_LEADER",
+    "v15_harvest_state_quantity": "SUPPORTED_SHORT_TERM_HISTORICAL_SCOPE",
+    "v15_harvest_state_rolling7_start": "NO_STABLE_IMPROVEMENT_OOT_REGRESSION_PRESERVED"
+  },
+  "live_preflight": {
+    "initial_worktree_clean": true,
+    "latest_formal_release": "v0.18.0",
+    "main_matches_expected": true,
+    "parallel_v019_open_pr_count": 0,
+    "published_at": "2026-10-18T10:38:04Z",
+    "release_draft": false,
+    "release_id": 416386990,
+    "release_prerelease": false,
+    "v019_implementation_approval_found": false
+  },
+  "metric_boundaries": {
+    "business_accuracy_threshold": null,
+    "denominators_weights_exclusions": "FREEZE_IN_S1_BEFORE_RESULTS",
+    "h7": "D1_THROUGH_D7_PREFIX",
+    "missing_dates": "NOT_COMPUTABLE_NOT_ZERO",
+    "physical_basis_separate": [
+      "ACTUAL_HARVEST",
+      "FACTORY_ARRIVAL_PROXY"
+    ],
+    "quantity_timing_evaluated_separately": true,
+    "rolling7": "MAX_SUM_OF_COMPLETE_SEVEN_CONSECUTIVE_CALENDAR_DAYS",
+    "tie_break": "EARLIEST_DATE",
+    "windows_separate": [
+      "FULL_SEASON",
+      "H15_LOCAL_WINDOW"
+    ]
+  },
+  "metrics": [
+    "SEASON_TOTAL_WAPE",
+    "DAILY_WAPE",
+    "DAILY_MAE",
+    "SINGLE_DAY_PEAK_DATE_MAE",
+    "SINGLE_DAY_PEAK_QUANTITY_MAE",
+    "ROLLING_7DAY_PEAK_START_MAE",
+    "ROLLING_7DAY_PEAK_QUANTITY_MAE",
+    "BASE_BREADTH",
+    "SAMPLE_COVERAGE",
+    "NOT_COMPUTABLE_COUNT"
+  ],
+  "model_families": [
+    "AREA_FORECAST_PRODUCT",
+    "OPERATIONAL_PEAK",
+    "V0_15_BASE10_RIDGE",
+    "V0_15_HARVEST_STATE_RIDGE",
+    "CORE_FORECAST"
+  ],
+  "objectives": [
+    "DAILY_CURVE_TEMPORAL_RESOLUTION",
+    "SINGLE_DAY_PEAK_DATE_ACCURACY_RESEARCH",
+    "ROLLING_7DAY_PEAK_ACCURACY_RESEARCH",
+    "SAME_SAMPLE_SAME_METRIC_INDEPENDENT_COMPARISON",
+    "AGRONOMIC_DATA_VALUE_AND_PRIORITY"
+  ],
+  "production_ready": false,
+  "release_class": "ALGORITHM_RESEARCH",
+  "research_completion": {
+    "no_stable_gain_allowed": true,
+    "production_accuracy_validated": false,
+    "production_deployment_authorized": false,
+    "required": [
+      "S0_S4_AUTHORIZED_COMPLETE",
+      "CLEAR_RESEARCH_CONTRACT",
+      "AT_LEAST_ONE_RUNNABLE_DAILY_CANDIDATE",
+      "LAWFUL_REPRODUCIBLE_S3_COMPARISON",
+      "SEPARATE_QUANTITY_AND_PEAK_METRICS",
+      "RETAIN_REGRESSION_AND_NO_GAIN",
+      "UNCHANGED_ORIGINAL_MODEL_AND_HISTORY",
+      "DISCLOSE_PIT_AND_PROVENANCE_LIMITS",
+      "CLEAR_CONCLUSION_AND_NEXT_DIRECTION",
+      "FINAL_VERSION_REVIEW"
+    ],
+    "s3_data_blocked_implies_incomplete": true,
+    "unexecuted_experiment_counts_as_complete": false,
+    "version_research_complete": false
+  },
+  "source_commit": "b6ac2e658edbace357c575bb42ee46b03bb863b9",
+  "source_evidence_count": 11,
+  "source_evidence_sha256": {
+    "backend/app/forecast_quality/operational_peak.py": "3bebc3d193052b87968b95bdfc55ae1ca3ab2bb784d6c520743489e1586fb762",
+    "docs/v0-13/v0.13.0-closeout.md": "0da03a64eb04547ea3d97cea5748251e70de3e8df22d94515c9b0a294faf088d",
+    "docs/v0-15/evidence/harvest-state-incremental-value-r1/incremental-value-classification.json": "858cc3722e104ff235f0013724e3ec6200e031b169a0a7a160b45f61232bab67",
+    "docs/v0-15/v0.15-s3-base10-model-benchmark-r1.md": "75171ad6e795c80a8501db7db99e1f607614f2a5ec500c7093499e42b221c684",
+    "docs/v0-15/v0.15-s5-harvest-state-incremental-value-r1.md": "523264b91bf2036394ed82a614e83564bab111aaf1cfdce8365eaffd41eb0227",
+    "docs/v0-15/v0.15.0-closeout.md": "ea6426434bc9eb271b8e39f8313b0032ca28449c068c33782d4f2110527a20a7",
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8",
+    "docs/v0-8/s9/scale-shape-error-decomposition-and-model-diagnosis-r1.md": "60d45f0d3d0f2158255234b703c3510e4b54b2658646ac8ffbc3f8b3c40140ef",
+    "docs/v0-9/s1/management-event-contract-r1.md": "0a16270673bf389272997b70d0c80c64acd38877c1f1995ac66f29482d6ab2fc",
+    "docs/v0-9/s1/phenology-state-machine-r1.md": "7e555d6098858cbde3d72802982ecf13e20d9243b278cce95d2bc755f10b773e"
+  },
+  "source_read_policy": {
+    "frozen_documents": "CURRENT_WORKTREE_RAW_BYTES",
+    "historical_runtime_source": "FIXED_SOURCE_COMMIT_GIT_BLOB"
+  },
+  "stage_order": [
+    "S0",
+    "S1",
+    "S2",
+    "S3",
+    "S4"
+  ],
+  "stages": {
+    "S0": {
+      "completion_gate": "INDEPENDENT_REVIEW_OWNER_READY_MERGE_AND_POSTMERGE_CI",
+      "deliverables": [
+        "VERSION_PLAN_MARKDOWN",
+        "MACHINE_SCOPE_JSON",
+        "OFFLINE_CONTRACT_TESTS"
+      ],
+      "depends_on": [
+        "OWNER_S0_AUTHORIZATION"
+      ],
+      "docs_contract_only_authorized": true,
+      "entry_gate": "CURRENT_OWNER_DOCS_ONLY_AUTHORIZATION",
+      "formal_complete": false,
+      "implementation_authorized": false,
+      "name": "VERSION_SCOPE_FREEZE",
+      "task_id": "V0_19_S0_VERSION_SCOPE_FREEZE"
+    },
+    "S1": {
+      "completion_gate": "INDEPENDENT_REVIEW_OWNER_READY_MERGE_AND_POSTMERGE_CI",
+      "deliverables": [
+        "UNIFIED_MODEL_COMPARISON_CONTRACT",
+        "PEAK_METRIC_CONTRACT",
+        "HISTORICAL_ERROR_EVIDENCE_MATRIX",
+        "PREREGISTERED_EXPERIMENT_PROTOCOL"
+      ],
+      "depends_on": [
+        "S0_FORMAL_COMPLETE"
+      ],
+      "docs_contract_only_authorized": false,
+      "entry_gate": "SEPARATE_OWNER_IMPLEMENTATION_AUTHORIZATION",
+      "formal_complete": false,
+      "implementation_authorized": false,
+      "name": "MODEL_BASELINE_AND_PEAK_ERROR_PROTOCOL",
+      "task_id": "V0_19_S1_MODEL_BASELINE_AND_PEAK_ERROR_PROTOCOL"
+    },
+    "S2": {
+      "completion_gate": "INDEPENDENT_REVIEW_OWNER_READY_MERGE_AND_POSTMERGE_CI",
+      "deliverables": [
+        "RUNNABLE_ISOLATED_CANDIDATE",
+        "MATHEMATICAL_DEFINITION",
+        "SYNTHETIC_TESTS",
+        "DETERMINISTIC_RESULTS",
+        "BASELINE_STRUCTURAL_DIFFERENCE"
+      ],
+      "depends_on": [
+        "S1_FORMAL_COMPLETE"
+      ],
+      "docs_contract_only_authorized": false,
+      "entry_gate": "SEPARATE_OWNER_IMPLEMENTATION_AUTHORIZATION",
+      "formal_complete": false,
+      "implementation_authorized": false,
+      "name": "DAILY_CURVE_TEMPORAL_RESOLUTION_CANDIDATE",
+      "task_id": "V0_19_S2_DAILY_CURVE_TEMPORAL_RESOLUTION_CANDIDATE"
+    },
+    "S3": {
+      "completion_gate": "INDEPENDENT_REVIEW_OWNER_READY_MERGE_AND_POSTMERGE_CI",
+      "deliverables": [
+        "PAIRED_BASELINE_CANDIDATE_REPORT",
+        "ERROR_ANALYSIS",
+        "CROSS_BASE_ROBUSTNESS",
+        "GAIN_OR_REGRESSION_CONCLUSION"
+      ],
+      "depends_on": [
+        "S2_FORMAL_COMPLETE"
+      ],
+      "docs_contract_only_authorized": false,
+      "entry_gate": "SEPARATE_OWNER_IMPLEMENTATION_AND_DATA_AND_EXPERIMENT_AUTHORIZATION",
+      "formal_complete": false,
+      "implementation_authorized": false,
+      "name": "CONTROLLED_TEMPORAL_MODEL_VALIDATION",
+      "task_id": "V0_19_S3_CONTROLLED_TEMPORAL_MODEL_VALIDATION"
+    },
+    "S4": {
+      "completion_gate": "INDEPENDENT_REVIEW_OWNER_READY_MERGE_AND_POSTMERGE_CI",
+      "deliverables": [
+        "AGRONOMIC_VALUE_HYPOTHESES",
+        "MINIMUM_DATA_LIST",
+        "DATA_GAPS",
+        "NEXT_RESEARCH_RECOMMENDATION",
+        "FINAL_CANDIDATE_CONCLUSION"
+      ],
+      "depends_on": [
+        "S3_FORMAL_COMPLETE"
+      ],
+      "docs_contract_only_authorized": false,
+      "entry_gate": "SEPARATE_OWNER_IMPLEMENTATION_AUTHORIZATION",
+      "formal_complete": false,
+      "implementation_authorized": false,
+      "name": "AGRONOMIC_FEATURE_VALUE_AND_RESEARCH_CLOSEOUT",
+      "task_id": "V0_19_S4_AGRONOMIC_FEATURE_VALUE_AND_RESEARCH_CLOSEOUT"
+    }
+  },
+  "task_id": "V0_19_VERSION_SCOPE_AND_TASK_FREEZE_R1",
+  "version": "0.19.0",
+  "version_name": "HARVEST_CURVE_AND_PEAK_TIMING_ALGORITHM_RESEARCH",
+  "version_name_cn": "蓝莓采收曲线与高峰时间预测算法研究版"
+}
