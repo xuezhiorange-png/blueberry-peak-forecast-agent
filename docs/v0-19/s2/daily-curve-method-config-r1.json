@@ -1,0 +1,20 @@
+{
+  "anchor": "MEAN_BASELINE_DAILY_MICRO_KG_AT_MIDPOINT_OF_ACTUAL_BIN_SUPPORT",
+  "baseline_policy": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+  "bin_days": 7,
+  "boundary": "CLAMP_ENDPOINT_ANCHOR_INSIDE_DECLARED_SUPPORT_NO_EXTRAPOLATION",
+  "candidate_count": 1,
+  "candidate_id": "BIN_CENTER_LINEAR_PER_BIN_MASS_V1",
+  "input_precision": "EXACT_NONNEGATIVE_INTEGER_MICRO_KG_NO_INPUT_ROUNDING",
+  "interpolation": "BIN_CENTER_LINEAR_INTERPOLATION",
+  "method_selection": "OWNER_SPECIFIED_STRUCTURE_ONLY_BEFORE_LABEL_ACCESS",
+  "normalization": "PER_BIN_MASS_CONSERVING_NORMALIZATION",
+  "numeric_arithmetic": "DECIMAL_INPUT_OUTPUT_EXACT_INTEGER_RATIONAL_INTERMEDIATES_NO_FLOAT",
+  "output_kg_places": 6,
+  "parameter_search": false,
+  "partial_bins": "ACTUAL_DECLARED_SUPPORT_DAYS_ONLY_PRESERVE_SEASON_ANCHOR",
+  "quantization": "LARGEST_EXACT_REMAINDER_THEN_EARLIEST_DATE",
+  "query": "SLICE_PRECOMPUTED_SUPPORT_NO_RENORMALIZATION",
+  "timezone": "Asia/Shanghai",
+  "zero_mass_bin": "ALL_ZERO"
+}
