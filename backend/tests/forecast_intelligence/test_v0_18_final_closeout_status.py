@@ -180,9 +180,7 @@ def v018_delivery_changed_paths() -> list[str]:
 def assert_v018_delivery_scope(changed: list[str], allowed: set[str]) -> None:
     """Preserve both the historical allowlist and the production-path prohibition."""
     assert set(changed) <= allowed
-    assert not any(
-        path.startswith(("backend/app/", "frontend/", ".github/")) for path in changed
-    )
+    assert not any(path.startswith(("backend/app/", "frontend/", ".github/")) for path in changed)
 
 
 def test_current_delivery_is_audit_only_not_production_mutation():
@@ -210,7 +208,6 @@ def test_current_delivery_is_audit_only_not_production_mutation():
     assert_v018_delivery_scope(changed, historical | added)
 
 
-
 def test_v018_delivery_diff_uses_only_frozen_commit_range(monkeypatch):
     calls = []
 
@@ -220,9 +217,7 @@ def test_v018_delivery_diff_uses_only_frozen_commit_range(monkeypatch):
 
     monkeypatch.setattr(subprocess, "check_output", fake_check_output)
     assert v018_delivery_changed_paths() == ["docs/v0-18/v0.18.0-closeout.md"]
-    assert calls == [
-        (["git", "diff", "--name-only", CURRENT_MAIN, V0_18_RELEASE_HEAD], ROOT)
-    ]
+    assert calls == [(["git", "diff", "--name-only", CURRENT_MAIN, V0_18_RELEASE_HEAD], ROOT)]
 
 
 @pytest.mark.parametrize(
@@ -262,6 +257,7 @@ def test_v018_historical_delivery_rejects_unauthorized_paths(unauthorized_path):
     if unauthorized_path.startswith(("backend/app/", "frontend/", ".github/")):
         with pytest.raises(AssertionError):
             assert_v018_delivery_scope([unauthorized_path], allowed | {unauthorized_path})
+
 
 @pytest.mark.parametrize(
     "field,new",
