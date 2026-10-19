@@ -12,9 +12,10 @@ import re
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass, is_dataclass, replace
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Context, Decimal, localcontext
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from backend.research.v019_daily_curve import (
     CurveInput,
@@ -114,6 +115,9 @@ class Sample:
     split: str
     full_season_registered: bool
     authorities: tuple[Authority, ...]
+    comparison_family: str
+    source_population_sha256: str
+    evaluation_scope_sha256: str
     data_class: str = "SYNTHETIC"
 
     @property
@@ -196,11 +200,46 @@ def _seal_body(samples: tuple[Sample, ...], pairs: tuple[Pair, ...]) -> dict[str
     }
 
 
+def _comparison_identity(s: Sample) -> dict[str, str]:
+    """Pre-registered common population, not equality of per-base input blobs.
+
+    The population/evaluation manifests identify the approved common sources,
+    membership and evaluation range before labels are opened. Individual areas,
+    input/profile hashes and model fit identities remain in each sealed unit;
+    different bases and origins may legitimately belong to this SAME population.
+    A different season/training/source population needs a separate seal/report,
+    not an implicit pooled metric or a post-score cohort selection.
+    """
+    return {
+        "comparison_family": s.comparison_family,
+        "source_population_sha256": s.source_population_sha256,
+        "evaluation_scope_sha256": s.evaluation_scope_sha256,
+        "train_scope_sha256": s.train_scope_sha256,
+        "organization_id": s.organization_id,
+        "season": s.season,
+        "physical_basis": s.physical_basis,
+        "unit": s.unit,
+        "business_timezone": "Asia/Shanghai",
+    }
+
+
 def freeze_predictions(
     samples: tuple[Sample, ...], pairs: tuple[Pair, ...], *, synthetic_authorized: bool
 ) -> PredictionSeal:
     """Label-free Phase A; every registered unit, including failures, is retained."""
     _permission(samples, synthetic_authorized)
+    # Check all C0, even units later excluded as non-computable. Never inspect
+    # labels first and silently pool the remaining incompatible populations.
+    if (
+        any(
+            not s.comparison_family.strip()
+            or not _hash(s.source_population_sha256)
+            or not _hash(s.evaluation_scope_sha256)
+            for s in samples
+        )
+        or len({digest(_comparison_identity(s)) for s in samples}) > 1
+    ):
+        raise ValueError("COMPARISON_COHORT_ISOLATION_PRE_REGISTRATION_REQUIRED")
     samples = tuple(sorted(samples, key=lambda s: s.sample_id))
     pairs = tuple(sorted(pairs, key=lambda p: p.sample_id))
     ids = [s.sample_id for s in samples]
@@ -368,6 +407,11 @@ def _reason(s: Sample, p: Pair, lab: Labels | None, as_of: datetime) -> str | No
         return "INCOMPLETE_CALENDAR"
     if any(y - x != timedelta(days=1) for x, y in zip(s.dates, s.dates[1:], strict=False)):
         return "INCOMPLETE_CALENDAR"
+    # Strictly before the first local target midnight, for ALL window types.
+    # Reject the complete window, never prune already-started target dates.
+    target_start = datetime.combine(s.dates[0], time.min, ZoneInfo("Asia/Shanghai"))
+    if s.issued_at >= target_start or s.cutoff >= target_start:
+        return "UNVERIFIED_AUTHORITY"
     if s.window in ("H7_PREFIX", "H15_LOCAL"):
         # Only Asia/Shanghai local business dates are accepted, never UTC truncation.
         if s.origin.utcoffset() != timedelta(hours=8):
@@ -605,6 +649,7 @@ def evaluate_synthetic(
         result = {
             "data_class": "SYNTHETIC",
             "prediction_seal_sha256": seal.sha256,
+            "comparison_identity": _comparison_identity(seal.samples[0]) if seal.samples else None,
             "labels_sha256": digest(tuple(sorted(label_list, key=lambda lab: lab.sample_id))),
             "as_of": as_of.isoformat(),
             "groups": {

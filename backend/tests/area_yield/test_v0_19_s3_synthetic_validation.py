@@ -69,6 +69,9 @@ def sample(key="SYNTHETIC-1", *, n=15, window="H15_LOCAL", base="SYNTHETIC-BASE"
         split="SYNTHETIC_EXPOSED_OOT",
         full_season_registered=window == "FULL_SEASON",
         authorities=tuple(Authority(name, "AVAILABLE", H) for name in AUTHORITIES),
+        comparison_family="SYNTHETIC-OPERATIONAL-PEAK-PAIR",
+        source_population_sha256=H,
+        evaluation_scope_sha256=H,
     )
 
 
@@ -91,6 +94,96 @@ def labels(s, values):
 def report(s, b, c, a):
     seal = freeze_predictions((s,), (pair(s, b, c),), synthetic_authorized=True)
     return evaluate_synthetic(seal, (labels(s, a),), as_of=SCORE_AT, synthetic_authorized=True)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "season",
+        "train_scope_sha256",
+        "source_population_sha256",
+        "evaluation_scope_sha256",
+        "comparison_family",
+    ],
+)
+def test_individually_lawful_samples_cannot_silently_pool_incompatible_cohorts(field):
+    first = sample()
+    value = "SYNTHETIC-OTHER" if field in ("season", "comparison_family") else "b" * 64
+    second = replace(sample("SYNTHETIC-2", base="SYNTHETIC-OTHER"), **{field: value})
+    for s in (first, second):
+        assert metric(report(s, [1] * 15, [1] * 15, [1] * 15), "DAILY_MAE")["common_count"] == 1
+    with pytest.raises(ValueError, match="COMPARISON_COHORT_ISOLATION"):
+        freeze_predictions(
+            (first, second),
+            tuple(pair(s, [1] * 15, [1] * 15) for s in (first, second)),
+            synthetic_authorized=True,
+        )
+
+
+@pytest.mark.parametrize("issued", ["2000-01-02T00:00:00+08:00", "2000-01-02T01:00:00+08:00"])
+def test_prediction_issued_at_or_after_first_target_start_cannot_score(issued):
+    s = replace(sample(), issued_at=datetime.fromisoformat(issued))
+    m = metric(report(s, [1] * 15, [1] * 15, [1] * 15), "DAILY_MAE")
+    assert m["common_count"] == 0
+    assert m["candidate"]["value"] is None
+    assert m["reasons"] == {"UNVERIFIED_AUTHORITY": 1}
+
+
+@pytest.mark.parametrize("window,n", [("H7_PREFIX", 7), ("H15_LOCAL", 15), ("FULL_SEASON", 21)])
+@pytest.mark.parametrize("late_field", ["issued_at", "cutoff"])
+def test_temporal_gate_all_windows_and_explicit_utc_comparison(window, n, late_field):
+    s = sample(n=n, window=window)
+    # UTC 15:59:59 is Shanghai 23:59:59, strictly before the target starts.
+    early = datetime.fromisoformat("2000-01-01T15:59:59+00:00")
+    s = replace(s, issued_at=early, cutoff=early)
+    assert metric(report(s, [1] * n, [1] * n, [1] * n), "DAILY_MAE", window)["common_count"] == 1
+    # Same instant as target midnight represented in UTC is still too late.
+    late = datetime.fromisoformat("2000-01-01T16:00:00+00:00")
+    changed = {late_field: late}
+    if late_field == "cutoff":
+        changed["issued_at"] = late + timedelta(seconds=1)
+    s = replace(s, **changed)
+    r = report(s, [1] * n, [1] * n, [1] * n)
+    for name in METRICS[:7]:
+        assert metric(r, name, window)["common_count"] == 0
+        assert metric(r, name, window)["candidate"]["value"] is None
+
+
+def test_registered_cross_base_cohort_preserves_distinct_inputs_and_area():
+    first = sample()
+    second = replace(
+        sample("SYNTHETIC-2", base="SYNTHETIC-OTHER"),
+        area_mu=D(20),
+        input_sha256="b" * 64,
+        profile_sha256="c" * 64,
+    )
+    ss = (first, second)
+    r = evaluate_synthetic(
+        freeze_predictions(
+            ss, tuple(pair(s, [2] * 15, [1] * 15) for s in ss), synthetic_authorized=True
+        ),
+        tuple(labels(s, [1] * 15) for s in ss),
+        as_of=SCORE_AT,
+        synthetic_authorized=True,
+    )
+    assert metric(r, "DAILY_MAE")["common_count"] == 2
+    assert metric(r, "BASE_BREADTH")["n_base"] == 2
+    assert r["comparison_identity"]["comparison_family"] == first.comparison_family
+    assert r["comparison_identity"]["source_population_sha256"] == H
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("comparison_family", ""),
+        ("source_population_sha256", "invalid"),
+        ("evaluation_scope_sha256", ""),
+    ],
+)
+def test_missing_comparison_registration_fails_before_labels(field, value):
+    s = replace(sample(), **{field: value})
+    with pytest.raises(ValueError, match="COMPARISON_COHORT_ISOLATION"):
+        freeze_predictions((s,), (pair(s, [1] * 15, [1] * 15),), synthetic_authorized=True)
 
 
 def metric(result, name, window="H15_LOCAL"):
