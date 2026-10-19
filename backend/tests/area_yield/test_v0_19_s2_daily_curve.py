@@ -23,6 +23,29 @@ START = date(2000, 7, 1)
 ROOT = Path(__file__).resolve().parents[3]
 CONFIG = ROOT / "docs/v0-19/s2/daily-curve-method-config-r1.json"
 STRUCTURE = ROOT / "docs/v0-19/evidence/v0.19-s2-synthetic-structure-r1.json"
+EVIDENCE = ROOT / "docs/v0-19/evidence/v0.19-s2-daily-curve-candidate-r1.json"
+START_MAIN = "a95d5596e7c25d485414fd540b17ca13920724a9"
+SOURCE_SEAL = "1695fd758713e2e364493a1b368aa1504042b506"
+SOURCE_COMMITS = {
+    **dict.fromkeys(
+        (
+            "backend/app/forecast_quality/operational_peak.py",
+            "backend/tests/area_yield/test_v0_19_scope_contract.py",
+            "backend/tests/area_yield/test_v0_19_s1_protocol.py",
+            "pyproject.toml",
+            "uv.lock",
+        ),
+        START_MAIN,
+    ),
+    **dict.fromkeys(
+        (
+            "backend/research/__init__.py",
+            "backend/research/v019_daily_curve.py",
+            "backend/tests/area_yield/test_v0_19_s2_daily_curve.py",
+        ),
+        SOURCE_SEAL,
+    ),
+}
 
 
 def synthetic(rates=("1", "2", "4"), *, offset=0, length=None):
@@ -361,3 +384,154 @@ def test_invalid_input_fails_closed_without_filling_or_rounding(mutation):
         rows = []
     with pytest.raises(ValueError):
         generate_candidate(replace(request, baseline=tuple(rows)))
+
+
+def _verified_historical_source(path, commit, expected):
+    from backend.tests.historical_source import historical_bytes
+
+    assert commit == SOURCE_COMMITS[path], "UNREVIEWED_SOURCE_COMMIT"
+    raw = historical_bytes(path, commit, root=ROOT)
+    assert hashlib.sha256(raw).hexdigest() == expected, "HISTORICAL_SHA256_MISMATCH"
+    return raw
+
+
+def _verified_frozen_file(path, expected, *, root=ROOT):
+    raw = (root / path).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == expected, "FROZEN_SHA256_MISMATCH"
+    return raw
+
+
+def test_machine_evidence_identity_gates_and_authorizations():
+    import ast
+
+    data = json.loads(EVIDENCE.read_bytes())
+    assert EVIDENCE.read_bytes() == canonical_bytes(data)
+    assert data["task_id"] == "V0_19_S2_DAILY_CURVE_TEMPORAL_RESOLUTION_CANDIDATE_R1"
+    assert data["version"] == "0.19.0" and data["stage"] == "S2"
+    assert data["version_name"] == "HARVEST_CURVE_AND_PEAK_TIMING_ALGORITHM_RESEARCH"
+    assert data["base_main_sha"] == START_MAIN
+    assert data["candidate_source_seal_commit"] == SOURCE_SEAL
+    assert data["candidate_count"] == 1
+    assert data["candidate_id"] == method_config()["candidate_id"]
+    assert data["method_config_sha256"] == hashlib.sha256(CONFIG.read_bytes()).hexdigest()
+    gate = data["delivery_gate_observed"]
+    assert gate["run_id"] == 39251108327 and gate["head_sha"] == START_MAIN
+    assert gate["event"] == "push" and gate["attempt"] == 1
+    assert gate["status"] == "completed" and gate["conclusion"] == "success"
+    assert set(gate["successful_jobs"]) == {
+        "full-suite-canary",
+        "frontend-e2e",
+        "frontend-static",
+        "frontend-unit",
+    }
+    assert len(gate["skipped_jobs"]) == 8
+    assert {k for k, v in data["governance"].items() if v is True} == {
+        "owner_s2_implementation_authorized",
+        "parallel_isolated_development_authorized",
+        "formal_delivery_requires_s1_main_ci_success",
+        "stop_after_draft_exact_head_ci",
+    }
+    assert {k for k, v in data["execution"].items() if v is True} == {
+        "candidate_implemented",
+        "synthetic_tests_executed",
+    }
+    assert all(v is False for v in data["scientific_limits"].values())
+    assert data["s3_required_preconditions"] == [
+        "S1_S2_FORMAL_COMPLETE",
+        "SEPARATE_OWNER_S3_IMPLEMENTATION_AUTHORIZATION",
+        "SEPARATE_DATA_AND_EXPERIMENT_AUTHORIZATION",
+        "SOURCE_COHORT_PHYSICAL_AND_TIME_AUTHORITY",
+        "PREDICTION_SEAL_BEFORE_LABEL_READ",
+    ]
+    test_path = "backend/tests/area_yield/test_v0_19_s2_daily_curve.py"
+    sealed_tests = _verified_historical_source(
+        test_path, SOURCE_SEAL, data["historical_source_sha256"][test_path]
+    )
+    functions = {
+        n.name for n in ast.walk(ast.parse(sealed_tests)) if isinstance(n, ast.FunctionDef)
+    }
+    assert len(data["synthetic_test_matrix"]) == 15
+    assert all(
+        row["test_function"] in functions and row["status"] == "PASS_SYNTHETIC_ONLY"
+        for row in data["synthetic_test_matrix"].values()
+    )
+
+
+def test_historical_source_and_frozen_artifact_original_bytes():
+    data = json.loads(EVIDENCE.read_bytes())
+    assert data["historical_source_commits"] == SOURCE_COMMITS
+    assert set(data["historical_source_sha256"]) == set(SOURCE_COMMITS)
+    for path, expected in data["historical_source_sha256"].items():
+        _verified_historical_source(path, SOURCE_COMMITS[path], expected)
+    assert len(data["frozen_history_sha256"]) == 7
+    for path, expected in data["frozen_history_sha256"].items():
+        _verified_frozen_file(path, expected)
+    for path, expected in data["artifact_sha256"].items():
+        _verified_frozen_file(path, expected)
+
+
+@pytest.mark.parametrize("fault", ["wrong_existing_commit", "missing_commit", "wrong_hash"])
+def test_historical_source_audit_rejects_wrong_commit_or_hash(fault):
+    data = json.loads(EVIDENCE.read_bytes())
+    path = "backend/research/v019_daily_curve.py"
+    commit = SOURCE_SEAL
+    expected = data["historical_source_sha256"][path]
+    if fault == "wrong_existing_commit":
+        commit = START_MAIN
+    elif fault == "missing_commit":
+        commit = "0" * 40
+    else:
+        expected = "0" * 64
+    with pytest.raises(AssertionError):
+        _verified_historical_source(path, commit, expected)
+
+
+def test_runtime_test_source_uses_fixed_snapshot_not_future_worktree_bytes():
+    data = json.loads(EVIDENCE.read_bytes())
+    path = "backend/tests/area_yield/test_v0_19_s2_daily_curve.py"
+    expected = data["historical_source_sha256"][path]
+    original = _verified_historical_source(path, SOURCE_SEAL, expected)
+    # This file itself already has legitimate additive audit tests beyond the
+    # original runtime-test seal. The historical assertion still passes.
+    assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() != expected
+    assert (
+        hashlib.sha256(original + b"\n# SYNTHETIC future test addition\n").hexdigest() != expected
+    )
+    assert _verified_historical_source(path, SOURCE_SEAL, expected) == original
+
+
+def test_frozen_document_corruption_is_still_rejected(tmp_path):
+    data = json.loads(EVIDENCE.read_bytes())
+    path, expected = next(iter(data["frozen_history_sha256"].items()))
+    altered = tmp_path / path
+    altered.parent.mkdir(parents=True, exist_ok=True)
+    altered.write_bytes((ROOT / path).read_bytes() + b"\nSYNTHETIC corruption\n")
+    with pytest.raises(AssertionError, match="FROZEN_SHA256_MISMATCH"):
+        _verified_frozen_file(path, expected, root=tmp_path)
+
+
+def test_fixed_source_delivery_interval_and_commit_gate_not_future_head():
+    import subprocess
+
+    data = json.loads(EVIDENCE.read_bytes())
+    allowed = set(data["allowed_new_paths"])
+    assert allowed == {
+        "backend/research/__init__.py",
+        "backend/research/v019_daily_curve.py",
+        "backend/tests/area_yield/test_v0_19_s2_daily_curve.py",
+        "docs/v0-19/s2/daily-curve-candidate-r1.md",
+        "docs/v0-19/s2/daily-curve-method-config-r1.json",
+        "docs/v0-19/evidence/v0.19-s2-synthetic-structure-r1.json",
+        "docs/v0-19/evidence/v0.19-s2-daily-curve-candidate-r1.json",
+    }
+    rows = subprocess.check_output(
+        ["git", "diff", "--name-status", START_MAIN, SOURCE_SEAL], cwd=ROOT, text=True
+    ).splitlines()
+    assert {r.split("\t")[1] for r in rows} == allowed - {str(EVIDENCE.relative_to(ROOT))}
+    assert all(r.startswith("A\t") for r in rows)
+    committed = subprocess.check_output(
+        ["git", "show", "-s", "--format=%cI", SOURCE_SEAL], cwd=ROOT, text=True
+    ).strip()
+    assert datetime.fromisoformat(committed) >= datetime.fromisoformat(
+        data["delivery_gate_observed"]["updated_at"]
+    )

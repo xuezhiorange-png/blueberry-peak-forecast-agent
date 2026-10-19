@@ -1,0 +1,237 @@
+{
+  "allowed_new_paths": [
+    "docs/v0-19/s2/daily-curve-candidate-r1.md",
+    "docs/v0-19/s2/daily-curve-method-config-r1.json",
+    "docs/v0-19/evidence/v0.19-s2-synthetic-structure-r1.json",
+    "backend/research/__init__.py",
+    "backend/research/v019_daily_curve.py",
+    "backend/tests/area_yield/test_v0_19_s2_daily_curve.py",
+    "docs/v0-19/evidence/v0.19-s2-daily-curve-candidate-r1.json"
+  ],
+  "artifact_sha256": {
+    "docs/v0-19/evidence/v0.19-s2-synthetic-structure-r1.json": "25336cab3c23ca8c6e9dac95d643b821f35509c14dfea7ff81ddc9c75a4694c1",
+    "docs/v0-19/s2/daily-curve-candidate-r1.md": "7acdb47537716f867158e6f891ca0bc843753742956f7b31bf02aebf1299cc58",
+    "docs/v0-19/s2/daily-curve-method-config-r1.json": "b2e1f09aae99c09392c9e004ad2cf37884697494ac4fde771e1d2ad425aafbb2"
+  },
+  "base_main_sha": "a95d5596e7c25d485414fd540b17ca13920724a9",
+  "candidate_count": 1,
+  "candidate_id": "BIN_CENTER_LINEAR_PER_BIN_MASS_V1",
+  "candidate_source_seal_commit": "1695fd758713e2e364493a1b368aa1504042b506",
+  "delivery_gate": "S1_MAIN_CI_SUCCESS_BEFORE_FIRST_COMMIT_PUSH_PR",
+  "delivery_gate_observed": {
+    "attempt": 1,
+    "conclusion": "success",
+    "event": "push",
+    "head_sha": "a95d5596e7c25d485414fd540b17ca13920724a9",
+    "run_id": 39251108327,
+    "skipped_jobs": [
+      "compose-smoke",
+      "postgres-concurrency",
+      "postgres-domain-1",
+      "postgres-domain-2",
+      "postgres-migration",
+      "postgres-task11",
+      "static",
+      "unit-contract-golden"
+    ],
+    "status": "completed",
+    "successful_jobs": [
+      "frontend-e2e",
+      "frontend-static",
+      "frontend-unit",
+      "full-suite-canary"
+    ],
+    "updated_at": "2026-10-19T13:12:13Z"
+  },
+  "execution": {
+    "actual_data_ab_executed": false,
+    "business_database_accessed": false,
+    "candidate_implemented": true,
+    "current_actuals_accessed": false,
+    "historical_rescoring_executed": false,
+    "model_artifact_accessed": false,
+    "model_promoted": false,
+    "model_refit_executed": false,
+    "model_training_executed": false,
+    "parameter_search_executed": false,
+    "private_history_accessed": false,
+    "production_code_changed": false,
+    "synthetic_tests_executed": true
+  },
+  "frozen_history_sha256": {
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1",
+    "docs/v0-18/v0.18-roadmap-reassessment-r1.md": "932234ecbb8bff12c9ad4fddf2126e6ccfdf9fb093dd1a3f0bc706c9f2d6f4e8",
+    "docs/v0-19/evidence/v0.19-s1-model-baseline-peak-protocol-r1.json": "3ddd9617975bedd83aa608ab50a166b80edab5d2ee39ef768a2d66905c674c3e",
+    "docs/v0-19/evidence/v0.19.0-scope-freeze-r1.json": "eb6a48c37df88182b3e5596da48abc046a6b1602136c7256870598989ddf3417",
+    "docs/v0-19/s1/model-baseline-and-historical-evidence-r1.md": "7e05f758b54d3de9f0dc3725a5bd091a6f291ad21bb502af5a22b170409fb43f",
+    "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md": "946f9212695fe4e40b3e41d757191daf01601a8d0c97a6f516c82f08edfebb27",
+    "docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md": "c98c51b3fb107d8236703882915193df5cd97c0f380afa1eb8233479f2a3f181"
+  },
+  "governance": {
+    "deploy_authorized": false,
+    "formal_delivery_requires_s1_main_ci_success": true,
+    "historical_rescoring_authorized": false,
+    "merge_authorized": false,
+    "model_promotion_authorized": false,
+    "model_training_authorized": false,
+    "owner_s2_implementation_authorized": true,
+    "parallel_isolated_development_authorized": true,
+    "ready_authorized": false,
+    "real_data_access_authorized": false,
+    "release_authorized": false,
+    "s2_formal_complete": false,
+    "s3_implementation_authorized": false,
+    "s4_implementation_authorized": false,
+    "stop_after_draft_exact_head_ci": true,
+    "tag_authorized": false
+  },
+  "historical_source_commits": {
+    "backend/app/forecast_quality/operational_peak.py": "a95d5596e7c25d485414fd540b17ca13920724a9",
+    "backend/research/__init__.py": "1695fd758713e2e364493a1b368aa1504042b506",
+    "backend/research/v019_daily_curve.py": "1695fd758713e2e364493a1b368aa1504042b506",
+    "backend/tests/area_yield/test_v0_19_s1_protocol.py": "a95d5596e7c25d485414fd540b17ca13920724a9",
+    "backend/tests/area_yield/test_v0_19_s2_daily_curve.py": "1695fd758713e2e364493a1b368aa1504042b506",
+    "backend/tests/area_yield/test_v0_19_scope_contract.py": "a95d5596e7c25d485414fd540b17ca13920724a9",
+    "pyproject.toml": "a95d5596e7c25d485414fd540b17ca13920724a9",
+    "uv.lock": "a95d5596e7c25d485414fd540b17ca13920724a9"
+  },
+  "historical_source_sha256": {
+    "backend/app/forecast_quality/operational_peak.py": "3bebc3d193052b87968b95bdfc55ae1ca3ab2bb784d6c520743489e1586fb762",
+    "backend/research/__init__.py": "e664d82a82a737969bd8addc822b2ac75350106be5a459e2cd51f81b27eaa042",
+    "backend/research/v019_daily_curve.py": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff",
+    "backend/tests/area_yield/test_v0_19_s1_protocol.py": "810762dba307cfb9c9c7a6f14ee67d2bf561a12180b00fb90eb6ed8114856091",
+    "backend/tests/area_yield/test_v0_19_s2_daily_curve.py": "128ac79ccb021a03f6efe27017eaa24ec7528baf735080f9a74c1b2aa5d646c4",
+    "backend/tests/area_yield/test_v0_19_scope_contract.py": "ac806ad57a6fc3b3af6622121866fe6f02f02b379432ffa320c3388ac462e5a4",
+    "pyproject.toml": "c9210aeadcf68e6ded852d778e380737bc644e3a3a5766c64e9d412654c384df",
+    "uv.lock": "02f743c0d2ecc884f453c2b6bc4570faf1da6cbca9513dce01e4e5a9d375717e"
+  },
+  "mathematics": {
+    "anchor": "ACTUAL_BIN_SUPPORT_MIDPOINT_AND_FLAT_BASELINE_DAILY_MEAN",
+    "bin_days": 7,
+    "boundary": "ENDPOINT_CLAMP_WITHIN_SUPPORT_NO_EXTRAPOLATION",
+    "continuous_calendar_required": true,
+    "float_intermediates": false,
+    "global_smoothness_guaranteed": false,
+    "input_rounding": false,
+    "mass_scope": "EACH_SEASON_ANCHORED_BIN_ON_DECLARED_SUPPORT_AND_TOTAL",
+    "nonnegative": true,
+    "normalization": "PER_BIN_EXACT_INTEGER_MICRO_KG_LARGEST_REMAINDER",
+    "output_kg_places": 6,
+    "query_renormalization": false,
+    "tie": "EARLIEST_DATE",
+    "zero_mass_bin": "ALL_ZERO"
+  },
+  "method_config_sha256": "b2e1f09aae99c09392c9e004ad2cf37884697494ac4fde771e1d2ad425aafbb2",
+  "s3_required_preconditions": [
+    "S1_S2_FORMAL_COMPLETE",
+    "SEPARATE_OWNER_S3_IMPLEMENTATION_AUTHORIZATION",
+    "SEPARATE_DATA_AND_EXPERIMENT_AUTHORIZATION",
+    "SOURCE_COHORT_PHYSICAL_AND_TIME_AUTHORITY",
+    "PREDICTION_SEAL_BEFORE_LABEL_READ"
+  ],
+  "scientific_limits": {
+    "new_actual_wape_or_peak_mae_reported": false,
+    "point_is_proven_p50": false,
+    "production_authority_registered": false,
+    "production_ready": false,
+    "prospective_accuracy_validated": false,
+    "strict_pit": false,
+    "structure_change_is_accuracy_improvement": false
+  },
+  "source_policy": {
+    "final_head_and_ci": "FINAL_PR_HEAD_AND_EXECUTION_RECEIPT_NOT_SELF_REFERENTIAL",
+    "frozen_documents": "CURRENT_WORKTREE_RAW_BYTES",
+    "historical_source": "FIXED_EXPLICIT_GIT_COMMIT_RAW_BYTES_NO_WORKTREE_FALLBACK",
+    "test_source_identity": "SEALED_RUNTIME_TEST_SNAPSHOT_FROM_FIXED_GIT_COMMIT_CURRENT_TESTS_EXECUTED_SEPARATELY"
+  },
+  "source_seal_validation": {
+    "archived_replay_case_count": 9,
+    "existing_adversarial_pydantic_warnings": 101,
+    "failed": 0,
+    "frozen_dependency_sync": "uv sync --frozen --extra dev",
+    "historical_and_core_cases_passed": 197,
+    "initial_red": {
+      "error": "ModuleNotFoundError: backend.research.v019_daily_curve",
+      "exit_code": 2,
+      "phase": "BEFORE_IMPLEMENTATION"
+    },
+    "method_or_parameter_search": false,
+    "mypy": "PASS_583_SOURCE_FILES",
+    "pytest": "9.1.1",
+    "python": "3.12.13",
+    "ruff": "0.15.18",
+    "ruff_check": "PASS",
+    "ruff_format": "PASS_1502_FILES",
+    "s0_s1_contract_cases_passed": 69,
+    "s2_synthetic_cases_passed": 49,
+    "skipped": 0,
+    "synthetic_input_grid_count": 256,
+    "total_passed": 315
+  },
+  "stage": "S2",
+  "synthetic_test_matrix": {
+    "C01_CONSTANT": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_constant_and_all_zero_curves_remain_constant"
+    },
+    "C02_INCREASING": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_real_daily_structure_differs_without_claiming_accuracy"
+    },
+    "C03_DECREASING": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_real_daily_structure_differs_without_claiming_accuracy"
+    },
+    "C04_ZERO_MIDDLE": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_each_bin_and_total_mass_exact_nonnegative_and_baseline_unchanged"
+    },
+    "C05_ALL_ZERO": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_constant_and_all_zero_curves_remain_constant"
+    },
+    "C06_SHORT_BOUNDARY": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_short_first_and_last_bins_use_only_actual_support"
+    },
+    "C07_ALTERNATING": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_each_bin_and_total_mass_exact_nonnegative_and_baseline_unchanged"
+    },
+    "C08_MICRO_REMAINDERS": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_each_bin_and_total_mass_exact_nonnegative_and_baseline_unchanged"
+    },
+    "C09_TIE_EARLIEST": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_quantization_tie_uses_earliest_date"
+    },
+    "C10_INVALID_INPUT": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_invalid_input_fails_closed_without_filling_or_rounding"
+    },
+    "C11_REPEAT_HASH": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_same_input_has_identical_canonical_bytes_and_sha_across_decimal_contexts"
+    },
+    "C12_PER_BIN_MASS": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_each_bin_and_total_mass_exact_nonnegative_and_baseline_unchanged"
+    },
+    "C13_QUERY_SLICE": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_h7_h15_are_slices_of_full_candidate_not_new_normalizations"
+    },
+    "C14_BASELINE_UNCHANGED": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_each_bin_and_total_mass_exact_nonnegative_and_baseline_unchanged"
+    },
+    "C15_INDEPENDENT_REPRODUCTION": {
+      "status": "PASS_SYNTHETIC_ONLY",
+      "test_function": "test_archived_synthetic_input_output_and_bin_proofs_reproduce"
+    }
+  },
+  "task_id": "V0_19_S2_DAILY_CURVE_TEMPORAL_RESOLUTION_CANDIDATE_R1",
+  "version": "0.19.0",
+  "version_name": "HARVEST_CURVE_AND_PEAK_TIMING_ALGORITHM_RESEARCH"
+}
