@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[3]
 BASE = "816d8299f007eab7da140fc5c7547d941c026f8f"
 SNAPSHOT_COMMIT = "772503823320c48c6920fc66c5164d8a30844fd9"
 CURRENT_MAIN = "8f6cae4004c663b9ccaf2061869cc7cb6e80adc4"
+V0_18_RELEASE_HEAD = "b6ac2e658edbace357c575bb42ee46b03bb863b9"
 OLD = "93e9660f6ef2c494178be825c66d11898c6fff97"
 EVIDENCE = "docs/v0-18/evidence/v0.18.0-final-closeout-status.json"
 SNAPSHOT = "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json"
@@ -165,6 +166,25 @@ def test_original_gaps_risks_and_semantics_are_not_replaced():
     assert all(sha(current[path]) == expected for path, expected in frozen.items())
 
 
+def v018_delivery_changed_paths() -> list[str]:
+    """Inspect the immutable V0.18 delivery range, not a later PR's working tree."""
+    return (
+        subprocess.check_output(
+            ["git", "diff", "--name-only", CURRENT_MAIN, V0_18_RELEASE_HEAD], cwd=ROOT
+        )
+        .decode()
+        .splitlines()
+    )
+
+
+def assert_v018_delivery_scope(changed: list[str], allowed: set[str]) -> None:
+    """Preserve both the historical allowlist and the production-path prohibition."""
+    assert set(changed) <= allowed
+    assert not any(
+        path.startswith(("backend/app/", "frontend/", ".github/")) for path in changed
+    )
+
+
 def test_current_delivery_is_audit_only_not_production_mutation():
     value = load(EVIDENCE)
     historical = set(value["historical_snapshot_sha256"]) | set(
@@ -185,19 +205,63 @@ def test_current_delivery_is_audit_only_not_production_mutation():
         "docs/v0-18/evidence/final-closeout-preauth-current/main-canary.xml",
         "docs/v0-18/evidence/final-closeout-preauth-current/pr-canary.xml",
     }
-    changed = (
-        subprocess.check_output(["git", "diff", "--name-only", CURRENT_MAIN], cwd=ROOT)
-        .decode()
-        .splitlines()
-    )
-    untracked = (
-        subprocess.check_output(["git", "ls-files", "--others", "--exclude-standard"], cwd=ROOT)
-        .decode()
-        .splitlines()
-    )
-    assert set(changed + untracked) <= historical | added
-    assert not any(path.startswith(("backend/app/", "frontend/", ".github/")) for path in changed)
+    # This is a historical V0.18 audit. Later-version commits are out of scope.
+    changed = v018_delivery_changed_paths()
+    assert_v018_delivery_scope(changed, historical | added)
 
+
+
+def test_v018_delivery_diff_uses_only_frozen_commit_range(monkeypatch):
+    calls = []
+
+    def fake_check_output(args, *, cwd):
+        calls.append((args, cwd))
+        return b"docs/v0-18/v0.18.0-closeout.md\\n"
+
+    monkeypatch.setattr(subprocess, "check_output", fake_check_output)
+    assert v018_delivery_changed_paths() == ["docs/v0-18/v0.18.0-closeout.md"]
+    assert calls == [
+        (["git", "diff", "--name-only", CURRENT_MAIN, V0_18_RELEASE_HEAD], ROOT)
+    ]
+
+
+@pytest.mark.parametrize(
+    "unauthorized_path",
+    [
+        "backend/app/_v018_delivery_scope_probe.py",
+        "frontend/_v018_delivery_scope_probe.ts",
+        ".github/workflows/_v018_delivery_scope_probe.yml",
+        "docs/_v018_delivery_scope_probe.md",
+    ],
+)
+def test_v018_historical_delivery_rejects_unauthorized_paths(unauthorized_path):
+    value = load(EVIDENCE)
+    allowed = (
+        set(value["historical_snapshot_sha256"])
+        | set(value["historical_audit_code_sha256"])
+        | {
+            EVIDENCE,
+            SNAPSHOT,
+            "docs/v0-18/v0.18.0-final-closeout-status.md",
+            "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+            "docs/v0-18/v0.18.0-final-closeout-preauth-update.md",
+            "docs/v0-18/evidence/v0.18.0-final-closeout-preauth-update.json",
+            "docs/v0-18/evidence/v0.18.0-final-closeout-preauth-github-snapshot.json",
+            "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py",
+            "docs/v0-18/evidence/final-closeout-preauth-current/backend.xml",
+            "docs/v0-18/evidence/final-closeout-preauth-current/execution.log",
+            "docs/v0-18/evidence/final-closeout-preauth-current/owned-resources.json",
+            "docs/v0-18/evidence/final-closeout-preauth-current/main-canary.xml",
+            "docs/v0-18/evidence/final-closeout-preauth-current/pr-canary.xml",
+        }
+    )
+    assert unauthorized_path not in allowed
+    with pytest.raises(AssertionError):
+        assert_v018_delivery_scope([unauthorized_path], allowed)
+    # Verify the production-path guard independently of the historical allowlist.
+    if unauthorized_path.startswith(("backend/app/", "frontend/", ".github/")):
+        with pytest.raises(AssertionError):
+            assert_v018_delivery_scope([unauthorized_path], allowed | {unauthorized_path})
 
 @pytest.mark.parametrize(
     "field,new",
