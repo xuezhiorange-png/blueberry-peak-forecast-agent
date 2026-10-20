@@ -1,0 +1,1133 @@
+{
+  "admission": {
+    "common_cohort": "BLOCKED",
+    "physical_basis": "BLOCKED",
+    "pit_evidence": "BLOCKED",
+    "real_data_read": "BLOCKED",
+    "real_experiment_scoring": "BLOCKED"
+  },
+  "approval_templates": {
+    "REAL_DATA_READ_AUTHORIZATION": {
+      "approval_reference": null,
+      "approved": false,
+      "approver": "UNKNOWN",
+      "does_not_authorize_scoring": true,
+      "excludes_current_2026_2027_actual": true,
+      "no_wildcards_or_global_latest": true,
+      "required_fields": {
+        "approval_id": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "approver": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "authorization_basis": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "base_subfarm_variety_allowlist": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "business_date_range": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "data_custodian": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "dataset_version": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "disposal_responsibility": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "effective_at": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "expires_at": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "export_redaction_limits": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "field_allowlist": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "immutable_source_identity": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "input_cutoff_evidence": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "isolated_environment": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "label_custody_and_unlock_stage": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "physical_basis_and_units": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "purpose": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "read_only_access_method": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "reader_identity": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "retention": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "revocation": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "season_allowlist": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "signed_decision_reference": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "source_system": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        }
+      },
+      "status": "PENDING_OWNER_DECISION"
+    },
+    "REAL_EXPERIMENT_SCORING_AUTHORIZATION": {
+      "approval_reference": null,
+      "approved": false,
+      "approver": "UNKNOWN",
+      "cannot_expand_read_scope": true,
+      "cannot_waive_issuance_gate": true,
+      "model_promotion_authorized": false,
+      "parameter_search_authorized": false,
+      "required_fields": {
+        "approval_id": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "approved_read_authorization_reference": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "approver": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "c0_manifest_hash": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "comparison_identity": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "effective_at": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "executor": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "expires_at": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "frozen_baseline_candidate_source_config_hashes": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "independent_reviewer": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "isolation_environment": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "issuance_and_seal_receipts": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "label_unlock_audit": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "metrics_and_diagnostics": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "physical_and_temporal_admission": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "prediction_and_label_custodians": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "result_hash_and_audit_policy": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "retention": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "season_split_window": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "signed_decision_reference": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "stop_rules": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        },
+        "twelve_authority_review_reference": {
+          "status": "PENDING_OWNER_DECISION",
+          "value": null
+        }
+      },
+      "status": "PENDING_OWNER_DECISION",
+      "training_authorized": false
+    }
+  },
+  "authority_counts": {
+    "not_verified": 12,
+    "total": 12,
+    "verified": 0
+  },
+  "authority_items": [
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "仅未来 A 批准的产季与实体；成员映射在 origin 和目标日期有效",
+      "authority_definition": "版本化基地、子农场、品种及组织成员的权威身份",
+      "authority_id": "BASE_SUBFARM_VARIETY_IDENTITY",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_ENTITY_MAPPING",
+      "number": "01",
+      "required_fields": {
+        "base_id": "string; dimensionless",
+        "effective_from": "local date",
+        "effective_to": "local date",
+        "mapping_hash": "sha256",
+        "mapping_registry_version": "string",
+        "organization_id": "string; dimensionless",
+        "parent_membership": "versioned explicit ID list",
+        "subfarm_id": "string; dimensionless",
+        "variety_id": "string; dimensionless"
+      },
+      "required_proof_materials": [
+        "主数据 steward 身份和授权",
+        "版本化唯一映射及父子成员清单",
+        "别名更正、有效期、registry 字节与 Hash"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/actual_harvest_import/schemas.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/actual_harvest_labels/schemas.py"
+        }
+      ],
+      "verification_methods": [
+        "确认 farm/base/subfarm 不被名称猜测等同",
+        "核验明确 ID、唯一映射、组织边界、有效期及完整成员"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "面积版本必须覆盖批准 origin/support，禁止后验改面积",
+      "authority_definition": "同一物理对象、季节与生效时间的权威面积",
+      "authority_id": "AREA_AND_EFFECTIVE_DATE",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_AREA_BASIS_OR_EFFECTIVE_DATE",
+      "number": "02",
+      "required_fields": {
+        "area_basis": "string; approved measured basis",
+        "area_hash": "sha256",
+        "area_mu": "finite positive Decimal string; mu",
+        "area_source": "versioned source identity",
+        "effective_from": "local date",
+        "effective_to": "local date"
+      },
+      "required_proof_materials": [
+        "测量或登记来源及单位证明",
+        "面积版本、适用实体与有效期",
+        "修改链和批准人"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/models/operational_peak.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/area_yield/data.py"
+        }
+      ],
+      "verification_methods": [
+        "检查相同输入双方使用同一适用面积",
+        "不把 kg/mu、总 kg 或工厂建筑面积混用",
+        "不重新校准面积"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "issued_at and cutoff strictly before first target local midnight; all approved windows",
+      "authority_definition": "真实运行身份和目标前实际签发的不可伪造来源",
+      "authority_id": "RUN_AND_ISSUED_AT",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_ACTUAL_PREDICTION_ISSUANCE",
+      "number": "03",
+      "required_fields": {
+        "forecast_identity": "full ForecastIdentity value",
+        "issued_at": "timezone-aware datetime",
+        "origin": "timezone-aware datetime",
+        "origin_date": "local date; not issuance proof",
+        "rerun_identity": "explicit lineage",
+        "run_id": "positive integer",
+        "sealed_at": "timezone-aware datetime",
+        "source_result_hash": "sha256"
+      },
+      "required_proof_materials": [
+        "真实签发日志和可信时钟证明",
+        "独立封存回执及原 run/rerun 身份",
+        "签发与预测字节的绑定"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/models/operational_peak.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/forecast_intelligence/read_schemas.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/forecast_intelligence/read_service.py"
+        }
+      ],
+      "verification_methods": [
+        "区分 created_at/completed_at、origin_date 和 issued_at",
+        "拒绝用 mtime 或后验重放回填历史签发",
+        "目标开始时刻及以后签发均拒绝"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "只准冻结基线/唯一候选；训练与输入只限获准范围，未获准不得打开 artifact",
+      "authority_definition": "冻结模型、参数、训练范围与来源的完整身份",
+      "authority_id": "MODEL_PROFILE_FIT_HASH",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_RUN_MODEL_PROFILE_FIT",
+      "number": "04",
+      "required_fields": {
+        "code_commit": "full Git SHA",
+        "config_sha256": "sha256",
+        "fit_scope_sha256": "sha256",
+        "fit_sha256": "sha256",
+        "input_sha256": "sha256",
+        "model_id": "string",
+        "policy_version": "string",
+        "profile_sha256": "sha256",
+        "source_result_hash": "sha256",
+        "subpolicy": "string",
+        "training_cutoff": "timezone-aware datetime"
+      },
+      "required_proof_materials": [
+        "模型/fit/profile 来源清单和合法使用许可",
+        "训练样本/截止时间与代码配置 provenance",
+        "原始字节和模型/输入/config Hash"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/forecast_quality/operational_peak_authority.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/research/v019_daily_curve.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "docs/v0-19/s2/daily-curve-method-config-r1.json"
+        }
+      ],
+      "verification_methods": [
+        "静态常量不是真实 run 级来源证明",
+        "获 A 后逐字节核验已批准版本及 fit 范围",
+        "不训练、不换模型、不从 M1 Ridge 借身份或精度"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "只准 A 批准目标日；2026–2027 actual 本轮禁读",
+      "authority_definition": "事件级真实采收物理量、单位和业务日期",
+      "authority_id": "HARVEST_DATE_AND_UNIT",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_PHYSICAL_BASIS",
+      "number": "05",
+      "required_fields": {
+        "harvest_business_date": "date; Asia/Shanghai",
+        "physical_basis": "explicit enum; never inferred from column name",
+        "physical_event": "approved event code",
+        "quantity": "finite nonnegative Decimal string; kg",
+        "quantity_basis": "approved observed mass basis",
+        "quantity_unit": "explicit unit",
+        "timezone": "IANA timezone"
+      },
+      "required_proof_materials": [
+        "采摘/称重事件字典和实际来源签认",
+        "田间/到厂/可售/分选成品分类及覆盖证明",
+        "时区与单位和适用对象说明"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/actual_harvest_import/schemas.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/actual_harvest_import/enums.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "docs/v0-19/s1/model-baseline-and-historical-evidence-r1.md"
+        }
+      ],
+      "verification_methods": [
+        "FARM_PICK/OBSERVED_WEIGHT/KG 只是 schema 声明",
+        "不同物理量不混评、不以换名或未批准转换补齐",
+        "无权威映射则拒绝到厂代理作为完整采收"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "只限 A 的明确标签范围；预测阶段不得打开评分标签",
+      "authority_definition": "真实标签来源、修订终态和使用权的权威链",
+      "authority_id": "LABEL_AUTHORITY",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_LABEL_AUTHORITY",
+      "number": "06",
+      "required_fields": {
+        "dataset_id": "string",
+        "dataset_version": "string",
+        "external_logical_record_id": "string",
+        "external_revision_id": "string",
+        "label_authority_sha256": "sha256",
+        "label_row_set_hash": "sha256",
+        "record_status": "explicit revision state",
+        "source_system": "string",
+        "winner_manifest_hash": "sha256"
+      },
+      "required_proof_materials": [
+        "保管责任、合法用途、来源声明",
+        "原始/commit/winner/标签映射 Hash",
+        "修订终态、去重和排除记录"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/actual_harvest_import/models.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/actual_harvest_labels/schemas.py"
+        }
+      ],
+      "verification_methods": [
+        "获准后复核 winner 和更正链、主键及全部行集 Hash",
+        "禁止 empty-for-all 或未经批准的全库访问",
+        "不因字段名 actual_harvest 就认定真实来源"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "所用各输入版本 source_available_at/ingested_at/known_at 不晚于 cutoff；标签另按评分截止时间",
+      "authority_definition": "实际可得、入库及修订可知时间，不等于业务日期",
+      "authority_id": "AVAILABLE_AT_INGESTED_AT",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_POINT_IN_TIME_EVIDENCE",
+      "number": "07",
+      "required_fields": {
+        "authority_reference": "signed/auditable provenance reference",
+        "import_received_at": "timezone-aware datetime",
+        "ingested_at": "timezone-aware datetime",
+        "revision_known_at": "timezone-aware datetime",
+        "source_available_at": "timezone-aware datetime",
+        "source_recorded_at": "nullable timezone-aware datetime",
+        "source_recorded_at_authority_status": "explicit trust status"
+      },
+      "required_proof_materials": [
+        "原系统发布/可用日志及可信时钟",
+        "首次接收/入库日志、修订可知链",
+        "时间字段含义及签认"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/pit/actual_harvest.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/actual_harvest_import/models.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/actual_harvest_import/enums.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "docs/v0-15/v0.15.0-closeout.md"
+        }
+      ],
+      "verification_methods": [
+        "known_at=import_received_at 的声明不自动等于 source_available_at",
+        "缺失 source_recorded_at 的 fallback 不升级为权威",
+        "业务日小于 origin 不证明当时系统可得"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "available_at/ingested_at <= cutoff <= issued_at < target_start",
+      "authority_definition": "预测输入截止时刻和每个已可知输入的封存清单",
+      "authority_id": "INPUT_CUTOFF",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_INPUT_CUTOFF",
+      "number": "08",
+      "required_fields": {
+        "cutoff": "timezone-aware datetime",
+        "input_manifest_sha256": "sha256",
+        "input_members": "explicit source revision list",
+        "per_input_available_at": "timezone-aware datetime",
+        "per_input_ingested_at": "timezone-aware datetime"
+      },
+      "required_proof_materials": [
+        "请求/配置/input seal",
+        "逐版本来源及实际可用时间",
+        "批准的截止时间"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/research/v019_synthetic_validation.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/models/operational_peak.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/pit/actual_harvest.py"
+        }
+      ],
+      "verification_methods": [
+        "date-only history_cutoff 不能当精确时刻",
+        "拒绝目标期标签或未来输入参与预测",
+        "不从当前 registry 重建过去来源"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "mature_at and label_available_at <= scoring_as_of；H7/H15/整季分别检验",
+      "authority_definition": "标签成熟、修订终态和完整日历的可证明状态",
+      "authority_id": "LABEL_MATURITY_COMPLETENESS",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_LABEL_MATURITY_OR_COMPLETENESS",
+      "number": "09",
+      "required_fields": {
+        "complete_calendar": "explicit contiguous date list",
+        "coverage_manifest_sha256": "sha256",
+        "finalized_at": "nullable timezone-aware datetime",
+        "label_available_at": "timezone-aware datetime",
+        "mature_at": "timezone-aware datetime",
+        "missing_status": "explicit unknown/confirmed-zero/missing reason",
+        "scoring_as_of": "timezone-aware datetime"
+      },
+      "required_proof_materials": [
+        "标签保管人终态、迟到更正和成熟规则",
+        "完整日历与所有缺失/确认零日证明",
+        "整季结束及全季覆盖批准"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/actual_harvest_labels/schemas.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/actual_harvest_import/models.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/app/area_yield/data.py"
+        }
+      ],
+      "verification_methods": [
+        "FINALIZED/快照执行时间不单独证明成熟完整",
+        "无记录不补零；不插值标签",
+        "完整窗口不悄悄缩短；remaining window 不冒充整季"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "未来批准范围内；2025–2026=EXPOSED_HISTORICAL_BENCHMARK；本轮不得读 2026–2027 actual",
+      "authority_definition": "训练/验证/暴露评价集合与范围的固定身份",
+      "authority_id": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_TRAIN_EVALUATION_SCOPE",
+      "number": "10",
+      "required_fields": {
+        "entity_allowlist": "explicit list",
+        "evaluation_scope_sha256": "sha256",
+        "exposure_registry_sha256": "sha256",
+        "origin_range": "timezone-aware bounds",
+        "season_allowlist": "explicit list",
+        "source_population_sha256": "sha256",
+        "split": "explicit registered split",
+        "target_range": "local date bounds",
+        "train_scope_sha256": "sha256"
+      },
+      "required_proof_materials": [
+        "预注册训练/评价成员清单",
+        "暴露/污染账本",
+        "各范围数据用途批准"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "docs/v0-19/s1/model-baseline-and-historical-evidence-r1.md"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "docs/v0-15/v0.15.0-closeout.md"
+        }
+      ],
+      "verification_methods": [
+        "检验时间/实体重叠和 train/evaluation/source 身份",
+        "不随机切相邻日、不混不同 train 范围",
+        "不把已暴露样本称 blind OOT"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "C0 标签内容解封前固定；Cm 仅按预注册规则确定，不依误差选样本",
+      "authority_definition": "标签前冻结的 C0、逐指标共同 Cm 和比较总体身份",
+      "authority_id": "COMMON_COHORT_MEMBERSHIP_HASH",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_COMMON_COHORT",
+      "number": "11",
+      "required_fields": {
+        "c0_members": "explicit registered unit list",
+        "c0_sha256": "sha256",
+        "cm_by_metric_split_window": "exact member lists with sha256",
+        "comparison_family": "nonempty pre-registered string",
+        "evaluation_scope_sha256": "sha256",
+        "exclusions": "retained per-unit primary reasons",
+        "per_base_input_profile_hashes": "distinct sealed sha256 allowed within approved common population",
+        "source_population_sha256": "sha256"
+      },
+      "required_proof_materials": [
+        "共同来源/训练/评价范围批准和成员清单",
+        "C0/seal 与全部失败 origin",
+        "每项 Cm、排除原因、覆盖分母与成员 Hash"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/research/v019_synthetic_validation.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md"
+        }
+      ],
+      "verification_methods": [
+        "拒绝未经预注册跨季节/来源/训练范围混汇",
+        "同单元双方输入/物理量一致；保留合法跨基地共同对照",
+        "保留缺预测/缺标签，不删困难样本制造改善"
+      ]
+    },
+    {
+      "actual_evidence_references": [],
+      "actual_status": "NOT_VERIFIED",
+      "allowed_time_scope": "预测先封存再开标签；真实签发还必须早于目标开始，两项同时成立",
+      "authority_definition": "预测与标签独立保管、签发时点和不可变内容证据",
+      "authority_id": "PREDICTION_LABEL_SEALS",
+      "authorization_subject": "UNKNOWN",
+      "issuance_evidence_status": "NOT_VERIFIED",
+      "missing_evidence_blocker": "UNVERIFIED_INDEPENDENT_CUSTODY_OR_ISSUANCE",
+      "number": "12",
+      "required_fields": {
+        "access_log_reference": "auditable access log",
+        "baseline_prediction_sha256": "sha256",
+        "candidate_prediction_sha256": "sha256",
+        "custodian_identity": "explicit trusted identity",
+        "label_seal_sha256": "sha256",
+        "method_config_sha256": "sha256",
+        "prediction_issued_at": "timezone-aware datetime",
+        "prediction_seal_sha256": "sha256",
+        "prediction_sealed_at": "timezone-aware datetime",
+        "result_sha256": "sha256 after authorized scoring only",
+        "source_commit": "full Git SHA",
+        "trusted_receipt_reference": "auditable receipt"
+      },
+      "required_proof_materials": [
+        "独立预测/标签保管职责和访问日志",
+        "可信时钟、签发/封存回执",
+        "原始字节、配置/源码/输入及更正链"
+      ],
+      "responsible_person": "UNKNOWN",
+      "source_candidates": [
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "backend/research/v019_synthetic_validation.py"
+        },
+        {
+          "actual_source_identity": null,
+          "evidence_kind": "SCHEMA_OR_PUBLIC_CONTRACT_ONLY",
+          "repository_path": "docs/v0-19/s3/controlled-validation-preparation-r1.md"
+        }
+      ],
+      "verification_methods": [
+        "SHA256 不等于签名、时间证明或数据授权",
+        "不以回填 issued_at 或现在生成候选冒充历史签发",
+        "Hash 漂移或保管隔离缺失立即阻断"
+      ]
+    }
+  ],
+  "base_main_sha": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+  "comparison_contract": {
+    "actual_c0_sha256": null,
+    "actual_cm_memberships": null,
+    "actual_comparison_family": null,
+    "allowed_conclusion_scope": "CONDITIONAL_ON_COMMON_COMPUTABLE_COHORT",
+    "authorized_cross_base_population_allowed": true,
+    "baseline_id": "OPERATIONAL_PEAK:AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "c0_frozen_before_labels": true,
+    "candidate_count": 1,
+    "candidate_id": "BIN_CENTER_LINEAR_PER_BIN_MASS_V1",
+    "common_cm_per_metric_split_window": true,
+    "current_2026_2027_actual_access": false,
+    "exposed_2025_2026": "EXPOSED_HISTORICAL_BENCHMARK",
+    "exposed_historical_is_blind_oot": false,
+    "failed_missing_origins_retained": true,
+    "method_changes_allowed": false,
+    "method_config_source": "docs/v0-19/s2/daily-curve-method-config-r1.json",
+    "metric_contract_source": "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md",
+    "metrics": [
+      "SEASON_TOTAL_WAPE",
+      "DAILY_WAPE",
+      "DAILY_MAE",
+      "SINGLE_DAY_PEAK_DATE_MAE",
+      "SINGLE_DAY_PEAK_QUANTITY_MAE",
+      "ROLLING_7DAY_PEAK_START_MAE",
+      "ROLLING_7DAY_PEAK_QUANTITY_MAE",
+      "BASE_BREADTH",
+      "SAMPLE_COVERAGE",
+      "NOT_COMPUTABLE_COUNT"
+    ],
+    "missing_dates_filled_with_zero": false,
+    "overall_winner": null,
+    "per_base_input_profile_hashes_may_differ": true,
+    "per_model_fit_and_prediction_identity_separate": true,
+    "post_score_c0_selection_allowed": false,
+    "queries_renormalize": false,
+    "required_common_identity": [
+      "comparison_family",
+      "source_population_sha256",
+      "train_scope_sha256",
+      "evaluation_scope_sha256",
+      "organization_id",
+      "season",
+      "physical_basis",
+      "unit",
+      "business_timezone"
+    ],
+    "required_paired_unit_identity": [
+      "base/subfarm/variety",
+      "area/effective_date",
+      "origin",
+      "support/target_calendar",
+      "profile/input/source hashes",
+      "label_authority",
+      "window",
+      "split"
+    ],
+    "unregistered_cross_season_source_training_pooling_rejected": true,
+    "window_contracts": {
+      "FULL_SEASON": "Complete pre-registered season and one target-preceding issuance; never stitched",
+      "H15_LOCAL": "Local D1..D15; exactly nine full rolling-7 starts",
+      "H7_PREFIX": "Local D1..D7 from same origin"
+    }
+  },
+  "document_sha256": {
+    "docs/v0-19/s3/real-data-authority-admission-plan-r1.md": "e1f2a82c1fc589a96094afc14ac501a1786f4202ea5196bb6b7d7455db0e0cda"
+  },
+  "execution_claims": {
+    "business_database_connected": false,
+    "current_season_actual_read": false,
+    "independent_acceptance": "PENDING",
+    "model_artifact_downloaded": false,
+    "model_training_executed": false,
+    "private_path_discovery_performed": false,
+    "production_api_called": false,
+    "production_readiness": "NOT_READY",
+    "public_repository_static_review_performed": true,
+    "real_authority_verification_performed": false,
+    "real_data_accessed": false,
+    "real_scoring_executed": false,
+    "real_scoring_results": null
+  },
+  "governance": {
+    "authority_plan_authorized": true,
+    "commit_push_authorized": true,
+    "deploy_authorized": false,
+    "docs_draft_pr_authorized": true,
+    "merge_authorized": false,
+    "model_promotion_authorized": false,
+    "model_training_authorized": false,
+    "ready_authorized": false,
+    "real_data_access_authorized": false,
+    "real_experiment_authorized": false,
+    "real_scoring_authorized": false,
+    "release_authorized": false,
+    "s3_formal_complete": false,
+    "tag_authorized": false
+  },
+  "latest_formal_release_observed": "v0.18.0",
+  "missing_evidence_and_decisions": [
+    "All twelve real authority proof packages NOT_VERIFIED",
+    "Actual data custodians, source authorities, label custodians and reviewers UNKNOWN",
+    "Separate read and experiment approvals absent",
+    "Physical basis and complete-field-harvest coverage not demonstrated",
+    "Actual historical issuance and available-at evidence not demonstrated",
+    "Real C0 and independent prediction/label custody not established",
+    "Any explicitly retrospective replay protocol exception would require separate Owner approval; none granted"
+  ],
+  "physical_basis": {
+    "actual_source_basis": "NOT_VERIFIED",
+    "all_historical_records_are_factory_receipts_claimed": false,
+    "approved_mapping": null,
+    "must_keep_separate": [
+      "FIELD_HARVEST_KG",
+      "FACTORY_RECEIPT_KG",
+      "MARKETABLE_KG",
+      "SORTED_FINISHED_KG",
+      "KG_PER_MU",
+      "DAILY_RATE_KG_PER_DAY"
+    ],
+    "no_automatic_unit_or_proxy_conversion": true,
+    "required_comparison_basis": "ACTUAL_HARVEST_KG",
+    "static_findings": [
+      {
+        "finding": "Schema declares FARM_PICK, OBSERVED_WEIGHT, KG and UNKNOWN_NOT_ZERO; no actual records verified.",
+        "source": "backend/app/actual_harvest_import/enums.py"
+      },
+      {
+        "finding": "Historical quantity described as ACCEPTED_MAPPED_FARM_SUBTOTAL_NOT_COMPLETE_FULL_SEASON_TOTAL; not proof of complete field harvest.",
+        "source": "docs/v0-19/s1/model-baseline-and-historical-evidence-r1.md"
+      },
+      {
+        "finding": "known_at projects import_received_at; fallback source_recorded_at is not proof of source_available_at.",
+        "source": "backend/app/pit/actual_harvest.py"
+      }
+    ]
+  },
+  "prepared_on_local_date": "2026-10-20",
+  "prerequisite_snapshot": {
+    "draft_preparation_may_proceed": true,
+    "main_ci_conclusion_at_initial_check": null,
+    "main_ci_event": "push",
+    "main_ci_head_sha": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+    "main_ci_run_id": 39344070084,
+    "main_ci_status_at_initial_check": "in_progress",
+    "main_ci_success_required_for_formal_acceptance": true,
+    "merge_sha": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+    "pr_head_sha": "e363174c2b900c773f95735bdc311cc567dcbd33",
+    "pr_number": 738,
+    "pr_state": "MERGED",
+    "subsequent_observations_location": "Exact-head PR receipt; do not rewrite this initial snapshot"
+  },
+  "record_kind": "PLAN_AND_NOT_VERIFIED_INVENTORY_NOT_REAL_VALIDATION",
+  "repository": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "schema_version": "V019_S3_AUTHORITY_PREFLIGHT_PLAN_R1",
+  "source_evidence": {
+    "backend/app/actual_harvest_import/enums.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "235ca40b17e2ac65666bfe1a0ba780420d929cf7b41f2a6b7cddbfeb60a07464"
+    },
+    "backend/app/actual_harvest_import/models.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "53f5c9d7a1365353d44c4bbff776f685d10b6bae589796e90359a81de36cd27d"
+    },
+    "backend/app/actual_harvest_import/schemas.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "5b52f48c6b26b5b7871be721c512bfd8da21c231af93bc3e6c737e973e481bdc"
+    },
+    "backend/app/actual_harvest_labels/schemas.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "a042923e17d3641882a524f1bff4d72e1fb7462ae4a5f398d1c63b1597ee586e"
+    },
+    "backend/app/area_yield/data.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "1b067458ccbaca37f8971020c3a41d8c08efbe0f90641efe909a84fe764fbaba"
+    },
+    "backend/app/forecast_intelligence/read_schemas.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "f4195d2407cec980e1c1e2f917e98c04895e9fae622b01f5c2ca7d29951251e3"
+    },
+    "backend/app/forecast_intelligence/read_service.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "ac83e808a8a09ba2f59bc93e6995e749d71c30c7a8ac1041a66c031f01e0777c"
+    },
+    "backend/app/forecast_quality/operational_peak_authority.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "2bfe44b3ed1521a8a6ff8775724bf40397825eaa6aff128c12f143ab85d8ea30"
+    },
+    "backend/app/models/operational_peak.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "8a39318347058d1e8787a793883bdd88b24e86ebe85dcb799f4f56749cb5ddd8"
+    },
+    "backend/app/pit/actual_harvest.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "b5179b62ca2ac6500215a7c891236b0ae8485a5e823e5f3606474f17a47bb3fd"
+    },
+    "backend/research/v019_daily_curve.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff"
+    },
+    "backend/research/v019_synthetic_validation.py": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "bffd788b36fb1100428df02248a17de8bfc057d784d80ff7085bb2fe122f2626"
+    },
+    "docs/v0-15/v0.15.0-closeout.md": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "ea6426434bc9eb271b8e39f8313b0032ca28449c068c33782d4f2110527a20a7"
+    },
+    "docs/v0-18/forecast-quality-improvement-roadmap-r1.md": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "fe2d0df16caf8441274851805c3610540bcd49882044c423011a78f2c7b609f1"
+    },
+    "docs/v0-19/evidence/v0.19-s1-model-baseline-peak-protocol-r1.json": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "3ddd9617975bedd83aa608ab50a166b80edab5d2ee39ef768a2d66905c674c3e"
+    },
+    "docs/v0-19/evidence/v0.19-s2-daily-curve-candidate-r1.json": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "80a5ba8ff7c8bc5fe7c9de3fa2c8c18ffa73d39ee34a04737f4b0d32c84be71c"
+    },
+    "docs/v0-19/evidence/v0.19-s3-offline-preparation-r1.json": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "245f3e429672a37f69264376fb5b3456ec44025c4f78c8222cab37292580f431"
+    },
+    "docs/v0-19/evidence/v0.19.0-scope-freeze-r1.json": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "eb6a48c37df88182b3e5596da48abc046a6b1602136c7256870598989ddf3417"
+    },
+    "docs/v0-19/s1/model-baseline-and-historical-evidence-r1.md": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "7e05f758b54d3de9f0dc3725a5bd091a6f291ad21bb502af5a22b170409fb43f"
+    },
+    "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "946f9212695fe4e40b3e41d757191daf01601a8d0c97a6f516c82f08edfebb27"
+    },
+    "docs/v0-19/s2/daily-curve-candidate-r1.md": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "7acdb47537716f867158e6f891ca0bc843753742956f7b31bf02aebf1299cc58"
+    },
+    "docs/v0-19/s2/daily-curve-method-config-r1.json": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "b2e1f09aae99c09392c9e004ad2cf37884697494ac4fde771e1d2ad425aafbb2"
+    },
+    "docs/v0-19/s3/controlled-validation-preparation-r1.md": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "b1f20f709a02a97ceb6ee3cc0fa5a6eae422aa33eadf76c52dedeef7ff94142b"
+    },
+    "docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md": {
+      "commit": "0bc88ab1196e54b4ff9fc15d17bb7f4e05cf4bd1",
+      "evidence_kind": "PUBLIC_REPOSITORY_DECLARATION_NOT_REAL_AUTHORITY",
+      "sha256": "c98c51b3fb107d8236703882915193df5cd97c0f380afa1eb8233479f2a3f181"
+    }
+  },
+  "task_id": "V0_19_S3_REAL_DATA_AUTHORITY_ADMISSION_PREFLIGHT_R1",
+  "temporal_gate": {
+    "business_timezone": "Asia/Shanghai",
+    "equality_at_target_start_rejected": true,
+    "file_mtime_is_issuance_proof": false,
+    "historical_candidate_issuance_admission": "BLOCKED_UNTIL_ACTUAL_TARGET_PRECEDING_EVIDENCE",
+    "input_rule": "source_available_at/ingested_at <= cutoff <= issued_at < first_target_local_midnight",
+    "label_rule": "mature_at and label_available_at <= scoring_as_of",
+    "late_issuance_invalidates_complete_window": true,
+    "naive_datetimes_rejected": true,
+    "new_candidate_can_claim_past_issuance": false,
+    "origin_date_is_issuance_proof": false,
+    "retain_iana_timezone_and_utc_proof": true,
+    "retrospective_origin_is_actual_issuance": false,
+    "retrospective_replay_exception_authorized": false,
+    "storage_created_at_is_issuance_proof": false,
+    "strict_pit": false,
+    "timestamps_require_explicit_offset": true
+  },
+  "two_phase_plan": [
+    {
+      "execution_authorized": false,
+      "phase": "A_PREDICTION_SEAL",
+      "requirements": [
+        "Approved exact source/field/entity/time read scope",
+        "Twelve verified authorities and immutable C0",
+        "Frozen baseline/candidate method and actual input identity",
+        "No scoring label access",
+        "Independent actual issuance and seal receipt",
+        "Retain missing and failed origins"
+      ]
+    },
+    {
+      "execution_authorized": false,
+      "phase": "B_INDEPENDENT_SCORING",
+      "requirements": [
+        "Separate experiment/scoring approval referencing A",
+        "Verify prediction seal before opening labels",
+        "Verify mature authorized label authority",
+        "Verify actual issuance precedes target",
+        "Metric-specific common Cm and complete failure ledger",
+        "Preserve all regressions and not-computable results"
+      ]
+    }
+  ],
+  "validation_policy": {
+    "allowed_paths": [
+      "docs/v0-19/s3/real-data-authority-admission-plan-r1.md",
+      "docs/v0-19/evidence/v0.19-s3-authority-preflight-r1.json"
+    ],
+    "ci_results_location": "PR receipt, not a self-referential future result",
+    "historical_document_or_expected_hash_changes_allowed": false,
+    "new_test_or_runtime_files_allowed": false,
+    "scope": "Plan consistency, canonical JSON, exact immutable Git source bytes, unchanged history, existing offline synthetic regression and exact-head CI",
+    "source_hashes_are_real_authority_proof": false
+  }
+}
