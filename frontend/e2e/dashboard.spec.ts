@@ -1,6 +1,5 @@
+import { startOwnedServer } from "./support/owned-server";
 import { test as base, expect, type Page } from "@playwright/test";
-import { spawn } from "node:child_process";
-import { resolve } from "node:path";
 import { createServer } from "node:http";
 import { once } from "node:events";
 
@@ -10,60 +9,37 @@ const test = base.extend<
   { authority: { url: string; identities: Selection[] } }
 >({
   authority: [
-    async ({ playwright }, use, worker) => {
-      const port = 43800 + worker.workerIndex;
-      const url = `http://127.0.0.1:${port}`;
-      const child = spawn(
-        process.env.DASHBOARD_TEST_PYTHON ?? "python3",
-        [
-          "-m",
-          "uvicorn",
-          "frontend.e2e.support.dashboard_api:app",
-          "--host",
-          "127.0.0.1",
-          "--port",
-          String(port),
-        ],
-        {
-          cwd: resolve(process.cwd(), ".."),
-          env: { ...process.env, PYTHONPATH: "." },
-          stdio: ["ignore", "pipe", "pipe"],
-        },
-      );
-      let logs = "";
-      const drain = (v: Buffer) => {
-        logs = (logs + String(v)).slice(-32768);
-      };
-      // Drain both pipes: Linux's smaller stdout pipe otherwise blocks uvicorn's
-      // access logger after many requests, including the final DML audit read.
-      child.stdout.on("data", drain);
-      child.stderr.on("data", drain);
-      const api = await playwright.request.newContext();
+    async ({ playwright }, use) => {
+      const owned = await startOwnedServer("frontend.e2e.support.dashboard_api:app");
+      const url = owned.url;
       try {
-        await expect
-          .poll(
-            async () => {
-              if (child.exitCode !== null)
-                throw new Error(`Synthetic integration server exited: ${logs}`);
-              try {
-                return (await api.get(url + "/__dashboard_test__/authority")).status();
-              } catch {
-                return 0;
-              }
-            },
-            { timeout: 30000 },
-          )
-          .toBe(200);
-        const state = await (await api.get(url + "/__dashboard_test__/authority")).json();
-        expect(state.SYNTHETIC).toBe(true);
-        await use({ url, identities: state.identities });
-        expect(
-          (await (await api.get(url + "/__dashboard_test__/authority", { timeout: 5000 })).json())
-            .read_dml_count,
-        ).toBe(0);
+        const api = await playwright.request.newContext();
+        try {
+          await expect
+            .poll(
+              async () => {
+                owned.assertRunning();
+                try {
+                  return (await api.get(url + "/__dashboard_test__/authority")).status();
+                } catch {
+                  return 0;
+                }
+              },
+              { timeout: 30000 },
+            )
+            .toBe(200);
+          const state = await (await api.get(url + "/__dashboard_test__/authority")).json();
+          expect(state.SYNTHETIC).toBe(true);
+          await use({ url, identities: state.identities });
+          expect(
+            (await (await api.get(url + "/__dashboard_test__/authority", { timeout: 5000 })).json())
+              .read_dml_count,
+          ).toBe(0);
+        } finally {
+          await api.dispose();
+        }
       } finally {
-        child.kill("SIGTERM");
-        await api.dispose();
+        await owned.stop();
       }
     },
     { scope: "worker" },

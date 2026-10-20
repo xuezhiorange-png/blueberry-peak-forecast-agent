@@ -13,6 +13,7 @@ ARCHIVE = ROOT / "docs/v0-18/evidence/backend-revoke-read-race-fix-r1"
 MERGED_REVOKE_FIX = "8c6f8cdb579b97669e7cc27edea3e75ea32090e6"
 PREAUTH_REVISED_TEST_SOURCES = {
     "backend/tests/business_access/test_contract.py",
+    "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py",
     "backend/tests/mcp/test_v0_18_s3_contract.py",
     "backend/tests/revoke_read_race/test_evidence_contract.py",
 }
