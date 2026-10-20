@@ -1,6 +1,85 @@
 import { basename, join } from "node:path";
 
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test as base, type Page, type TestInfo, type Request } from "@playwright/test";
+
+const test = base.extend<{ qualityTiming: void }>({
+  qualityTiming: [
+    async ({ page }, use, info) => {
+      const started = performance.now();
+      const pending = new Map<Request, number>();
+      const events: Record<string, unknown>[] = [];
+      page.on("request", (request) => {
+        if (new URL(request.url()).pathname.startsWith("/api/"))
+          pending.set(request, performance.now());
+      });
+      page.on("response", (response) => {
+        const request = response.request();
+        const begin = pending.get(request);
+        if (begin !== undefined) {
+          events.push({
+            phase: "api-response",
+            method: request.method(),
+            path: new URL(request.url()).pathname,
+            status: response.status(),
+            headers_elapsed_ms: Math.round(performance.now() - begin),
+          });
+        }
+      });
+      page.on("requestfinished", (request) => {
+        const begin = pending.get(request);
+        if (begin !== undefined)
+          events.push({
+            phase: "api-body-complete",
+            path: new URL(request.url()).pathname,
+            elapsed_ms: Math.round(performance.now() - begin),
+          });
+        pending.delete(request);
+      });
+      page.on("requestfailed", (request) => {
+        if (pending.has(request))
+          events.push({ phase: "api-failed", path: new URL(request.url()).pathname });
+        pending.delete(request);
+      });
+      try {
+        await use();
+      } finally {
+        await info.attach("SYNTHETIC-quality-api-timing.json", {
+          body: JSON.stringify(
+            {
+              elapsed_ms: Math.round(performance.now() - started),
+              status: info.status,
+              events,
+            },
+            null,
+            2,
+          ),
+          contentType: "application/json",
+        });
+      }
+    },
+    { auto: true },
+  ],
+});
+
+async function timed<T>(name: string, run: () => Promise<T>): Promise<T> {
+  return test.step(name, async () => {
+    const started = performance.now();
+    let status = "PASS";
+    try {
+      return await run();
+    } catch (error) {
+      status = "FAIL";
+      throw error;
+    } finally {
+      const receipt = { phase: name, status, elapsed_ms: Math.round(performance.now() - started) };
+      console.log("SYNTHETIC_QUALITY_STAGE " + JSON.stringify(receipt));
+      await test.info().attach(name + "-timing.json", {
+        body: JSON.stringify(receipt),
+        contentType: "application/json",
+      });
+    }
+  });
+}
 
 type ProjectScopedIdentity = {
   externalBatchId: string;
@@ -184,7 +263,9 @@ async function createForecastForQuality(page: Page): Promise<string> {
 
 async function createQualityReport(page: Page, runId: string, testInfo: TestInfo) {
   await page.goto("/trial/quality");
-  await uploadAndCommitCsv(page, projectScopedIdentity(testInfo, "quality-csv"), testInfo);
+  await timed("CSV-upload-and-commit", () =>
+    uploadAndCommitCsv(page, projectScopedIdentity(testInfo, "quality-csv"), testInfo),
+  );
   await page.getByLabel("Forecast public run ID").fill(runId);
   await page.getByRole("button", { name: "读取 Forecast" }).click();
   await expect(page.getByLabel("Persisted Forecast cutoff")).not.toHaveValue("—");
@@ -214,6 +295,11 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
   test("uploads raw CSV, commits it, creates persisted Quality, and exports CSV", async ({
     page,
   }, testInfo) => {
+    // Archived main traces: first report POST 13.59–14.51s, plus two cold
+    // navigations, forecast creation, import/commit and repeated report/export.
+    // Only this real multi-operation workflow gets 120s; local expectations,
+    // errors, negative cases and all other test/global budgets remain unchanged.
+    test.setTimeout(120_000);
     await page.setViewportSize({ width: 1440, height: 900 });
     const apiRequests: string[] = [];
     page.on("request", (request) => {
@@ -221,8 +307,12 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
       if (pathname.startsWith("/api/")) apiRequests.push(pathname);
     });
 
-    const runId = await createForecastForQuality(page);
-    const reportId = await createQualityReport(page, runId, testInfo);
+    const runId = await timed("forecast-navigation-creation-and-render", () =>
+      createForecastForQuality(page),
+    );
+    const reportId = await timed("quality-generation-render-and-horizon-interaction", () =>
+      createQualityReport(page, runId, testInfo),
+    );
     expect(reportId).toMatch(/^[0-9a-f]{64}$/);
     expect(apiRequests).toContain("/api/v1/trial/actual-harvest/imports");
     expect(apiRequests.some((path) => path.includes("/upload"))).toBe(true);
@@ -232,8 +322,12 @@ test.describe("production Actual Harvest and Quality Trial integration", () => {
     expect(apiRequests.every((path) => path.startsWith("/api/v1/trial/"))).toBe(true);
 
     const firstReportId = reportId;
-    await page.getByRole("button", { name: "生成质量报告" }).click();
-    await expect(page.locator('[aria-label="质量报告身份"] .hash-value')).toHaveText(firstReportId);
+    await timed("quality-idempotent-replay", async () => {
+      await page.getByRole("button", { name: "生成质量报告" }).click();
+      await expect(page.locator('[aria-label="质量报告身份"] .hash-value')).toHaveText(
+        firstReportId,
+      );
+    });
 
     const firstIdempotencyEntry = await page.evaluate(() => {
       const entry = Object.entries(sessionStorage).find(([key]) =>
