@@ -6,9 +6,28 @@ from pathlib import Path
 
 import pytest
 
+from backend.tests.historical_source import historical_bytes
+
 ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE = ROOT / "docs/v0-18/evidence/s6-business-and-security-acceptance-r1.json"
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
+S6_DELIVERY = "2b890d8e68a47ca506e7cf6b04bd187472138b2d"
+EVOLVING_S6_SOURCES = {
+    "frontend/e2e/dashboard-business-flow.spec.ts",
+    "frontend/e2e/dashboard-s6-acceptance.spec.ts",
+    "backend/tests/forecast_intelligence/test_v0_18_s6_acceptance_contract.py",
+    "backend/tests/safe_pilot/evidence.py",
+}
+
+
+def checked_source(path, expected, group, commit=S6_DELIVERY):
+    raw = (
+        historical_bytes(path, commit, root=ROOT)
+        if group == "source_evidence_sha256" and path in EVOLVING_S6_SOURCES
+        else (ROOT / path).read_bytes()
+    )
+    assert hashlib.sha256(raw).hexdigest() == expected, path
+    return raw
 
 
 def test_s6_canonical_sources_history_and_artifacts():
@@ -20,10 +39,20 @@ def test_s6_canonical_sources_history_and_artifacts():
             relative = Path(path)
             assert not relative.is_absolute() and ".." not in relative.parts
             expected = entry["sha256"] if isinstance(entry, dict) else entry
-            assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected, path
+            checked_source(path, expected, group)
     assert value["base_main_sha"] == "fc0b88cf222567e4821a9d11589331f6a7963e04"
     assert value["SYNTHETIC"] is True
     assert value["local_backend"]["new_s6_case_count"] >= 14
+
+
+@pytest.mark.parametrize("path", sorted(EVOLVING_S6_SOURCES))
+def test_fixed_s6_sources_reject_wrong_commit_and_changed_hash(path):
+    expected = json.loads(EVIDENCE.read_bytes())["source_evidence_sha256"][path]
+    checked_source(path, expected, "source_evidence_sha256")
+    with pytest.raises(AssertionError, match="Required historical commit unavailable"):
+        checked_source(path, expected, "source_evidence_sha256", commit="0" * 40)
+    with pytest.raises(AssertionError):
+        checked_source(path, "0" * 64, "source_evidence_sha256")
 
 
 def test_s6_no_false_authority_or_governance_upgrade():

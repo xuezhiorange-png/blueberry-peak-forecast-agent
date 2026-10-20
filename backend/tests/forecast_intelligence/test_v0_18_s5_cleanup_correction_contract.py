@@ -11,6 +11,11 @@ from backend.tests.safe_pilot.evidence import EVIDENCE as OLD_EVIDENCE
 from backend.tests.safe_pilot.evidence import R1_CHECKPOINT, source_bytes
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
+S5_CLEANUP_DELIVERY = "fc0b88cf222567e4821a9d11589331f6a7963e04"
+EVOLVING_HISTORY_SOURCES = {
+    "backend/tests/safe_pilot/evidence.py",
+    "backend/tests/forecast_intelligence/test_v0_18_s5_cleanup_correction_contract.py",
+}
 
 
 def test_cleanup_correction_canonical_current_sources_and_artifacts():
@@ -20,7 +25,12 @@ def test_cleanup_correction_canonical_current_sources_and_artifacts():
     assert value["task_id"] == TASK
     assert value["previous_pr_head"] == R1_CHECKPOINT
     for path, expected in value["source_evidence_sha256"].items():
-        assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == expected
+        source = (
+            historical_bytes(path, S5_CLEANUP_DELIVERY, root=ROOT)
+            if path in EVOLVING_HISTORY_SOURCES
+            else (ROOT / path).read_bytes()
+        )
+        assert hashlib.sha256(source).hexdigest() == expected
     for path, entry in value["artifacts"].items():
         assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == entry["sha256"]
         if path.endswith("/owned-resources.json"):
