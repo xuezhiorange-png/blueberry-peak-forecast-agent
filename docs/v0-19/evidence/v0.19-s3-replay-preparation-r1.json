@@ -1,0 +1,236 @@
+{
+  "base_main_sha": "32602ac7f111a6ad49fd40467d012cc56acf106e",
+  "baseline_id": "OPERATIONAL_PEAK:AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+  "candidate_count": 1,
+  "candidate_id": "BIN_CENTER_LINEAR_PER_BIN_MASS_V1",
+  "data_class": "SYNTHETIC",
+  "delivery_receipt_policy": "CURRENT_DELIVERY_RECEIPT_ONLY_NOT_A_FUTURE_WORKTREE_FREEZE; future historical code audits must use a reviewed immutable commit",
+  "delivery_source_receipts": {
+    "backend/research/v019_replay_preparation.py": "1edf64c1be08bc95f5ed7a8626faa19e146b81165dc9f2a2beb5a0eb69394412",
+    "backend/tests/area_yield/test_v0_19_replay_preparation.py": "b9b74f12ed2c352ec30b11a373ce0e640d755de63919d3cabde2a516cd0fb619"
+  },
+  "documents_sha256": {
+    "docs/v0-19/s3/retrospective-replay-preparation-r1.md": "0e7f77d0f994909f26e924259c44c8f32cda9f8a0c28292e4119d499d7e78613"
+  },
+  "environment": {
+    "dependency_versions_changed": false,
+    "python": "3.12.13"
+  },
+  "execution": {
+    "clocks": "FICTIONAL_SYNTHETIC_NOT_REAL_ISSUANCE_EVIDENCE",
+    "command": "python -m backend.research.v019_replay_preparation --demo",
+    "forecast_label_isolation": "Phase A has no labels argument; Phase B checks regenerated preparation and prediction seals before label iteration",
+    "historical_time_gate": "UNCHANGED; late retrospective replay error metrics remain NOT_COMPUTABLE",
+    "initial_functional_and_related_history_tests": {
+      "elapsed_seconds": "16.44",
+      "failed": 0,
+      "note": "Before adding the two machine-evidence/historical-blob contract tests; final results and exact-head CI are reported in PR, not prefilled here",
+      "passed": 419,
+      "skipped": 0
+    },
+    "output": "stdout canonical JSON; no file or database loader"
+  },
+  "historical_sources": {
+    "backend/research/v019_daily_curve.py": {
+      "commit": "32602ac7f111a6ad49fd40467d012cc56acf106e",
+      "sha256": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff"
+    },
+    "backend/research/v019_synthetic_validation.py": {
+      "commit": "32602ac7f111a6ad49fd40467d012cc56acf106e",
+      "sha256": "bffd788b36fb1100428df02248a17de8bfc057d784d80ff7085bb2fe122f2626"
+    },
+    "docs/v0-19/evidence/v0.19-s3-authority-preflight-r1.json": {
+      "commit": "32602ac7f111a6ad49fd40467d012cc56acf106e",
+      "sha256": "9cac73584b6741ca3e0e9df0bf470039842a5c8f34a5988e15bee821389fbc7d"
+    },
+    "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md": {
+      "commit": "32602ac7f111a6ad49fd40467d012cc56acf106e",
+      "sha256": "946f9212695fe4e40b3e41d757191daf01601a8d0c97a6f516c82f08edfebb27"
+    },
+    "docs/v0-19/s2/daily-curve-method-config-r1.json": {
+      "commit": "32602ac7f111a6ad49fd40467d012cc56acf106e",
+      "sha256": "b2e1f09aae99c09392c9e004ad2cf37884697494ac4fde771e1d2ad425aafbb2"
+    },
+    "docs/v0-19/s3/real-data-authority-admission-plan-r1.md": {
+      "commit": "32602ac7f111a6ad49fd40467d012cc56acf106e",
+      "sha256": "02d1d3ddb7b4ad3e81803fff490d2f4525a0bbe08e510ca2d49c4fb2f2c89985"
+    },
+    "docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md": {
+      "commit": "32602ac7f111a6ad49fd40467d012cc56acf106e",
+      "sha256": "c98c51b3fb107d8236703882915193df5cd97c0f380afa1eb8233479f2a3f181"
+    }
+  },
+  "limitations": [
+    "No actual historical data authority checked",
+    "No real-data input entry",
+    "No real historical replay scored",
+    "No strict PIT claim",
+    "No overall winner or accuracy claim",
+    "Actual future retrospective protocol requires separate Owner approval; this proposal is not effective",
+    "2025-2026 remains exposed historical benchmark",
+    "Final PR CI must match final commit; no historical CI substitutes"
+  ],
+  "payload_sha256": "689b86c43ad90a199d9cb4273a254a6db0e38ff2348bf0beac4d4651577d00df",
+  "post_merge_ci": {
+    "conclusion": "success",
+    "head_sha": "32602ac7f111a6ad49fd40467d012cc56acf106e",
+    "run_id": 39433791985,
+    "status": "completed"
+  },
+  "prohibited_operations": {
+    "deploy_authorized": false,
+    "merge_authorized": false,
+    "model_promotion": false,
+    "model_training": false,
+    "ready_authorized": false,
+    "real_data_accessed": false,
+    "real_scoring_performed": false,
+    "release_authorized": false,
+    "retrospective_real_replay_performed": false,
+    "s3_formal_complete": false
+  },
+  "real_authorities": "NOT_VERIFIED",
+  "real_replay_protocol_status": "PROPOSED_NOT_EFFECTIVE",
+  "strict_pit": false,
+  "synthetic_demo_sha256": "3a8c3d5326a824290efb722b4a51705bd0426ca603493d6ecbaa242cd4e3cfb6",
+  "synthetic_lanes": {
+    "AS_ISSUED_FORECAST": {
+      "groups": {
+        "SYNTHETIC_EXPOSED_HISTORICAL_BENCHMARK:FULL_SEASON": {
+          "base_breadth": {
+            "improved": 1,
+            "improved_actual_kg_share": {
+              "denominator": "630",
+              "numerator": "315",
+              "value": "0.5"
+            },
+            "n_base": 2,
+            "per_base_delta": {
+              "SYNTHETIC-BASE-A": "-20.509236",
+              "SYNTHETIC-BASE-B": "55.677576"
+            },
+            "status": "PASS_SYNTHETIC",
+            "tied": 0,
+            "worsened": 1
+          },
+          "daily_mae_common": 2,
+          "daily_mae_not_computable": 0,
+          "reasons": {}
+        },
+        "SYNTHETIC_EXPOSED_HISTORICAL_BENCHMARK:H15_LOCAL": {
+          "base_breadth": {
+            "improved": 1,
+            "improved_actual_kg_share": {
+              "denominator": "572",
+              "numerator": "287",
+              "value": "0.50174825174825174825174825174825174825174825174825"
+            },
+            "n_base": 2,
+            "per_base_delta": {
+              "SYNTHETIC-BASE-A": "-21.154805",
+              "SYNTHETIC-BASE-B": "45.234539"
+            },
+            "status": "PASS_SYNTHETIC",
+            "tied": 0,
+            "worsened": 1
+          },
+          "daily_mae_common": 2,
+          "daily_mae_not_computable": 0,
+          "reasons": {}
+        },
+        "SYNTHETIC_EXPOSED_HISTORICAL_BENCHMARK:H7_PREFIX": {
+          "base_breadth": {
+            "improved": 1,
+            "improved_actual_kg_share": {
+              "denominator": "140",
+              "numerator": "70",
+              "value": "0.5"
+            },
+            "n_base": 2,
+            "per_base_delta": {
+              "SYNTHETIC-BASE-A": "-13.901640",
+              "SYNTHETIC-BASE-B": "15.737704"
+            },
+            "status": "PASS_SYNTHETIC",
+            "tied": 0,
+            "worsened": 1
+          },
+          "daily_mae_common": 2,
+          "daily_mae_not_computable": 0,
+          "reasons": {}
+        }
+      },
+      "prediction_seal_sha256": "4caec5e3cc1a4ddbf631532a760834de90f1b6283189f20c52a06465ce46982b",
+      "preparation_seal_sha256": "d9397514b1f13c3609cbb9765432b25176a0c16af32719263c76ca28a1a5173e",
+      "report_sha256": "759e68d27dfd30baca74a23874f38d1afe62b739d6623db336bacb545f30db58"
+    },
+    "RETROSPECTIVE_REPLAY": {
+      "groups": {
+        "SYNTHETIC_EXPOSED_HISTORICAL_BENCHMARK:FULL_SEASON": {
+          "base_breadth": {
+            "improved": 0,
+            "improved_actual_kg_share": {
+              "denominator": "0",
+              "numerator": "0",
+              "value": null
+            },
+            "n_base": 0,
+            "per_base_delta": {},
+            "status": "NOT_COMPUTABLE",
+            "tied": 0,
+            "worsened": 0
+          },
+          "daily_mae_common": 0,
+          "daily_mae_not_computable": 2,
+          "reasons": {
+            "UNVERIFIED_AUTHORITY": 2
+          }
+        },
+        "SYNTHETIC_EXPOSED_HISTORICAL_BENCHMARK:H15_LOCAL": {
+          "base_breadth": {
+            "improved": 0,
+            "improved_actual_kg_share": {
+              "denominator": "0",
+              "numerator": "0",
+              "value": null
+            },
+            "n_base": 0,
+            "per_base_delta": {},
+            "status": "NOT_COMPUTABLE",
+            "tied": 0,
+            "worsened": 0
+          },
+          "daily_mae_common": 0,
+          "daily_mae_not_computable": 2,
+          "reasons": {
+            "UNVERIFIED_AUTHORITY": 2
+          }
+        },
+        "SYNTHETIC_EXPOSED_HISTORICAL_BENCHMARK:H7_PREFIX": {
+          "base_breadth": {
+            "improved": 0,
+            "improved_actual_kg_share": {
+              "denominator": "0",
+              "numerator": "0",
+              "value": null
+            },
+            "n_base": 0,
+            "per_base_delta": {},
+            "status": "NOT_COMPUTABLE",
+            "tied": 0,
+            "worsened": 0
+          },
+          "daily_mae_common": 0,
+          "daily_mae_not_computable": 2,
+          "reasons": {
+            "UNVERIFIED_AUTHORITY": 2
+          }
+        }
+      },
+      "prediction_seal_sha256": "a3efc03c8cd7297cca49d6eea9a7605dbcd1cde1ce474159b38e4de48fe7acb2",
+      "preparation_seal_sha256": "e7c4fcdc7c87a46af27d15f3d40d8ae1d4c4085f0f1ece7550bb7b3cce690f13",
+      "report_sha256": "f979ac743b8bb898a3f0ea8552c7661b7698077581299f18935adcd8e4709852"
+    }
+  },
+  "task_id": "V0_19_S3_RETROSPECTIVE_REPLAY_PREPARATION_R1"
+}
