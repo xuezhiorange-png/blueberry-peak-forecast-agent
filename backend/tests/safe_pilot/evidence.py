@@ -31,6 +31,7 @@ R1_EVOLVING_SOURCES = frozenset(
         "backend/tests/safe_pilot/run.py",
         "backend/tests/safe_pilot/evidence.py",
         "backend/tests/forecast_intelligence/test_v0_18_s5_safe_pilot_contract.py",
+        "frontend/e2e/dashboard-business-flow.spec.ts",
     }
 )
 

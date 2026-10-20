@@ -13,6 +13,8 @@ APPROVED_EVOLVING_SOURCES = {
     "frontend/e2e/dashboard.spec.ts",
     "frontend/e2e/dashboard-cross-surface.spec.ts",
     "frontend/e2e/selector-cancel-reopen.spec.ts",
+    # Authorized current TLS fixture evolution; original S4 delivery is immutable.
+    "frontend/e2e/dashboard-business-flow.spec.ts",
     "backend/tests/mcp/test_v0_18_s3_contract.py",
     "backend/tests/local_auth/test_runtime_evidence_contract.py",
     "frontend/src/dashboard/api/client.ts",
