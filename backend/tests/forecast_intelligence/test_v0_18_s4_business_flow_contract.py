@@ -10,6 +10,9 @@ ROOT = Path(__file__).resolve().parents[3]
 BASE = "08b185b4621bf517846c986841bb5579b6c37b35"
 S4_DELIVERY = "89641834ab7a0bd902a23f9243325da5c163d518"
 APPROVED_EVOLVING_SOURCES = {
+    "frontend/e2e/dashboard.spec.ts",
+    "frontend/e2e/dashboard-cross-surface.spec.ts",
+    "frontend/e2e/selector-cancel-reopen.spec.ts",
     "backend/tests/mcp/test_v0_18_s3_contract.py",
     "backend/tests/local_auth/test_runtime_evidence_contract.py",
     "frontend/src/dashboard/api/client.ts",
