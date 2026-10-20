@@ -12,6 +12,12 @@ from backend.tests.historical_source import historical_bytes
 
 ROOT = Path(__file__).resolve().parents[3]
 BASE = "816d8299f007eab7da140fc5c7547d941c026f8f"
+PREAUTH_DELIVERY = "f151f0e6aca3577c5ee959a220c16e9756179649"
+# These two authorized test adaptations do not rewrite their delivery evidence.
+ADAPTED_TEST_SOURCES = {
+    "backend/tests/local_auth/test_preauth_fix_evidence_contract.py",
+    "backend/tests/revoke_read_race/test_evidence_contract.py",
+}
 FOLDER = "docs/v0-18/evidence/preauth-concurrent-login-fix-r1/"
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
@@ -20,10 +26,10 @@ def load(relative):
     return json.loads((ROOT / relative).read_bytes())
 
 
-def checked(relative, expected):
+def checked(relative, expected, *, commit=None):
     path = ROOT / relative
     assert path.resolve().is_relative_to(ROOT)
-    raw = path.read_bytes()
+    raw = historical_bytes(relative, commit) if commit is not None else path.read_bytes()
     assert hashlib.sha256(raw).hexdigest() == expected
     return raw
 
@@ -35,10 +41,21 @@ def test_canonical_evidence_sources_and_unchanged_history():
     ).encode()
     for field in ("source_evidence_sha256", "artifact_sha256"):
         for relative, expected in value[field].items():
-            checked(relative, expected)
+            checked(
+                relative,
+                expected,
+                commit=(
+                    PREAUTH_DELIVERY
+                    if field == "source_evidence_sha256" and relative in ADAPTED_TEST_SOURCES
+                    else None
+                ),
+            )
     assert value["production_files"] == ["backend/app/local_auth/service.py"]
+    # Audit the original delivery interval, never a future HEAD or worktree.
     changed = (
-        subprocess.check_output(["git", "diff", "--name-only", BASE, "--", "backend/app"], cwd=ROOT)
+        subprocess.check_output(
+            ["git", "diff", "--name-only", BASE, PREAUTH_DELIVERY, "--", "backend/app"], cwd=ROOT
+        )
         .decode()
         .splitlines()
     )
@@ -48,6 +65,7 @@ def test_canonical_evidence_sources_and_unchanged_history():
             "git",
             "diff",
             BASE,
+            PREAUTH_DELIVERY,
             "--",
             ".github",
             "backend/alembic",
@@ -59,7 +77,8 @@ def test_canonical_evidence_sources_and_unchanged_history():
         cwd=ROOT,
     ).strip()
     old_docs = subprocess.check_output(
-        ["git", "diff", "--name-status", "--diff-filter=MDR", BASE, "--", "docs"], cwd=ROOT
+        ["git", "diff", "--name-status", "--diff-filter=MDR", BASE, PREAUTH_DELIVERY, "--", "docs"],
+        cwd=ROOT,
     )
     assert not old_docs.strip()
     assert value["final_head_ci"] == "POST_COMMIT_EXTERNAL_EXACT_HEAD_RECEIPT_REQUIRED"
@@ -142,3 +161,12 @@ def test_missing_git_object_or_wrong_expected_hash_fails():
         historical_bytes("backend/app/local_auth/SYNTHETIC_NONEXISTENT.py", BASE)
     with pytest.raises(AssertionError):
         checked("backend/app/local_auth/service.py", "0" * 64)
+    for relative in ADAPTED_TEST_SOURCES:
+        expected = load(FOLDER + "evidence.json")["source_evidence_sha256"][relative]
+        assert checked(relative, expected, commit=PREAUTH_DELIVERY) == historical_bytes(
+            relative, PREAUTH_DELIVERY
+        )
+        with pytest.raises(AssertionError):
+            checked(relative, "0" * 64, commit=PREAUTH_DELIVERY)
+        with pytest.raises(AssertionError):
+            checked(relative, expected, commit="0" * 40)
