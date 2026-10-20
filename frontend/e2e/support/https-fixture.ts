@@ -1,11 +1,16 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, mkdirSync, appendFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, appendFileSync, writeFileSync, lstatSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { connect } from "node:net";
 import { performance } from "node:perf_hooks";
-import { expect, type PlaywrightWorkerArgs, type WorkerInfo } from "@playwright/test";
+import {
+  expect,
+  type APIRequestContext,
+  type PlaywrightWorkerArgs,
+  type WorkerInfo,
+} from "@playwright/test";
 
 type Playwright = PlaywrightWorkerArgs["playwright"];
 
@@ -39,6 +44,31 @@ export class HttpsLifecycleError extends AggregateError {
       `HTTPS primary=${String(primary ?? "none")} cleanup=${String(cleanup ?? "none")}`,
     );
   }
+}
+
+type FinalizationFailure = { phase: string; error: unknown };
+
+// Each action is attempted even if earlier finalizers fail. Never throw out of
+// a naked finally: the original body/startup cause must remain inspectable.
+export async function finalizeHttpsLifecycle(
+  primary: unknown,
+  failures: FinalizationFailure[],
+  actions: { phase: string; run: () => void | Promise<void> }[],
+): Promise<void> {
+  for (const action of actions) {
+    try {
+      await action.run();
+    } catch (error) {
+      failures.push({ phase: action.phase, error });
+    }
+  }
+  const causes = failures.map(
+    ({ phase, error }) =>
+      new Error(`HTTPS_FINALIZATION:${phase}:${String(error)}`, { cause: error }),
+  );
+  const cleanup =
+    causes.length > 1 ? new AggregateError(causes, causes.map(String).join("; ")) : causes[0];
+  if (primary || cleanup) throw new HttpsLifecycleError(primary, cleanup);
 }
 
 export async function bounded<T>(
@@ -119,8 +149,16 @@ export async function withOwnedHttps<T>(
   const start = performance.now();
   const nonce = randomUUID();
   const directory = mkdtempSync(resolve(tmpdir(), "SYNTHETIC-owned-https-"));
-  mkdirSync(options.outputDir, { recursive: true });
+  const directoryOwner = lstatSync(directory);
   const evidence = resolve(options.outputDir, `https-${nonce}`);
+  const failures: FinalizationFailure[] = [];
+  const evidenceIO = (phase: string, write: () => void) => {
+    try {
+      write();
+    } catch (error) {
+      failures.push({ phase, error });
+    }
+  };
   const stage = async <V>(name: string, limit: number, run: () => Promise<V>, setup = true) => {
     const begin = performance.now();
     let status = "PASS";
@@ -133,8 +171,12 @@ export async function withOwnedHttps<T>(
       throw error;
     } finally {
       const receipt = { phase: name, status, elapsed_ms: Math.round(performance.now() - begin) };
-      appendFileSync(evidence + "-timing.jsonl", JSON.stringify(receipt) + "\n");
-      console.log("SYNTHETIC_HTTPS_STAGE " + JSON.stringify(receipt));
+      evidenceIO(`timing:${name}`, () =>
+        appendFileSync(evidence + "-timing.jsonl", JSON.stringify(receipt) + "\n"),
+      );
+      evidenceIO(`timing-console:${name}`, () =>
+        console.log("SYNTHETIC_HTTPS_STAGE " + JSON.stringify(receipt)),
+      );
     }
   };
   let child: ChildProcess | undefined;
@@ -146,11 +188,13 @@ export async function withOwnedHttps<T>(
   let logs = "";
   let cleanupReceipt: Receipt | undefined;
   let socketClosed = false;
+  let privateDirectoryRemoved = false;
   let primary: unknown;
-  let cleanupError: unknown;
   let value: T | undefined;
-  const api = await options.playwright.request.newContext({ ignoreHTTPSErrors: true });
+  let api: APIRequestContext | undefined;
   try {
+    mkdirSync(options.outputDir, { recursive: true });
+    api = await options.playwright.request.newContext({ ignoreHTTPSErrors: true });
     await stage("certificate", 15_000, () =>
       command(
         [
@@ -241,10 +285,12 @@ export async function withOwnedHttps<T>(
                 event.port < 1
               )
                 throw new Error("HTTPS_CHILD_IDENTITY_MISMATCH");
-              appendFileSync(
-                evidence + "-lifecycle.jsonl",
-                JSON.stringify({ ...event, elapsed_ms: Math.round(performance.now() - start) }) +
-                  "\n",
+              evidenceIO("lifecycle", () =>
+                appendFileSync(
+                  evidence + "-lifecycle.jsonl",
+                  JSON.stringify({ ...event, elapsed_ms: Math.round(performance.now() - start) }) +
+                    "\n",
+                ),
               );
               if (event.phase === "BOUND") {
                 owner = event;
@@ -289,10 +335,10 @@ export async function withOwnedHttps<T>(
       if (!owner || exited) throw new Error("HTTPS_OWNER_MISSING_OR_EXITED");
       const url = `https://127.0.0.1:${owner.port}`;
       expect(
-        await (await api.get(url + "/__e2e_https_owner__", { timeout: 3000 })).json(),
+        await (await api!.get(url + "/__e2e_https_owner__", { timeout: 3000 })).json(),
       ).toMatchObject(ownerFields(owner));
       if (options.app !== "probe")
-        expect((await api.get(url + "/__s4_test__/ready", { timeout: 3000 })).status()).toBe(200);
+        expect((await api!.get(url + "/__s4_test__/ready", { timeout: 3000 })).status()).toBe(200);
       ready = true;
     });
     await stage(
@@ -303,7 +349,8 @@ export async function withOwnedHttps<T>(
         value = await body(url);
         if (options.app !== "probe")
           expect(
-            (await (await api.get(url + "/__s4_test__/ready")).json()).post_seed_business_dml_count,
+            (await (await api!.get(url + "/__s4_test__/ready")).json())
+              .post_seed_business_dml_count,
           ).toBe(0);
       },
       false,
@@ -347,32 +394,63 @@ export async function withOwnedHttps<T>(
       false,
     );
   } catch (error) {
-    cleanupError = error;
-  } finally {
-    await api.dispose();
-    writeFileSync(
-      evidence + "-receipt.json",
-      JSON.stringify(
-        {
-          SYNTHETIC: true,
-          app: options.app,
-          pid: child?.pid,
-          port: owner?.port,
-          ready,
-          exited,
-          socketClosed,
-          cleanup: cleanupReceipt,
-          primary: primary ? String(primary) : null,
-          cleanupError: cleanupError ? String(cleanupError) : null,
-        },
-        null,
-        2,
-      ) + "\n",
-    );
-    // Only test-owned child logs; no cookies, CSRF tokens, passwords or key bytes.
-    writeFileSync(evidence + "-process.log", logs);
+    failures.push({ phase: "owned-process-cleanup", error });
   }
-  if (primary || cleanupError) throw new HttpsLifecycleError(primary, cleanupError);
+  await finalizeHttpsLifecycle(primary, failures, [
+    {
+      phase: "api-dispose",
+      run: async () => {
+        if (api) await bounded(api.dispose(), 5000, "api-dispose");
+      },
+    },
+    {
+      phase: "private-certificate-directory",
+      run: () => {
+        const current = lstatSync(directory);
+        if (
+          current.isSymbolicLink() ||
+          current.dev !== directoryOwner.dev ||
+          current.ino !== directoryOwner.ino
+        )
+          throw new Error("HTTPS_PRIVATE_DIRECTORY_OWNERSHIP_CHANGED");
+        rmSync(directory, { recursive: true });
+        privateDirectoryRemoved = true;
+      },
+    },
+    // Only test-owned child logs; no cookies, CSRF tokens, passwords or key bytes.
+    { phase: "process-log", run: () => writeFileSync(evidence + "-process.log", logs) },
+    {
+      phase: "receipt",
+      run: () =>
+        writeFileSync(
+          evidence + "-receipt.json",
+          JSON.stringify(
+            {
+              SYNTHETIC: true,
+              app: options.app,
+              pid: child?.pid,
+              port: owner?.port,
+              ready,
+              exited,
+              socketClosed,
+              privateDirectory: directory,
+              privateDirectoryRemoved,
+              cleanup: cleanupReceipt,
+              primary: primary ? String(primary) : null,
+              cleanupError: failures.length
+                ? failures.map(({ phase, error }) => `${phase}:${String(error)}`).join("; ")
+                : null,
+              finalizationFailures: failures.map(({ phase, error }) => ({
+                phase,
+                error: String(error),
+              })),
+            },
+            null,
+            2,
+          ) + "\n",
+        ),
+    },
+  ]);
   return value as T;
 }
 
@@ -382,11 +460,12 @@ function ownerFields(owner: Receipt) {
 
 export function httpsFixture(
   app: Exclude<App, "probe">,
+  externalUrl?: () => string | undefined,
 ): [
   (
     args: { playwright: Playwright },
     use: (url: string) => Promise<void>,
-    worker: WorkerInfo,
+    worker: Pick<WorkerInfo, "project">,
   ) => Promise<void>,
   { scope: "worker"; timeout: number },
 ] {
@@ -394,8 +473,15 @@ export function httpsFixture(
     async (
       { playwright }: { playwright: Playwright },
       use: (url: string) => Promise<void>,
-      worker: WorkerInfo,
+      worker: Pick<WorkerInfo, "project">,
     ) => {
+      const external = externalUrl?.();
+      if (external) {
+        // Externally managed service: preserve the original use-only contract.
+        // No build, context, certificate, process or cleanup is ours to perform.
+        await use(external);
+        return;
+      }
       await withOwnedHttps({ app, playwright, outputDir: worker.project.outputDir }, use);
     },
     { scope: "worker" as const, timeout: HTTPS_WORKER_TIMEOUT },

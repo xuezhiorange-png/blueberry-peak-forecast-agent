@@ -3,7 +3,7 @@ import { httpsFixture } from "./support/https-fixture";
 
 // Real HTTPS/PG and unchanged production ASGI, with independent bounded setup.
 const test = base.extend<object, { https: string }>({
-  https: httpsFixture("business_pg"),
+  https: httpsFixture("business_pg", () => process.env.S4_HTTPS_URL),
 });
 test.use({ ignoreHTTPSErrors: true });
 test.describe.configure({ mode: "serial" });
