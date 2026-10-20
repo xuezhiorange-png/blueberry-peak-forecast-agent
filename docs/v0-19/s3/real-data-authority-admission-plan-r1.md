@@ -133,7 +133,7 @@ retrospective replay，须 Owner 单独批准相应协议修订和边界；A/B �
 | source_system / dataset / version / immutable_identity | UNKNOWN；确切版本/行集身份，禁止 wildcard、全库扫描或自动 latest |
 | seasons / base/subfarm/variety allowlist / business_date range | UNKNOWN；逐项枚举；2026–2027 actual 在本轮明确排除 |
 | field_allowlist / units / physical_basis | UNKNOWN；对应十二项矩阵；标签值与非标签元数据分开列，敏感字段最小化 |
-| allowed purpose / reader / environment / access method | 只为经批准的 S3 权威核验；授权身份、隔离环境和只读方法待指定，不执行写入 |
+| allowed purpose / reader / environment / access method | 分别明确权威核验、拟定预测生成及独立评分所需的读取用途和阶段；后两者仍须 B 批准。授权身份、隔离环境和只读方法待指定，不执行写入 |
 | input_cutoff / available-time proof / label access stage | 待指定；预测阶段标签不可见，标签保管与评分解封条件单列 |
 | retention / export / redaction / revocation / disposal | 允许保留的 Hash、审计、脱敏结果范围、期限与责任人待指定；原始标签不提交 Git |
 | decision / signed reference | PENDING_OWNER_DECISION；不由 CI 或本文推定；不自动授予 B |
@@ -151,6 +151,10 @@ retrospective replay，须 Owner 单独批准相应协议修订和边界；A/B �
 | audit / output / retention / stop rules | 绑定真实代码/config/预测/标签/seal/结果 Hash 与执行日志；缺权威/过期/Hash 漂移立即停止 |
 | permitted operations / prohibited operations | 仅明确批准的对照评分；训练/重拟合/参数搜索/模型晋级/部署仍不授权 |
 | decision / signed reference | PENDING_OWNER_DECISION；A 不蕴含 B；B 不扩大 A 的来源、字段、季节或实体 |
+
+A 必须预先列出拟开展用途对应的读取范围，而不能只写笼统“研究”。若 A 只批准权威核验，
+即使 B 获批也不能将该读取许可转用于预测或评分；须先由 Owner 明确调整 A 的用途范围。
+这不是额外审批阶段，而是同一份 A 申请中区分读取目的，避免 B 越权扩大数据用途。
 
 ## 7. 阻断清单、风险及下一步
 
