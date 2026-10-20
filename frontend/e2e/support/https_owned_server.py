@@ -64,6 +64,10 @@ def main() -> None:
         nonlocal stopped
         del number, frame
         stopped = True
+        # SIG_IGN survives Python interpreter finalization. A late duplicate
+        # must not turn already-verified cleanup into a signal-terminated exit.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         if server is not None:
             server.should_exit = True
 
