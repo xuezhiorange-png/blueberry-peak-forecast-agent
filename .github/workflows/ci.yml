@@ -31,6 +31,11 @@ on:
     # Nightly at 03:30 UTC (placeholder cron per PR #55 §14 open question 1).
     - cron: "30 3 * * *"
   workflow_dispatch:
+    inputs:
+      compare_serial:
+        description: "One controlled same-head serial versus four-shard comparison"
+        type: boolean
+        default: false
 
 # Cancel in-progress runs of the same workflow when a new commit lands.
 # Per Batch 6 (Issue #54 item 3) — the group key MUST be the PR head
@@ -1578,10 +1583,16 @@ jobs:
   # Same command, dependencies, migrations and PostgreSQL service before/after merge.
   # ----------------------------------------------------------------
   full-suite-canary:
-    name: full-suite-canary
+    name: full-suite-canary-shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(inputs.compare_serial == true && '[0,1,2,3,"serial"]' || '[0,1,2,3]') }}
     env:
       ISOLATED_JOB_NAME: full-suite-canary
+      CANARY_SHARD_INDEX: ${{ matrix.shard }}
+      CANARY_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
     services:
       postgres:
         image: postgres:16
@@ -1687,7 +1698,7 @@ jobs:
           name = resolve_isolated_db_name(
               os.environ["GITHUB_RUN_ID"],
               os.environ["GITHUB_RUN_ATTEMPT"],
-              os.environ["ISOLATED_JOB_NAME"],
+              f'{os.environ["ISOLATED_JOB_NAME"]}-{os.environ["CANARY_SHARD_INDEX"]}',
           )
           assert_safe_isolated_db_name(name)
           print(f"ISOLATED_DB_NAME={name}")
@@ -1780,7 +1791,10 @@ jobs:
           # Batch 6 (Issue #54 items 5 + 7) — emit top-30 slowest tests
           # and echo the deterministic CI seed marker.
           echo "PYTEST_CI_SEED=${PYTEST_CI_SEED:-$GITHUB_SHA}" >> "$GITHUB_STEP_SUMMARY"
-          pytest -q --tb=long \
+          python -m pytest -q --tb=long \
+            -p scripts.ci.canary_partition \
+            --canary-slot="$CANARY_SHARD_INDEX" \
+            --canary-proof=reports/test-results/canary-proof.json \
             --durations=30 \
             --junitxml=reports/test-results/full.xml
           status=$?
@@ -1807,9 +1821,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: full-suite-canary-results
-          path: reports/test-results/full.xml
-          if-no-files-found: warn
+          name: full-suite-canary-part-${{ matrix.shard }}
+          path: |
+            reports/test-results/full.xml
+            reports/test-results/canary-proof.json
+          if-no-files-found: error
 
       - name: Drop isolated test database
         if: always()
@@ -1841,10 +1857,14 @@ jobs:
                           "refusing database mutation"
                       )
                       return None
+                  shard = os.environ.get("CANARY_SHARD_INDEX")
+                  if shard not in {"0", "1", "2", "3", "serial"}:
+                      print("::warning::unexpected canary shard identity; refusing cleanup")
+                      return None
                   expected_name = resolve_isolated_db_name(
                       os.environ["GITHUB_RUN_ID"],
                       os.environ["GITHUB_RUN_ATTEMPT"],
-                      job_name,
+                      f"{job_name}-{shard}",
                   )
                   assert_safe_isolated_db_name(expected_name)
               except Exception as exc:
@@ -1906,6 +1926,45 @@ jobs:
               print(f"::warning::failed to drop isolated test database: {exc}")
           sys.exit(0)
           PY
+
+  # Stable required-check name. Matrix failure/cancellation/skipping or missing
+  # execution proof is a failure, never a successful empty fan-in.
+  full-suite-canary-gate:
+    name: full-suite-canary
+    needs: full-suite-canary
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    env:
+      CANARY_SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: full-suite-canary-part-*
+          path: reports/canary-parts
+          merge-multiple: false
+      - name: Verify exhaustive exactly-once coverage and successful shards
+        env:
+          MATRIX_RESULT: ${{ needs['full-suite-canary'].result }}
+          COMPARE_SERIAL: ${{ inputs.compare_serial == true }}
+        run: |
+          python -m scripts.ci.verify_canary \
+            --directory reports/canary-parts \
+            --matrix-result "$MATRIX_RESULT" \
+            --comparison "$COMPARE_SERIAL" \
+            --output reports/canary-gate-summary.json
+      - name: Upload exhaustive coverage proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-suite-canary-results
+          path: |
+            reports/canary-gate-summary.json
+            reports/full.xml
+          if-no-files-found: warn
 
   # ----------------------------------------------------------------
   # Round B additive frontend validation. These jobs do not alter the
