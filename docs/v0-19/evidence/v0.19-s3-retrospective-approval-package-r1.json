@@ -1,0 +1,423 @@
+{
+  "task_id": "V0_19_S3_RETROSPECTIVE_PROTOCOL_AND_C0_APPROVAL_PACKAGE_R1",
+  "base_main_sha": "3298b9c8daefc3dbc51b99954baaaa713353271c",
+  "baseline_ci": {
+    "run_id": 39606948456,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "not_this_pr_ci": true
+  },
+  "identity": {
+    "experiment_type": "RETROSPECTIVE_REPLAY",
+    "historical_status": "EXPOSED_HISTORICAL_BENCHMARK",
+    "protocol_status": "PROPOSED_NOT_EFFECTIVE",
+    "comparison_family": "V019_SOURCE002_FOLD_B_CROSS_SOURCE_REPLAY_PROPOSED_R1",
+    "strict_pit": false,
+    "production_eligible": false
+  },
+  "states": {
+    "retrospective_protocol_effective": false,
+    "real_prediction_authorized": false,
+    "real_scoring_authorized": false,
+    "real_prediction_generated": false,
+    "real_scoring_performed": false,
+    "model_training_authorized": false,
+    "s3_formal_complete": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "deploy_authorized": false
+  },
+  "scope": {
+    "version": "V0_19_SOURCE002_OWNER_RESEARCH_SCOPE_R1",
+    "bases": 39,
+    "included_farms": 80,
+    "excluded_farms": 4,
+    "unresolved": 0,
+    "season": "2025-2026",
+    "target_start": "2025-08-05",
+    "target_end": "2026-04-15",
+    "full_season_admitted": 0,
+    "exclusions": [
+      "嘉果莓森",
+      "曲靖师宗农场",
+      "格莱莓农场",
+      "老挝巴松一场"
+    ],
+    "exclusion_scope": "RESEARCH_ONLY_PRESERVE_RAW_AND_GLOBAL_V08_AUTHORITY",
+    "exact_additional_bindings": {
+      "文山古木农场": [
+        "base_ffdc1ebe359436aa3f0fa834",
+        "砚山盘龙基地"
+      ],
+      "文山喜古农场": [
+        "base_ffdc1ebe359436aa3f0fa834",
+        "砚山盘龙基地"
+      ],
+      "文山马塘农场": [
+        "base_ffdc1ebe359436aa3f0fa834",
+        "砚山盘龙基地"
+      ],
+      "大理巍山农场（WRM)": [
+        "base_f10df3ac242e4dbbf6c20b98",
+        "大理巍山基地"
+      ],
+      "弥勒朋普农场（MYM）": [
+        "base_c51783e2ec7c16bba447d64e",
+        "弥勒朋普基地"
+      ]
+    },
+    "prior_metadata_reference_only": {
+      "base_days": 9906,
+      "observed": 6416,
+      "authorized_zero": 3490,
+      "zero_to_observed_changes": {
+        "base_ffdc1ebe359436aa3f0fa834": 17,
+        "base_f10df3ac242e4dbbf6c20b98": 14,
+        "base_c51783e2ec7c16bba447d64e": 14
+      },
+      "reverified_private_objects_this_task": false
+    }
+  },
+  "input_identities": {
+    "source002_reference_not_phase_a_input": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "reference-B.json": "a0a5cbc3c3ca5bd2b0b8860328eee73840499b38da89c11a104f83d02fd77c5b",
+    "base-registry-v1.json": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "registry_payload_sha256": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+    "owner_decision_sha256": "7d15f85752bc57e3facc4d912aa1d89e3c1ce7e61ee85c52b432cfc8af952bf2",
+    "owner-scope-metadata-r2.json": "bc1248835055c2488f9d5fa29351ef3d3605f3c91b36539f4c236f1ca584e572",
+    "h7-candidates.csv": "fc047941cda320d12f5b4bc913cf5585ccbcae508f73e976b557c83a8892abea",
+    "h15-candidates.csv": "699f75d7543bbe2ef9bd0c8c991ada3bf2d61bc0c9cea2fed02790f35b5e281f"
+  },
+  "algorithm": {
+    "baseline": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "candidate": "BIN_CENTER_LINEAR_PER_BIN_MASS_V1",
+    "candidate_count": 1,
+    "fold": "B",
+    "season_anchor": "2025-07-01",
+    "full_support": [
+      "2025-07-01",
+      "2026-04-15"
+    ],
+    "query": "SLICE_PRECOMPUTED_SUPPORT_NO_RENORMALIZATION",
+    "generation_order": "FULL_SHARED_SUPPORT_THEN_H7_H15_SLICE",
+    "tuning": false,
+    "profile_train_row_set_hash": "c8b2da43696071648ac8280569fc2e28d7fa4b987f0a63b9edaae22122cc717e",
+    "numerics": "EXISTING_S2_INTEGER_MICRO_KG_PER_BIN_CONSERVATION_SIX_DECIMAL_OUTPUT"
+  },
+  "time": {
+    "business_timezone": "Asia/Shanghai",
+    "historical_issuance_evidence": "NOT_PROVEN",
+    "origin_and_cutoff_registration": "OWNER_DECISION_REQUIRED_DATE_ONLY_NOW",
+    "executed_at": "ACTUAL_TIMEZONE_AWARE_UTC_NEVER_BACKDATED",
+    "target_rule": "LOCAL_D1_THROUGH_DH_ORIGIN_DATE_PLUS_HORIZON",
+    "repeatability": "CURVE_CONTENT_HASH_EQUAL_RUN_SEAL_WITH_ACTUAL_EXECUTION_TIME_MAY_DIFFER"
+  },
+  "c0": {
+    "status": "C0_CANDIDATE_ONLY",
+    "formally_admitted_count": 0,
+    "formal_seal_sha256": null,
+    "roster_disposition": "REFERENCE_EXISTING_PRIVATE_PINNED_MANIFESTS_NO_COPY",
+    "windows": {
+      "H7_PREFIX": {
+        "manifest": "h7-candidates.csv",
+        "count": 9672,
+        "horizon_days": 7,
+        "origin_first": "2025-08-04",
+        "origin_last": "2026-04-08",
+        "status": "C0_CANDIDATE_ONLY"
+      },
+      "H15_LOCAL": {
+        "manifest": "h15-candidates.csv",
+        "count": 9360,
+        "horizon_days": 15,
+        "origin_first": "2025-08-04",
+        "origin_last": "2026-03-31",
+        "status": "C0_CANDIDATE_ONLY"
+      }
+    },
+    "selection_uses": [
+      "IDENTITY",
+      "DATES",
+      "SOURCE",
+      "WINDOW",
+      "AUTHORIZED_COMPLETENESS"
+    ],
+    "freeze_before_labels": true,
+    "post_score_membership_changes": false,
+    "failure_policy": "KEEP_ALL_REGISTERED_MEMBERS_FAILURES_AND_REASONS",
+    "candidate_columns": [
+      "candidate_id",
+      "base_id",
+      "season",
+      "window",
+      "origin_date",
+      "target_start",
+      "target_end",
+      "target_dates_sha256",
+      "day_authority_sha256",
+      "status"
+    ],
+    "formal_approval_checks": [
+      "PINNED_PRIVATE_MANIFEST_BYTES",
+      "EXACT_39_BASE_REGISTRY_IDENTITIES",
+      "80_FARM_PER_BASE_MEMBERS_AND_RESEARCH_ONLY_EXCLUSIONS",
+      "AREA_ROW_IDENTITY_AND_MU",
+      "DAILY_COMPLETENESS_ZERO_AUTHORITY_AND_17_14_14_CHANGES",
+      "SORT_UNIQUE_EXACT_BASE_ORIGIN_UNIVERSE",
+      "ORIGIN_CUTOFF_TIMEZONE_TARGET_DATES",
+      "COMPARISON_FAMILY_SOURCE_TRAIN_EVALUATION_SCOPE",
+      "ALL_FAILURES_AND_EXCLUSIONS",
+      "NEW_OWNER_FORMAL_C0_SEAL_LINKS_ORIGINAL_CANDIDATES_NOT_OVERWRITE"
+    ]
+  },
+  "limitations": {
+    "physical_basis_equivalence": "NOT_PROVEN",
+    "historical_area_known_at": "NOT_PROVEN",
+    "strict_scorer_disposition": "UNCHANGED_REFUSE_LATE_ISSUANCE",
+    "recorded_source_completeness_not_all_physical_harvest_proof": true,
+    "formal_protocol_approval": "PENDING_OWNER",
+    "full_season": "NOT_ADMITTED",
+    "current_season_2026_2027": "OUT_OF_SCOPE"
+  },
+  "phase_a": {
+    "label_access": "FORBIDDEN_INCLUDING_SOURCE002_WORKBOOK",
+    "execution_status": "UNAVAILABLE_UNCONDITIONAL_REFUSAL",
+    "requires": [
+      "PROTOCOL",
+      "FORMAL_C0",
+      "A_INPUT_READ",
+      "A_EXECUTION",
+      "INDEPENDENT_REVIEWED_RESEARCH_IMPLEMENTATION"
+    ],
+    "input_objects": [
+      "reference-B.json",
+      "base-registry-v1.json",
+      "h7-candidates.csv",
+      "h15-candidates.csv",
+      "owner-scope-metadata-r2.json"
+    ],
+    "isolation": "EXPLICIT_PATH_ALLOWLIST_NO_LABEL_READER_DB_DISCOVERY_OR_SHARED_LABEL_CACHE",
+    "failure_policy": "ABORT_ON_IDENTITY_AUTHORITY_OR_LABEL_ACCESS_DRIFT_PRESERVE_EVIDENCE"
+  },
+  "phase_b": {
+    "execution_status": "BLOCKED_NO_REAL_SCORING_IMPLEMENTATION_APPROVED",
+    "strict_scorer_bypass": false,
+    "requires": [
+      "PROTOCOL",
+      "FORMAL_C0",
+      "A_INPUT_READ",
+      "A_EXECUTION",
+      "A_SEAL_REVIEW",
+      "B_LABEL_READ",
+      "B_SCORING",
+      "INDEPENDENT_REVIEWED_RESEARCH_IMPLEMENTATION"
+    ],
+    "before_label_open": "VERIFY_APPROVAL_PROVENANCE_A_SEAL_EXACT_C0_AND_LABEL_OBJECT",
+    "labels": "SOURCE002_ONLY_APPROVED_MEMBERS_DATES_MATURITY_UNITS_ZERO_AUTHORITY",
+    "no_inference_from_similar_values": true
+  },
+  "seal": {
+    "canonicalization": "UTF8_SORT_KEYS_INDENT2_ENSURE_ASCII_FALSE_ALLOW_NAN_FALSE_TRAILING_LF",
+    "digest": "SHA256_NOT_SIGNATURE_OR_TRUSTED_TIMESTAMP",
+    "contains": [
+      "c0_member_manifest_hashes",
+      "profile_registry_area_scope_hashes",
+      "code_commit_and_blob_hashes",
+      "method_config_hash",
+      "full_support_curves_and_window_slices",
+      "all_failures",
+      "actual_executed_at",
+      "origin_cutoff_target_semantics",
+      "approval_provenance"
+    ],
+    "decimal": "STRINGS_NO_FLOAT_INTERMEDIATE",
+    "storage": "NEW_PRIVATE_0700_DIRECTORY_0600_FILES_NEVER_OVERWRITE_OR_UPLOAD_BUSINESS_ROWS",
+    "run_repeat_policy": "RETAIN_ALL_RUNS_NOT_SELECT_BEST_VERSION"
+  },
+  "decisions": {
+    "PROTOCOL": {
+      "status": "NOT_APPROVED",
+      "approved": false,
+      "description": "Approve only this cross-source retrospective family, support, limitations and exposed-history interpretation; do not change strict PIT.",
+      "github_or_private_decision_reference": null,
+      "decided_at": null
+    },
+    "FORMAL_C0": {
+      "status": "NOT_APPROVED",
+      "approved": false,
+      "description": "Review exact private H7/H15 manifests and metadata, all member identities/completeness, exclusions, hashes and new formal seal; counts alone insufficient.",
+      "github_or_private_decision_reference": null,
+      "decided_at": null
+    },
+    "A_INPUT_READ": {
+      "status": "NOT_APPROVED",
+      "approved": false,
+      "description": "Approve explicit frozen profile/Registry/member/date metadata paths, field allowlist, retention and isolated environment; no labels.",
+      "github_or_private_decision_reference": null,
+      "decided_at": null
+    },
+    "A_EXECUTION": {
+      "status": "NOT_APPROVED",
+      "approved": false,
+      "description": "Approve exact code/config/C0/support and real computation clock; no label access or tuning.",
+      "github_or_private_decision_reference": null,
+      "decided_at": null
+    },
+    "A_SEAL_REVIEW": {
+      "status": "NOT_APPROVED",
+      "approved": false,
+      "description": "Independent review of actual A seal, all failures, reproducibility, logs and access evidence before label opening.",
+      "github_or_private_decision_reference": null,
+      "decided_at": null
+    },
+    "B_LABEL_READ": {
+      "status": "NOT_APPROVED",
+      "approved": false,
+      "description": "Approve exact SOURCE_002 label object, members/date interval, purpose and retention after A seal review.",
+      "github_or_private_decision_reference": null,
+      "decided_at": null
+    },
+    "B_SCORING": {
+      "status": "NOT_APPROVED",
+      "approved": false,
+      "description": "Approve unchanged S1 metrics, paired Cm, all failures and degradation reporting; no training or winner-based changes.",
+      "github_or_private_decision_reference": null,
+      "decided_at": null
+    },
+    "INDEPENDENT_REVIEWED_RESEARCH_IMPLEMENTATION": {
+      "status": "NOT_APPROVED",
+      "approved": false,
+      "description": "Separately authorize and independently review an executable non-PIT research implementation; current real paths refuse unconditionally.",
+      "github_or_private_decision_reference": null,
+      "decided_at": null
+    }
+  },
+  "metrics": {
+    "definitions": {
+      "BASE_BREADTH": {
+        "aggregation": "PAIRED_BASE_ERROR_SUMS_NO_ROW_COUNT_SUBSTITUTION",
+        "denominator": "COMMON_COMPUTABLE_BASES_AND_THEIR_ACTUAL_KG",
+        "formula": "delta_b=sum(abs(candidate-a))-sum(abs(baseline-a)); count(delta_b<0,=0,>0); sum(actual_improved_b)/sum(actual_all_b)",
+        "undefined": "NO_COMMON_BASE_OR_ZERO_ACTUAL_MASS_RATIO",
+        "unit": "BASE_COUNT_AND_ACTUAL_KG_RATIO"
+      },
+      "DAILY_MAE": {
+        "aggregation": "EQUAL_ORIGIN_TARGET_INSTANCE_WEIGHT",
+        "denominator": "COMMON_TARGET_INSTANCE_COUNT",
+        "formula": "sum_c_d(abs(p-a))/N_common_target_instances",
+        "undefined": "EMPTY_COHORT",
+        "unit": "KG_PER_TARGET_ROW"
+      },
+      "DAILY_WAPE": {
+        "aggregation": "MICRO_POOLED_BY_SPLIT_AND_WINDOW",
+        "denominator": "ACTUAL_KG_OF_COMMON_TARGET_INSTANCES",
+        "formula": "sum_c_d(abs(p-a))/sum_c_d(a)",
+        "undefined": "ZERO_DENOMINATOR_OR_EMPTY_COHORT",
+        "unit": "RATIO"
+      },
+      "NOT_COMPUTABLE_COUNT": {
+        "aggregation": "ONE_PRIMARY_REASON_PER_METRIC_UNIT",
+        "denominator": "FROZEN_CANDIDATE_METRIC_UNIT_COUNT",
+        "formula": "N_candidate_metric-N_common_computable_metric",
+        "undefined": "EMPTY_COHORT_COUNT_ZERO_WITH_NULL_ERROR",
+        "unit": "COUNT"
+      },
+      "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+        "aggregation": "EQUAL_WINDOW_WEIGHT_ZERO_ACTUAL_INCLUDED",
+        "denominator": "COMMON_COMPLETE_WINDOW_COUNT",
+        "formula": "sum_c(abs(max_rolling7(p)-max_rolling7(a)))/N_complete_windows",
+        "undefined": "NO_COMPLETE_7DAY_WINDOW_OR_EMPTY_COHORT",
+        "unit": "KG_PER_7DAY_WINDOW"
+      },
+      "ROLLING_7DAY_PEAK_START_MAE": {
+        "aggregation": "EQUAL_WINDOW_WEIGHT",
+        "denominator": "POSITIVE_ACTUAL_COMPLETE_WINDOW_COUNT",
+        "formula": "sum_c(abs(earliest_start(max_rolling7(p))-earliest_start(max_rolling7(a))))/N_positive_actual_windows",
+        "undefined": "NO_COMPLETE_7DAY_WINDOW_OR_NO_POSITIVE_ACTUAL_PEAK",
+        "unit": "CALENDAR_DAYS"
+      },
+      "SAMPLE_COVERAGE": {
+        "aggregation": "PER_METRIC_SPLIT_WINDOW_AND_SEPARATE_BASE_ROW_COVERAGE",
+        "denominator": "FROZEN_CANDIDATE_METRIC_UNIT_COUNT",
+        "formula": "N_common_computable_metric/N_candidate_metric",
+        "undefined": "EMPTY_COHORT",
+        "unit": "RATIO"
+      },
+      "SEASON_TOTAL_WAPE": {
+        "aggregation": "MICRO_POOLED_ONE_PREREGISTERED_ISSUANCE_PER_BASE_SEASON",
+        "denominator": "ACTUAL_KG_IN_COMPLETE_FULL_SEASONS",
+        "formula": "sum_c(abs(sum_d(p)-sum_d(a)))/sum_c_d(a)",
+        "undefined": "ZERO_DENOMINATOR_OR_INCOMPLETE_SEASON",
+        "unit": "RATIO"
+      },
+      "SINGLE_DAY_PEAK_DATE_MAE": {
+        "aggregation": "EQUAL_WINDOW_WEIGHT",
+        "denominator": "POSITIVE_ACTUAL_COMPLETE_WINDOW_COUNT",
+        "formula": "sum_c(abs(date(argmax_earliest(p))-date(argmax_earliest(a))))/N_positive_actual_windows",
+        "undefined": "NO_POSITIVE_ACTUAL_PEAK_OR_INCOMPLETE_WINDOW",
+        "unit": "CALENDAR_DAYS"
+      },
+      "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+        "aggregation": "EQUAL_WINDOW_WEIGHT_ZERO_ACTUAL_INCLUDED",
+        "denominator": "COMMON_COMPLETE_WINDOW_COUNT",
+        "formula": "sum_c(abs(max(p)-max(a)))/N_complete_windows",
+        "undefined": "INCOMPLETE_WINDOW_OR_EMPTY_COHORT",
+        "unit": "KG_PER_WINDOW"
+      }
+    },
+    "source_comparison_key": [
+      "comparison_family",
+      "subpolicy",
+      "model_version_and_fit_hash",
+      "organization_entity_area_basis",
+      "target_season",
+      "origin",
+      "timezone",
+      "issued_at",
+      "window_and_expected_dates",
+      "profile_input_source_hashes",
+      "physical_basis",
+      "unit",
+      "label_authority_hash",
+      "label_maturity",
+      "training_and_evaluation_ranges"
+    ],
+    "full_season": "NOT_COMPUTABLE_NOT_ADMITTED",
+    "common_cohort": "PER_METRIC_PAIRED_CM_KEEP_C0_FAILURES",
+    "aggregation": "ONE_PREREGISTERED_COMPARISON_FAMILY_WINDOW_SPLIT_SOURCE_TRAIN_SCOPE",
+    "claims": "CONDITIONAL_RESEARCH_ONLY_NO_PRODUCTION_ACCURACY_PROMOTION_OR_BLIND_OOT",
+    "report_requires": [
+      "NUMERATOR_DENOMINATOR",
+      "C0_CM_HASHES_AND_REASON_COUNTS",
+      "BASE_AND_TARGET_DATE_COVERAGE",
+      "IMPROVED_TIED_DEGRADED_AND_MIXED",
+      "FAILURES_AND_NOT_COMPUTABLE",
+      "EXPOSURE_PHYSICAL_BASIS_AND_NON_PIT_LIMITATIONS"
+    ],
+    "h7_rolling_start_count": 1,
+    "h15_rolling_start_count": 9,
+    "numerics": "UNCHANGED_S1_DECIMAL_PRECISION_50_NO_FLOAT"
+  },
+  "historical_sources_sha256": {
+    "backend/research/v019_owner_scope_adapter.py": "a8525d3bdfdff763d58c2ee1cfee613dd85ce23d103be0f4180e14e56e407016",
+    "backend/research/v019_real_phase_a_adapter.py": "e08ad32d8e70eabd506d5f1f9a20d9c2fc6febb36aa49b4f0ee9803e03b81977",
+    "backend/research/v019_daily_curve.py": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff",
+    "backend/research/v019_replay_preparation.py": "1edf64c1be08bc95f5ed7a8626faa19e146b81165dc9f2a2beb5a0eb69394412",
+    "backend/research/v019_retrospective_entry.py": "53d26ef687d95c273e7499b4c598f966abfe66ff91f010c57076d5f298c063c6",
+    "backend/research/v019_synthetic_validation.py": "bffd788b36fb1100428df02248a17de8bfc057d784d80ff7085bb2fe122f2626",
+    "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md": "946f9212695fe4e40b3e41d757191daf01601a8d0c97a6f516c82f08edfebb27",
+    "docs/v0-19/evidence/v0.19-s1-model-baseline-peak-protocol-r1.json": "3ddd9617975bedd83aa608ab50a166b80edab5d2ee39ef768a2d66905c674c3e",
+    "docs/v0-19/s3/owner-scope-adapter-rebind-r2.md": "604528102119477b186e40bc4e958bd24479e01da6a109c9a64290f1a9f53e1d",
+    "docs/v0-19/evidence/v0.19-s3-owner-scope-adapter-rebind-r2.json": "657943dd631b2604a701038fc9e5e3499615f067d044aff8cd8462f655aec9b6"
+  },
+  "report_sha256": "918624c6f443404a96b96c7eeaf17515e29b7f5d9a7538c3fc4a0cbf8a3c0158",
+  "execution_this_task": {
+    "private_data_read": false,
+    "predictions_generated": false,
+    "labels_read": false,
+    "scoring_performed": false,
+    "training_performed": false
+  },
+  "delivery": "DRAFT_PR_AND_NEW_EXACT_HEAD_CI_THEN_INDEPENDENT_REVIEW_NOT_OWNER_APPROVAL"
+}
