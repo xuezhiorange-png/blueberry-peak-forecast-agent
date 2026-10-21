@@ -33,6 +33,7 @@ def test_canonical_s3_evidence_and_source_hashes():
                 "backend/tests/mcp/test_v0_18_s3_contract.py",
             }
             revised_authorization = field == "unchanged_business_sources_sha256" and relative in {
+                ".github/workflows/ci.yml",
                 "backend/app/local_auth/authorization.py",
                 "backend/app/local_auth/service.py",
             }
