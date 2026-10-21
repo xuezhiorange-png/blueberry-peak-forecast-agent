@@ -1,0 +1,88 @@
+{
+  "base_main_sha": "f501dc32f803df9ce9a109504a1c3cc47700c7a7",
+  "baseline_id": "OPERATIONAL_PEAK:AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+  "candidate_count": 1,
+  "candidate_id": "BIN_CENTER_LINEAR_PER_BIN_MASS_V1",
+  "ci_status_at_evidence_creation": "PENDING_EXACT_HEAD_GITHUB_RUN",
+  "data_class": "SYNTHETIC",
+  "historical_sources": {
+    "backend/research/v019_daily_curve.py": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff",
+    "backend/research/v019_replay_preparation.py": "1edf64c1be08bc95f5ed7a8626faa19e146b81165dc9f2a2beb5a0eb69394412",
+    "backend/research/v019_synthetic_validation.py": "bffd788b36fb1100428df02248a17de8bfc057d784d80ff7085bb2fe122f2626",
+    "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md": "946f9212695fe4e40b3e41d757191daf01601a8d0c97a6f516c82f08edfebb27",
+    "docs/v0-19/s2/daily-curve-method-config-r1.json": "b2e1f09aae99c09392c9e004ad2cf37884697494ac4fde771e1d2ad425aafbb2",
+    "docs/v0-19/s3/retrospective-replay-preparation-r1.md": "0e7f77d0f994909f26e924259c44c8f32cda9f8a0c28292e4119d499d7e78613"
+  },
+  "local_validation": {
+    "focused_tests": "32 passed; repeated",
+    "format": "1510 files already formatted",
+    "mypy_research_modules": "4 source files passed",
+    "related_contract_regression": "511 passed",
+    "ruff": "All checks passed"
+  },
+  "merge_authorized": false,
+  "model_training_performed": false,
+  "profile_fold": "B",
+  "protocol_status": "PROPOSED_NOT_EFFECTIVE",
+  "ready_authorized": false,
+  "real_blockers": [
+    "REAL_EXECUTION_NOT_AUTHORIZED",
+    "UNRESOLVED_FARM_IMPACT",
+    "PHYSICAL_BASIS_NOT_VERIFIED",
+    "HISTORICAL_INPUT_KNOWLEDGE_NOT_PROVEN",
+    "LATE_REPLAY_FAILS_EXISTING_ISSUANCE_GATE"
+  ],
+  "real_data_accessed": false,
+  "real_data_read_authorized": false,
+  "real_prediction_generation_authorized": false,
+  "real_scoring_authorized": false,
+  "real_scoring_performed": false,
+  "real_source_nomination": {
+    "candidate_bases": 39,
+    "end": "2026-04-15",
+    "full_season_admitted": 0,
+    "h15_structural_max": 9360,
+    "h7_structural_max": 9672,
+    "historical_area_bases": 39,
+    "historical_area_known_at": "NOT_PROVEN",
+    "matched_farms": 75,
+    "physical_basis_equivalence": "NOT_VERIFIED",
+    "season": "2025-2026",
+    "source_id": "SOURCE_002",
+    "source_sha256": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "start": "2025-08-05",
+    "unresolved_disposition": "BLOCKED_NOT_MAPPED_NOT_EXCLUDED",
+    "unresolved_farms": 9
+  },
+  "real_source_nomination_is_formal_c0": false,
+  "s3_formal_complete": false,
+  "snapshot_execution_source_sha256": {
+    "v019_daily_curve.py": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff",
+    "v019_replay_preparation.py": "1edf64c1be08bc95f5ed7a8626faa19e146b81165dc9f2a2beb5a0eb69394412",
+    "v019_retrospective_entry.py": "53d26ef687d95c273e7499b4c598f966abfe66ff91f010c57076d5f298c063c6",
+    "v019_synthetic_validation.py": "bffd788b36fb1100428df02248a17de8bfc057d784d80ff7085bb2fe122f2626"
+  },
+  "source_hash_policy": "Historical sources use fixed Git commit; current source hashes identify this run, not a future worktree invariant",
+  "strict_pit": false,
+  "synthetic_execution": {
+    "canonical_output_sha256": "7d0eeb69eedb2d13f8102073d2cf097106f859788a1b940fc53b40e2c3aaf389",
+    "command": "python -m backend.research.v019_retrospective_entry --demo",
+    "interpretation": "Late replay remains NOT_COMPUTABLE; computable metrics belong only to separate fictional positive control",
+    "repeat_equal": true,
+    "reports": {
+      "AS_ISSUED_FORECAST": {
+        "c0_sha256": "805245f91904713474838e01fbe25cfe674d057f108776d0a2ffb79c7f5b5cc9",
+        "clock_provenance": "EXPLICIT_SIMULATED_CLOCK",
+        "prediction_sha256": "c8d038ae18174a49c270cf0a2084fdae1ce6ad7df27612e501926373b6f1afee",
+        "report_sha256": "53fbb139c0498c95ed97152ee6ca2a1135a6d3408e46362c5ec208e57e4a27b7"
+      },
+      "RETROSPECTIVE_REPLAY": {
+        "c0_sha256": "539029a80f08079ff66c393ebc9a8774c6ce1a469b4ef1428ea476c85f6c3713",
+        "clock_provenance": "EXPLICIT_SIMULATED_CLOCK",
+        "prediction_sha256": "af039fc91f5e5c9f146f4f906ae9c324d3e5531473e9c2838c0fc2db93e7243c",
+        "report_sha256": "d49d71df2a74252ebffbababe017c125ce99a2ba3c103ac4c7123ebe047dc43e"
+      }
+    }
+  },
+  "task_id": "V0_19_S3_RETROSPECTIVE_RESEARCH_ENTRY_R1"
+}
