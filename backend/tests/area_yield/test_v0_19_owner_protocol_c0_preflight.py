@@ -122,14 +122,24 @@ def check(c: dict[str, Any]) -> None:
         x["status"] == "PENDING_OWNER_C0_REVIEW" and x["required_evidence"] for x in checks.values()
     )
     provenance = c["approval_provenance"]
-    assert provenance["source_kind"] == "DIRECT_OWNER_CHAT_THIS_TASK"
+    assert provenance["source_kind"] == "OWNER_REPLY_CONFIRMED_BY_CURRENT_OWNER_CORRECTION"
     assert provenance["source_task_id"] == c["task_id"]
     assert provenance["original_approved_at"] is None
     assert provenance["github_authorization_url"] is None
     assert provenance["external_signature"] is None
     assert provenance["chat_message_id"] is None
     assert provenance["timestamp_evidence"] == "RECORDING_CLOCK_ONLY_ORIGINAL_DECISION_TIME_UNKNOWN"
-    assert provenance["excerpt_hash_semantics"] == "CAPTURED_EXCERPT_BYTES_NOT_SIGNED_FULL_MESSAGE"
+    assert provenance["captured_excerpt"] == "可以"
+    assert (
+        provenance["structured_scope_author"] == "ASSISTANT_INTERPRETATION_NOT_VERBATIM_OWNER_REPLY"
+    )
+    assert (
+        provenance["excerpt_hash_semantics"]
+        == "OWNER_REPLY_BYTES_ONLY_NOT_REQUEST_CONTEXT_OR_SIGNATURE"
+    )
+    assert provenance["provenance_correction"]["supersedes_commit"] == (
+        "e6969a42282d979d8a23951db5ebe4f944b86349"
+    )
     assert (
         provenance["captured_excerpt_sha256"]
         == hashlib.sha256(provenance["captured_excerpt"].encode("utf-8")).hexdigest()
@@ -236,6 +246,15 @@ def test_each_other_decision_remains_unapproved(decision: str) -> None:
 def test_unknown_failure_inventory_is_not_zero() -> None:
     c = load()
     c["c0"]["failure_inventory"]["actual_failure_count"] = 0
+    with pytest.raises(AssertionError):
+        check(c)
+
+
+@pytest.mark.parametrize("fake", ["Owner 已明确同意受限协议", "PROTOCOL=OWNER_APPROVED_LIMITED"])
+def test_assistant_scope_cannot_be_labeled_as_verbatim_owner_reply(fake: str) -> None:
+    c = load()
+    c["approval_provenance"]["captured_excerpt"] = fake
+    c["approval_provenance"]["captured_excerpt_sha256"] = hashlib.sha256(fake.encode()).hexdigest()
     with pytest.raises(AssertionError):
         check(c)
 

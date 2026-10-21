@@ -1,0 +1,2245 @@
+{
+  "bases": [
+    {
+      "active": true,
+      "area_basis": null,
+      "base_id": "SYNTHETIC-BASE-A",
+      "canonical_base_name": "SYNTHETIC-A",
+      "productive_area_mu": "10"
+    },
+    {
+      "active": true,
+      "area_basis": null,
+      "base_id": "SYNTHETIC-BASE-B",
+      "canonical_base_name": "SYNTHETIC-B",
+      "productive_area_mu": "20"
+    },
+    {
+      "active": true,
+      "area_basis": null,
+      "base_id": "SYNTHETIC-BASE-C",
+      "canonical_base_name": "SYNTHETIC-C",
+      "productive_area_mu": "5"
+    },
+    {
+      "active": true,
+      "area_basis": null,
+      "base_id": "SYNTHETIC-BASE-D",
+      "canonical_base_name": "SYNTHETIC-D",
+      "productive_area_mu": "10"
+    }
+  ],
+  "data_class": "SYNTHETIC",
+  "experiment": {
+    "computed_at": "2002-01-01T00:00:00+00:00",
+    "data_class": "SYNTHETIC",
+    "experiment_id": "SYNTHETIC-RETROSPECTIVE-ENGINE-R1",
+    "fixture": "DEFAULT",
+    "score_at": "2003-01-01T00:00:00+00:00"
+  },
+  "input_availability": {
+    "SYNTHETIC-BASE-A": true,
+    "SYNTHETIC-BASE-B": true,
+    "SYNTHETIC-BASE-C": true,
+    "SYNTHETIC-BASE-D": false
+  },
+  "label_payload_sha256": "19a233d721a63e1317651c166e74b0975aeca308fb91ee21cf585afac9fdc926",
+  "labels_opened": false,
+  "members": [
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "10",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-A",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-06-30T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-01",
+        "2000-07-02",
+        "2000-07-03",
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18",
+        "2000-07-19",
+        "2000-07-20",
+        "2000-07-21"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": true,
+      "input_available_at": "2000-06-30T23:59:59+08:00",
+      "input_ingested_at": "2000-06-30T23:59:59+08:00",
+      "input_sha256": "9bf7052b33b2cd3c3a1cb7871f06b4d7fe1379326389f8f283bd7cce60aa0824",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-06-30T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-A-FULL_SEASON-2000-06-30",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "SYNTHETIC_COMPLETE_CALENDAR_CONTROL",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "FULL_SEASON"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "10",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-A",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-03T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-03T23:59:59+08:00",
+      "input_ingested_at": "2000-07-03T23:59:59+08:00",
+      "input_sha256": "9bf7052b33b2cd3c3a1cb7871f06b4d7fe1379326389f8f283bd7cce60aa0824",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-03T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-A-H15_LOCAL-2000-07-03",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H15_LOCAL"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "10",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-A",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-06T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18",
+        "2000-07-19",
+        "2000-07-20",
+        "2000-07-21"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-06T23:59:59+08:00",
+      "input_ingested_at": "2000-07-06T23:59:59+08:00",
+      "input_sha256": "9bf7052b33b2cd3c3a1cb7871f06b4d7fe1379326389f8f283bd7cce60aa0824",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-06T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-A-H15_LOCAL-2000-07-06",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H15_LOCAL"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "10",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-A",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-03T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-03T23:59:59+08:00",
+      "input_ingested_at": "2000-07-03T23:59:59+08:00",
+      "input_sha256": "9bf7052b33b2cd3c3a1cb7871f06b4d7fe1379326389f8f283bd7cce60aa0824",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-03T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-A-H7_PREFIX-2000-07-03",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H7_PREFIX"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "10",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-A",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-06T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-06T23:59:59+08:00",
+      "input_ingested_at": "2000-07-06T23:59:59+08:00",
+      "input_sha256": "9bf7052b33b2cd3c3a1cb7871f06b4d7fe1379326389f8f283bd7cce60aa0824",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-06T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-A-H7_PREFIX-2000-07-06",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H7_PREFIX"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "20",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-B",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-06-30T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-01",
+        "2000-07-02",
+        "2000-07-03",
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18",
+        "2000-07-19",
+        "2000-07-20",
+        "2000-07-21"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": true,
+      "input_available_at": "2000-06-30T23:59:59+08:00",
+      "input_ingested_at": "2000-06-30T23:59:59+08:00",
+      "input_sha256": "425b153db5e56a291ee295c20a676e2d4a8571718210dc7e202a8680c8b9a9dc",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-06-30T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-B-FULL_SEASON-2000-06-30",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "SYNTHETIC_COMPLETE_CALENDAR_CONTROL",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "FULL_SEASON"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "20",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-B",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-03T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-03T23:59:59+08:00",
+      "input_ingested_at": "2000-07-03T23:59:59+08:00",
+      "input_sha256": "425b153db5e56a291ee295c20a676e2d4a8571718210dc7e202a8680c8b9a9dc",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-03T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-B-H15_LOCAL-2000-07-03",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H15_LOCAL"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "20",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-B",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-06T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18",
+        "2000-07-19",
+        "2000-07-20",
+        "2000-07-21"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-06T23:59:59+08:00",
+      "input_ingested_at": "2000-07-06T23:59:59+08:00",
+      "input_sha256": "425b153db5e56a291ee295c20a676e2d4a8571718210dc7e202a8680c8b9a9dc",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-06T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-B-H15_LOCAL-2000-07-06",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H15_LOCAL"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "20",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-B",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-03T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-03T23:59:59+08:00",
+      "input_ingested_at": "2000-07-03T23:59:59+08:00",
+      "input_sha256": "425b153db5e56a291ee295c20a676e2d4a8571718210dc7e202a8680c8b9a9dc",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-03T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-B-H7_PREFIX-2000-07-03",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H7_PREFIX"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "20",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-B",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-06T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-06T23:59:59+08:00",
+      "input_ingested_at": "2000-07-06T23:59:59+08:00",
+      "input_sha256": "425b153db5e56a291ee295c20a676e2d4a8571718210dc7e202a8680c8b9a9dc",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-06T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-B-H7_PREFIX-2000-07-06",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H7_PREFIX"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "5",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-C",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-06-30T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-01",
+        "2000-07-02",
+        "2000-07-03",
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18",
+        "2000-07-19",
+        "2000-07-20",
+        "2000-07-21"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": true,
+      "input_available_at": "2000-06-30T23:59:59+08:00",
+      "input_ingested_at": "2000-06-30T23:59:59+08:00",
+      "input_sha256": "7fc96126c0e2705694d5b893188c47d52aa8938748ad7a825d894c08f7ee1faa",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-06-30T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-C-FULL_SEASON-2000-06-30",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "SYNTHETIC_COMPLETE_CALENDAR_CONTROL",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "FULL_SEASON"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "5",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-C",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-03T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-03T23:59:59+08:00",
+      "input_ingested_at": "2000-07-03T23:59:59+08:00",
+      "input_sha256": "7fc96126c0e2705694d5b893188c47d52aa8938748ad7a825d894c08f7ee1faa",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-03T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-C-H15_LOCAL-2000-07-03",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H15_LOCAL"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "5",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-C",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-06T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18",
+        "2000-07-19",
+        "2000-07-20",
+        "2000-07-21"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-06T23:59:59+08:00",
+      "input_ingested_at": "2000-07-06T23:59:59+08:00",
+      "input_sha256": "7fc96126c0e2705694d5b893188c47d52aa8938748ad7a825d894c08f7ee1faa",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-06T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-C-H15_LOCAL-2000-07-06",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H15_LOCAL"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "5",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-C",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-03T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-03T23:59:59+08:00",
+      "input_ingested_at": "2000-07-03T23:59:59+08:00",
+      "input_sha256": "7fc96126c0e2705694d5b893188c47d52aa8938748ad7a825d894c08f7ee1faa",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-03T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-C-H7_PREFIX-2000-07-03",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H7_PREFIX"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "5",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-C",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-06T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-06T23:59:59+08:00",
+      "input_ingested_at": "2000-07-06T23:59:59+08:00",
+      "input_sha256": "7fc96126c0e2705694d5b893188c47d52aa8938748ad7a825d894c08f7ee1faa",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-06T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-C-H7_PREFIX-2000-07-06",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H7_PREFIX"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "10",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-D",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-06-30T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-01",
+        "2000-07-02",
+        "2000-07-03",
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18",
+        "2000-07-19",
+        "2000-07-20",
+        "2000-07-21"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": true,
+      "input_available_at": "2000-06-30T23:59:59+08:00",
+      "input_ingested_at": "2000-06-30T23:59:59+08:00",
+      "input_sha256": "d601bc6fdc4cfd4f81a7a50d92fd43343f46a657938b8c85c02f3928c5f0c92a",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-06-30T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-D-FULL_SEASON-2000-06-30",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "SYNTHETIC_COMPLETE_CALENDAR_CONTROL",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "FULL_SEASON"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "10",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-D",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-03T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-03T23:59:59+08:00",
+      "input_ingested_at": "2000-07-03T23:59:59+08:00",
+      "input_sha256": "d601bc6fdc4cfd4f81a7a50d92fd43343f46a657938b8c85c02f3928c5f0c92a",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-03T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-D-H15_LOCAL-2000-07-03",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H15_LOCAL"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "10",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-D",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-06T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13",
+        "2000-07-14",
+        "2000-07-15",
+        "2000-07-16",
+        "2000-07-17",
+        "2000-07-18",
+        "2000-07-19",
+        "2000-07-20",
+        "2000-07-21"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-06T23:59:59+08:00",
+      "input_ingested_at": "2000-07-06T23:59:59+08:00",
+      "input_sha256": "d601bc6fdc4cfd4f81a7a50d92fd43343f46a657938b8c85c02f3928c5f0c92a",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-06T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-D-H15_LOCAL-2000-07-06",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H15_LOCAL"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "10",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-D",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-03T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-04",
+        "2000-07-05",
+        "2000-07-06",
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-03T23:59:59+08:00",
+      "input_ingested_at": "2000-07-03T23:59:59+08:00",
+      "input_sha256": "d601bc6fdc4cfd4f81a7a50d92fd43343f46a657938b8c85c02f3928c5f0c92a",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-03T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-D-H7_PREFIX-2000-07-03",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H7_PREFIX"
+    },
+    {
+      "area_effective_date": "1999-01-01",
+      "area_mu": "10",
+      "authorities": [
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "BASE_SUBFARM_VARIETY_IDENTITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AREA_AND_EFFECTIVE_DATE",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "RUN_AND_ISSUED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "MODEL_PROFILE_FIT_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "HARVEST_DATE_AND_UNIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_AUTHORITY",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "AVAILABLE_AT_INGESTED_AT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "INPUT_CUTOFF",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "LABEL_MATURITY_COMPLETENESS",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "TRAIN_VALIDATION_EXPOSED_OOT_SPLIT",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "COMMON_COHORT_MEMBERSHIP_HASH",
+          "status": "AVAILABLE"
+        },
+        {
+          "evidence_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+          "name": "PREDICTION_LABEL_SEALS",
+          "status": "AVAILABLE"
+        }
+      ],
+      "base_id": "SYNTHETIC-BASE-D",
+      "comparison_family": "SYNTHETIC-RETROSPECTIVE-FROZEN-V1",
+      "cutoff": "2000-07-06T23:59:59+08:00",
+      "data_class": "SYNTHETIC",
+      "dates": [
+        "2000-07-07",
+        "2000-07-08",
+        "2000-07-09",
+        "2000-07-10",
+        "2000-07-11",
+        "2000-07-12",
+        "2000-07-13"
+      ],
+      "evaluation_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "full_season_registered": false,
+      "input_available_at": "2000-07-06T23:59:59+08:00",
+      "input_ingested_at": "2000-07-06T23:59:59+08:00",
+      "input_sha256": "d601bc6fdc4cfd4f81a7a50d92fd43343f46a657938b8c85c02f3928c5f0c92a",
+      "issued_at": "2002-01-01T00:00:00+00:00",
+      "label_authority_sha256": "8e54cb4241275bc789a5a6558cea859d7994411ef604db048ff50b604e94a46a",
+      "organization_id": "SYNTHETIC-ORG",
+      "origin": "2000-07-06T23:59:59+08:00",
+      "physical_basis": "ACTUAL_HARVEST_KG",
+      "profile_sha256": "76c48589411d8457312b29a5b2db5509d62ba641d7b5eed28b53f20bdda7b2ba",
+      "sample_id": "SYNTHETIC-BASE-D-H7_PREFIX-2000-07-06",
+      "season": "SYNTHETIC-SEASON-2000",
+      "source_population_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "split": "RETROSPECTIVE_REPLAY",
+      "subfarm_id": "SYNTHETIC-SUBFARM",
+      "train_scope_sha256": "e85a736765318961e009dcfad10c9678f116f2bd7df1e5575a64b5d704675077",
+      "unit": "kg",
+      "variety_id": "SYNTHETIC-VARIETY",
+      "window": "H7_PREFIX"
+    }
+  ],
+  "method_config": {
+    "anchor": "MEAN_BASELINE_DAILY_MICRO_KG_AT_MIDPOINT_OF_ACTUAL_BIN_SUPPORT",
+    "baseline_policy": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "bin_days": 7,
+    "boundary": "CLAMP_ENDPOINT_ANCHOR_INSIDE_DECLARED_SUPPORT_NO_EXTRAPOLATION",
+    "candidate_count": 1,
+    "candidate_id": "BIN_CENTER_LINEAR_PER_BIN_MASS_V1",
+    "input_precision": "EXACT_NONNEGATIVE_INTEGER_MICRO_KG_NO_INPUT_ROUNDING",
+    "interpolation": "BIN_CENTER_LINEAR_INTERPOLATION",
+    "method_selection": "OWNER_SPECIFIED_STRUCTURE_ONLY_BEFORE_LABEL_ACCESS",
+    "normalization": "PER_BIN_MASS_CONSERVING_NORMALIZATION",
+    "numeric_arithmetic": "DECIMAL_INPUT_OUTPUT_EXACT_INTEGER_RATIONAL_INTERMEDIATES_NO_FLOAT",
+    "output_kg_places": 6,
+    "parameter_search": false,
+    "partial_bins": "ACTUAL_DECLARED_SUPPORT_DAYS_ONLY_PRESERVE_SEASON_ANCHOR",
+    "quantization": "LARGEST_EXACT_REMAINDER_THEN_EARLIEST_DATE",
+    "query": "SLICE_PRECOMPUTED_SUPPORT_NO_RENORMALIZATION",
+    "timezone": "Asia/Shanghai",
+    "zero_mass_bin": "ALL_ZERO"
+  },
+  "profile": {
+    "fold_id": "B",
+    "identity": "SYNTHETIC_PROFILE_NOT_REAL_REFERENCE_B",
+    "missing_bin_policy": "NEAREST_AVAILABLE_TRAIN_BIN_EARLIER_TIE",
+    "profile_kg_per_mu_by_7_day_bin": {
+      "0": "1",
+      "1": "3",
+      "2": "0.5"
+    },
+    "reference_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "validation_labels_used": false
+  },
+  "real_formally_admitted_c0_count": 0,
+  "registered_profiles": {
+    "SYNTHETIC-BASE-A": {
+      "fold_id": "B",
+      "identity": "SYNTHETIC_PROFILE_NOT_REAL_REFERENCE_B",
+      "missing_bin_policy": "NEAREST_AVAILABLE_TRAIN_BIN_EARLIER_TIE",
+      "profile_kg_per_mu_by_7_day_bin": {
+        "0": "1",
+        "1": "3",
+        "2": "0.5"
+      },
+      "reference_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+      "validation_labels_used": false
+    },
+    "SYNTHETIC-BASE-B": {
+      "fold_id": "B",
+      "identity": "SYNTHETIC_PROFILE_NOT_REAL_REFERENCE_B",
+      "missing_bin_policy": "NEAREST_AVAILABLE_TRAIN_BIN_EARLIER_TIE",
+      "profile_kg_per_mu_by_7_day_bin": {
+        "0": "1",
+        "1": "3",
+        "2": "0.5"
+      },
+      "reference_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+      "validation_labels_used": false
+    },
+    "SYNTHETIC-BASE-C": {
+      "fold_id": "B",
+      "identity": "SYNTHETIC_PROFILE_NOT_REAL_REFERENCE_B",
+      "missing_bin_policy": "NEAREST_AVAILABLE_TRAIN_BIN_EARLIER_TIE",
+      "profile_kg_per_mu_by_7_day_bin": {
+        "0": "1",
+        "1": "3",
+        "2": "0.5"
+      },
+      "reference_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+      "validation_labels_used": false
+    },
+    "SYNTHETIC-BASE-D": {
+      "fold_id": "B",
+      "identity": "SYNTHETIC_PROFILE_NOT_REAL_REFERENCE_B",
+      "missing_bin_policy": "NEAREST_AVAILABLE_TRAIN_BIN_EARLIER_TIE",
+      "profile_kg_per_mu_by_7_day_bin": {
+        "0": "1",
+        "1": "3",
+        "2": "0.5"
+      },
+      "reference_id": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+      "validation_labels_used": false
+    }
+  },
+  "source_code_sha256": {
+    "backend/app/forecast_quality/operational_peak.py": "3bebc3d193052b87968b95bdfc55ae1ca3ab2bb784d6c520743489e1586fb762",
+    "backend/research/v019_daily_curve.py": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff",
+    "backend/research/v019_owner_scope_adapter.py": "a8525d3bdfdff763d58c2ee1cfee613dd85ce23d103be0f4180e14e56e407016",
+    "backend/research/v019_retrospective_engine.py": "daa2497e66e845a4f3307c83c20ef4c816b45eb636415013e1dc6098c5df9e9f",
+    "backend/research/v019_retrospective_scoring.py": "35d8e335127ff77cc4094ceb1ad56d904ff633dc4c4febb25bd4db8f680b7615",
+    "backend/research/v019_synthetic_validation.py": "bffd788b36fb1100428df02248a17de8bfc057d784d80ff7085bb2fe122f2626"
+  },
+  "support": [
+    "2000-07-01",
+    "2000-07-21"
+  ]
+}
