@@ -1,0 +1,14 @@
+{
+  "actual_process_completed_at": "2026-10-21T16:21:39.936769+00:00",
+  "data_class": "SYNTHETIC",
+  "file_sha256": {
+    "c0-candidates.json": "f3a886b54190d9e97072ff5f4512ec7ac434f0031770d931f96f4d684af505a8",
+    "phase-a.json": "5ecff8b761c9691e985622280abad30ec79489312667ceb804f2f105bc0a120a",
+    "report.html": "b3fa4f8fd42e473ca2f4674912d9ad2abddf2ce9e7118b984e5a48d1c1d2fbb0",
+    "report.json": "77468a5c02c289ff2baf102090ac945abbe2d513d5e54137dfc646132cdcdb07",
+    "report.md": "daab8ccbaefec8c866c25a0bba3af483282462fbefef6cfe3ee4431ee4979442",
+    "synthetic-c0-admission.json": "319e3307aac05c6f1431c4b4f93c3011dd5074c12244d2c031c6877300137cb3"
+  },
+  "real_prediction_generated": false,
+  "real_scoring_performed": false
+}
