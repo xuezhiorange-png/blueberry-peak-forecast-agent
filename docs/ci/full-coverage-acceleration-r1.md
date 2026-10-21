@@ -122,3 +122,31 @@ Linux/PostgreSQL 16 full execution set; the real Actions comparison supplies it.
 
 Second-stage reuse remains a separate, **design-only** proposal in
 `main-result-reuse-design-r1.md`. No main gate is removed or made conditional.
+
+## First-head failure and authorized historical boundaries
+
+Head `3d19a1356ca6f611ed07c5d19c674767e2547e8e` PR run `39570381539`
+failed honestly: Golden and slot 3 both reported the same two V0.18 evidence
+contracts still binding today's workflow bytes to a historical workflow hash.
+The strict aggregate also failed; none of these failures is a successful
+acceptance result. The old-head comparison `39570690934` was cancelled after
+this deterministic blocker was established, to avoid an unusable serial rerun.
+Both original Actions records and their artifacts remain available.
+
+Owner then explicitly authorized four minimal, transitive source-read
+adaptations, without changing any expected hash, JSON or assertion:
+
+| Contract | Exact historical source / commit |
+| --- | --- |
+| `local_auth/test_runtime_evidence_contract.py` | Workflow at S1 merge `e9812e82067dceae444ff0707ceeb2f560c1018e` |
+| `mcp/test_v0_18_s3_contract.py` | Workflow at existing S3 base `3410dd4426618a7a4b29c08cbf58aaef20196939` |
+| `revoke_read_race/test_evidence_contract.py` | S1 contract source at existing revoke-fix merge `8c6f8cdb579b97669e7cc27edea3e75ea32090e6` |
+| `local_auth/test_preauth_fix_evidence_contract.py` | MCP contract source at original PREAUTH delivery `f151f0e6aca3577c5ee959a220c16e9756179649` |
+
+Each blob was read from that immutable commit and matched its original evidence
+SHA256 before adaptation. The workflow hash remains
+`696c72eeee06046d761d76a919b21ac374eb7f86e22d6639c21e97f660120fab`.
+Only the named paths join existing historical-source sets; all other paths,
+current-runtime tests, negative tests and frozen evidence remain unchanged.
+The corrected final head requires its own PR CI and complete serial comparison;
+the failed/cancelled first-head runs cannot supply that acceptance.
