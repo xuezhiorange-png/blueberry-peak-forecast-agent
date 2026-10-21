@@ -59,7 +59,26 @@
 # Cross-jobs (must NOT run on PR events):
 #   - full-suite-canary: main push + schedule + workflow_dispatch ONLY (see §4).
 #
-version: 1
+version: 2
+
+# Current exhaustive gate. Historical fast-feedback ownership below is retained;
+# no marker, test assertion, event/path exclusion or fast job is removed.
+full_canary_partition:
+  worker_job: full-suite-canary
+  required_check_name: full-suite-canary
+  aggregate_job: full-suite-canary-gate
+  normal_slots: ["0", "1", "2", "3"]
+  assignment: longest_historical_duration_first_whole_test_files
+  durations: scripts/ci/canary-timings-r1.json
+  source_run: 39554253546
+  python: "3.12"
+  postgres: "16"
+  fail_fast: false
+  isolated_database: per_run_attempt_and_slot_on_independent_service_container
+  proof: complete_collection_and_per_node_setup_call_teardown_plus_junit
+  failures: reject_failed_missing_cancelled_skipped_shards_and_new_skip_or_xfail
+  serial_control: explicit_workflow_dispatch_compare_serial_only
+  main_result_reuse: disabled_design_only
 
 # S1 adds ordinary PostgreSQL coverage to domain-1 and its sharp-selector race
 # test to postgres-concurrency; the exhaustive canary intentionally repeats both.
