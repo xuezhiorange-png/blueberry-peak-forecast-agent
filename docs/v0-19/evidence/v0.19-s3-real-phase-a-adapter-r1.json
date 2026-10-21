@@ -1,0 +1,113 @@
+{
+  "base_main_sha": "c706d3902ff77f82fb7914474b98fe3a957b6229",
+  "baseline": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+  "candidate": "BIN_CENTER_LINEAR_PER_BIN_MASS_V1",
+  "candidate_count": 1,
+  "ci": {
+    "required": "FINAL_HEAD_FULL_PR_CI",
+    "result": "SEE_GITHUB_FINAL_HEAD_RUN_NOT_PRECLAIMED"
+  },
+  "delivery": "DRAFT_PR_DEVELOPMENT_ONLY",
+  "experiment_type": "RETROSPECTIVE_REPLAY",
+  "historical_status": "EXPOSED_HISTORICAL_BENCHMARK",
+  "implementation": {
+    "authority_is_not_a_hash": true,
+    "entry": "backend/research/v019_real_phase_a_adapter.py",
+    "full_support_before_slice": true,
+    "label_input_interface": false,
+    "missing_members_preserved": true,
+    "read_paths": "explicit_only_no_discovery",
+    "real_generation": "UNCONDITIONALLY_DISABLED_BEFORE_IO",
+    "scoring_interface": false,
+    "synthetic_inputs": "EXISTING_HERMETIC_FIXTURES_ONLY"
+  },
+  "limitations": [
+    "No real private object read or real-file positive-path acceptance in this task",
+    "Synthetic full-size structural roster is not the real pinned registry",
+    "Nine farms remain unresolved; no evidence any particular base is unaffected",
+    "Historical area known_at not proven",
+    "Training labels and SOURCE_002 physical-basis equivalence not proven",
+    "Complete support is an explicit unapproved proposal",
+    "Real operational baseline generation wiring remains unavailable pending separate authorization",
+    "No historical issuance or strict PIT claim"
+  ],
+  "merge_authorized": false,
+  "model_training_performed": false,
+  "production_eligible": false,
+  "profile_fold": "B",
+  "protocol_status": "PROPOSED_NOT_EFFECTIVE",
+  "ready_authorized": false,
+  "real_prediction_generated": false,
+  "real_private_data_read": false,
+  "real_scoring_performed": false,
+  "s3_formal_complete": false,
+  "source_identity": {
+    "historical_commit": "c706d3902ff77f82fb7914474b98fe3a957b6229",
+    "historical_sha256": {
+      "backend/research/v019_daily_curve.py": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff",
+      "backend/research/v019_replay_preparation.py": "1edf64c1be08bc95f5ed7a8626faa19e146b81165dc9f2a2beb5a0eb69394412",
+      "backend/research/v019_retrospective_entry.py": "53d26ef687d95c273e7499b4c598f966abfe66ff91f010c57076d5f298c063c6",
+      "backend/research/v019_synthetic_validation.py": "bffd788b36fb1100428df02248a17de8bfc057d784d80ff7085bb2fe122f2626"
+    },
+    "new_delivery_snapshot_sha256": {
+      "backend/research/v019_real_phase_a_adapter.py": "e08ad32d8e70eabd506d5f1f9a20d9c2fc6febb36aa49b4f0ee9803e03b81977",
+      "backend/tests/area_yield/test_v0_19_real_phase_a_adapter.py": "9546b6946fd6ddcdbc5ae8a59a90f619953bf0605fdda5a43e4544d9ac26de28",
+      "docs/v0-19/s3/real-phase-a-adapter-r1.md": "5efcad1a6c68baf1effd080134571fd2dfda73d5b071d38c40df4418c6915428"
+    },
+    "new_source_hashes_are_snapshot_only_not_future_worktree_invariants": true
+  },
+  "source_nomination": {
+    "candidate_bases": 39,
+    "formally_admitted_c0_count": 0,
+    "full_season_admitted": 0,
+    "h15": 9360,
+    "h7": 9672,
+    "matched_farms": 75,
+    "season": "2025-2026",
+    "source": "SOURCE_002",
+    "target_end": "2026-04-15",
+    "target_start": "2025-08-05",
+    "unresolved_farms": 9
+  },
+  "static_checks": {
+    "format": "PASS_1512_FILES",
+    "mypy": "PASS_NEW_MODULE_AND_TEST",
+    "ruff": "PASS_ALL_REPOSITORY"
+  },
+  "strict_pit": false,
+  "synthetic_seal_sha256": "41d990cd3b07c5a63174c7580b971b4bada3de200d5b2769e51358e6d0ab9a72",
+  "task_id": "V0_19_S3_REAL_PHASE_A_ADAPTER_R1",
+  "test_runs": [
+    {
+      "command": "python -m pytest backend/tests/area_yield/test_v0_19_real_phase_a_adapter.py -q",
+      "exit_code": 2,
+      "name": "initial_RED",
+      "result": "ImportError: new adapter module did not exist"
+    },
+    {
+      "failed": 0,
+      "name": "related_regression_first_run",
+      "note": "Before final added environment-rejection case; do not substitute for final-head CI",
+      "passed": 547,
+      "result": "PASS",
+      "skipped": 0
+    },
+    {
+      "command": "python -m pytest backend/tests/area_yield/test_v0_19_real_phase_a_adapter.py -q",
+      "exit_code": 0,
+      "failed": 0,
+      "name": "target_final_source_repeat",
+      "passed": 37,
+      "skipped": 0
+    },
+    {
+      "command": "python -m pytest new adapter + existing V0.19 S0-S3 tests + forecast_intelligence/test_v0_18*.py -q",
+      "elapsed_seconds": 122.19,
+      "exit_code": 0,
+      "failed": 0,
+      "name": "final_related_and_historical_regression",
+      "passed": 548,
+      "skipped": 0
+    }
+  ]
+}
