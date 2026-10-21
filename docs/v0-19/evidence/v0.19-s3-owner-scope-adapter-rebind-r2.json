@@ -1,0 +1,105 @@
+{
+  "task_id": "V0_19_S3_OWNER_SCOPE_ADAPTER_REBIND_R2",
+  "reviewed_main_sha": "92cc8904e3af211300a88a20720d2c03848c43b8",
+  "scope_version": "V0_19_SOURCE002_OWNER_RESEARCH_SCOPE_R1",
+  "main_delivery_gate": {
+    "run_id": 39554253546,
+    "conclusion": "success",
+    "executed_success_jobs": 4,
+    "expected_pr_only_skipped_jobs": 8
+  },
+  "implementation": {
+    "entry": "backend.research.v019_owner_scope_adapter.validate_owner_scope_inputs",
+    "r1_files_changed": false,
+    "production_code_changed": false,
+    "algorithm_changed": false,
+    "strict_pit_gate_changed": false,
+    "private_business_data_committed": false
+  },
+  "pins": {
+    "owner_decision_sha256": "7d15f85752bc57e3facc4d912aa1d89e3c1ce7e61ee85c52b432cfc8af952bf2",
+    "parent_reconciliation_manifest_sha256": "0111ab23c3c1fbe33d96b738f2755ce79874319c9a54ef82b8b9c3b170bece05",
+    "h7_sha256": "fc047941cda320d12f5b4bc913cf5585ccbcae508f73e976b557c83a8892abea",
+    "h15_sha256": "699f75d7543bbe2ef9bd0c8c991ada3bf2d61bc0c9cea2fed02790f35b5e281f",
+    "metadata_sha256": "bc1248835055c2488f9d5fa29351ef3d3605f3c91b36539f4c236f1ca584e572"
+  },
+  "validated_counts": {
+    "matched_farms": 80,
+    "research_excluded_farms": 4,
+    "unresolved_in_research_scope": 0,
+    "included_rows": 231634,
+    "excluded_rows": 1535,
+    "included_rows_through_2026_04_15": 230166,
+    "bases": 39,
+    "base_days": 9906,
+    "observed_base_days": 6416,
+    "authorized_zero_base_days": 3490,
+    "h7_candidates": 9672,
+    "h15_candidates": 9360,
+    "zero_to_observed_changes": [
+      17,
+      14,
+      14
+    ],
+    "formal_c0": 0
+  },
+  "local_validation": {
+    "focused": {
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "command": "python -m pytest backend/tests/area_yield/test_v0_19_owner_scope_adapter.py -q"
+    },
+    "v019_related": {
+      "passed": 330,
+      "failed": 0,
+      "skipped": 0,
+      "selection": "All eight test_v0_19* modules in backend/tests/area_yield"
+    },
+    "v018_history": {
+      "passed": 255,
+      "failed": 0,
+      "deselected": 763,
+      "command": "python -m pytest backend/tests/forecast_intelligence -k v0_18 -q",
+      "warnings": 12
+    },
+    "ruff": "PASS_FULL_REPOSITORY",
+    "format": "PASS_FULL_REPOSITORY_1514_FILES",
+    "mypy": "PASS_583_SOURCES_BACKEND_APP_PLUS_NEW_MODULE_AND_TEST"
+  },
+  "real_file_validation": {
+    "process_ids": [
+      29949,
+      30024
+    ],
+    "only_five_explicit_readonly_objects": true,
+    "normalized_results_equal": true,
+    "normalized_sha256": "78abf731a0633d9281e805277a7a73c021c3a41fe784bca2c18e372799c7d4eb",
+    "review_sha256": "8fd8eb82d0b3ee7c01d4f02c6601c958db47fabc1c6a8d470d5ebdedbd6ca066",
+    "private_report_sha256": "b63ab8a69d10f9d64d7f9d8bef4cf63bb5581135b4816061d07c1c880a96c798",
+    "raw_harvest_workbook_reads": 0,
+    "prediction_or_scoring_calls": 0,
+    "real_execution_refusal_pass": true
+  },
+  "source_snapshots": {
+    "note": "Provenance of this implementation only; not a future worktree-integrity gate. R1 remains bound to its historical delivery.",
+    "module_sha256": "a8525d3bdfdff763d58c2ee1cfee613dd85ce23d103be0f4180e14e56e407016",
+    "test_sha256": "6b0d2c9838d75839e61cc7820697dca8e4fe9609063b0cd4256d8a6e9d00fbb1"
+  },
+  "limitations": {
+    "exclusions_are_research_only": true,
+    "physical_basis_equivalence": "NOT_PROVEN",
+    "historical_area_known_at": "NOT_PROVEN",
+    "origin_time_cutoff": "NOT_REGISTERED_DATE_ONLY_NOT_HISTORICAL_ISSUANCE",
+    "strict_pit": false,
+    "retrospective_protocol_effective": false,
+    "formally_admitted_c0_count": 0,
+    "real_prediction_generated": false,
+    "real_scoring_performed": false,
+    "model_training_performed": false,
+    "s3_formal_complete": false
+  },
+  "exact_head_ci": "REQUIRES_NEW_PR_HEAD_GITHUB_RESULT_NOT_INFERRED_FROM_LOCAL_OR_MAIN",
+  "ready_authorized": false,
+  "merge_authorized": false
+}
