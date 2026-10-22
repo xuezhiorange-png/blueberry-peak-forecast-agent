@@ -2,6 +2,36 @@
 
 TASK_ID=V0_19_S3_REAL_RETROSPECTIVE_END_TO_END_R1
 
+以下为初始提交 `541748eaafc2331f45dbb3edc07f95d67fde00b4` 的数值运行快照，
+保留其历史结果，不代表后续合成/真实隔离安全修正已通过 exact-head CI。
+最新本地修正及复算另行追加，不能继承旧 HEAD 的 CI 结果。
+
+## 最新修正复算（本地证据，不替代 exact-head CI）
+
+核心代码身份 `0b0fa8f0987926295427ed9f7f099151d8594715b2e656fd60db34469957a534`。
+新增安全专项 47 PASS，V0.19 相关回归 490 PASS / 0 FAIL / 0 SKIPPED，
+1,902 项由显式 V0.19 筛选 deselected，不计为已执行。
+V0.18 合同回归另行重跑为 255 PASS / 0 FAIL / 0 SKIPPED，763 deselected。
+Ruff、Format、Mypy（589 个源码）通过。
+
+合成独立进程复算时间 `2026-10-22T04:28:36.867363+00:00`；
+A=11.533s，B=16.543s，总计=35.980s。
+子进程峰值 RSS=1173012480 bytes，父进程峰值=499761152 bytes；不是同时总内存。
+十指标所有字段及数值样例与以下原始快照逐项完全相同；安全修正没有改变算法或数量。
+新预测内容 Hash `ab0e71b53bf83bda42b30640d9a998de55d11df692e4045d8f99b82ace818e29`，
+A seal `f4a6b336104cbb59b2375dc01acc3fa9cb38f4995b7a1a477cbfed210fbf28b2`，
+B report Hash `e7e243a7c6b90734dfa411f61bb5d8065cccb1821083f122828903eb652c231e`。
+完整文件字节 Hash 另见机器证据；它们不同于报告内部 payload Hash。
+
+初始 HEAD 的 CI `39720815102` 为 16/16 SUCCESS，但不包含本地安全修正。
+原始 RED 和旧运行快照保留。Owner 随后直接回复“允许必要修复及新 HEAD CI”，
+授权在同一 PR 提交必要修正并执行一次修正 HEAD 的完整 CI；不是 Ready/Merge 授权。
+本次登记时间为 2026-10-22T05:19:47Z，不声称是独立核验的原批准时间。
+修正的 exact-head Run/Job 结果将记录在 PR 最终回执，不以旧 HEAD 成功替代。
+PR #749 继续 Draft，真实研究执行和正式 S3 完成状态不变。
+
+## 原始数值运行快照
+
 本报告所有 kg 和误差均由合成输入实际计算；不是 SOURCE_002 实际数据。
 核心源码 SHA256：`140632ef267772478fa85f0c41719138322d1337020de0b614acf8cd2693c467`。
 

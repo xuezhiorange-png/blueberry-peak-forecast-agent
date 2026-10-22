@@ -28,6 +28,16 @@ REAL_HASHES = {
     "h7": scope.H7_SHA256,
     "h15": scope.H15_SHA256,
 }
+# Reviewed full-size fictional fixture identities, NOT historical expected
+# hashes. Extending synthetic fixtures requires a reviewed new identity; merely
+# labeling an actual private object SYNTHETIC must never enable calculation.
+SYNTHETIC_HASHES = {
+    "profile": "48b1c611801b4bb810ada46affba21213806b876947cb91db973534288a93c07",
+    "registry": "7dc6c92b005cc4d4c9d321cfb338e17cd24a923f2571b626e1e47e690567cfb1",
+    "metadata": "4cb1f87fdd7c02af425ee442e4b0580029a5f6c00c4a540b883aa22fa3a5f4a6",
+    "h7": "41327c1becefbf9a9bfd5aa0185cf5ea609bbe574fda1038919e4da36b8c5081",
+    "h15": "23311e96451d140fd7c85735ee93238b095fceb5d64ddd768e580cba1f92da0c",
+}
 
 
 @dataclass(frozen=True)
@@ -73,16 +83,24 @@ def load_inputs(
         or m["support"] != ["2025-07-01", "2026-04-15"]
     ):
         raise ValueError("INPUT_MANIFEST_SCHEMA_OR_DATA_CLASS")
-    raw = {}
-    for key, filename in FILES.items():
+    # Validate the entire identity/path set before any of the five data reads.
+    for key in FILES:
         spec = m["files"][key]
         if set(spec) != {"path", "sha256"} or not io.HEX.fullmatch(spec["sha256"]):
             raise ValueError("EXPLICIT_PINNED_FILE_SCHEMA")
         if ctx.mode == "REAL" and spec["sha256"] != REAL_HASHES[key]:
             raise ValueError("FROZEN_REAL_OBJECT_IDENTITY_CHANGED")
-        raw[key] = io._read_pinned(Path(spec["path"]), spec["sha256"], filename)
+        if ctx.mode == "SYNTHETIC" and (
+            spec["sha256"] != SYNTHETIC_HASHES[key]
+            or Path(spec["path"]).parent != manifest_path.parent
+        ):
+            raise PermissionError("SYNTHETIC_REVIEWED_IDENTITY_AND_OWNED_PATH_REQUIRED")
     if len({s["path"] for s in m["files"].values()}) != 5:
         raise ValueError("INPUT_PATHS_NOT_DISTINCT")
+    raw = {
+        key: io._read_pinned(Path(m["files"][key]["path"]), m["files"][key]["sha256"], name)
+        for key, name in FILES.items()
+    }
     return from_snapshot(
         m,
         {k: b.decode("utf-8") for k, b in raw.items()},
@@ -112,6 +130,8 @@ def from_snapshot(
         raise ValueError("A_INPUT_SNAPSHOT_SCHEMA")
     raw = {k: v.encode("utf-8") for k, v in snapshots.items()}
     for k in FILES:
+        if ctx.mode == "SYNTHETIC" and m["files"][k]["sha256"] != SYNTHETIC_HASHES[k]:
+            raise PermissionError("SYNTHETIC_REVIEWED_SNAPSHOT_IDENTITY_REQUIRED")
         if io._hash(raw[k]) != m["files"][k]["sha256"]:
             raise ValueError("A_INPUT_SNAPSHOT_HASH_MISMATCH")
         if ctx.mode == "REAL" and m["files"][k]["sha256"] != REAL_HASHES[k]:

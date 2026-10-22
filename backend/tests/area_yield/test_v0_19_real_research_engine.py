@@ -434,23 +434,27 @@ def test_missing_label_window_failures_remain_in_full_report(
     prepared: dict[str, Any], tmp_path: Path
 ) -> None:
     p = prepared
-    labels = auth.read_json(p["lp"])
-    removed = labels["rows"].pop()
-    path = tmp_path / "labels.json"
-    lh = write(path, labels)
+    mp, mh, path, lh, _, _ = build(tmp_path.resolve() / "inputs", label_variant="MISSING_END")
     grants = dict(p["grants"])
-    sub = {"a_sha256": p["seal"]["sha256"], "label_sha256": lh}
+    grants["A_INPUT_READ"] = p["signer"].decision(
+        "A_INPUT_READ", math.digest({"manifest_path": str(mp), "sha256": mh})
+    )
+    seal = execution.run_a(mp, mh, p["formal"], p["ctx"], grants)
+    sp = tmp_path.resolve() / "a.json"
+    write(sp, seal)
+    grants["A_SEAL_REVIEW"] = p["signer"].decision("A_SEAL_REVIEW", seal["sha256"])
+    sub = {"a_sha256": seal["sha256"], "label_sha256": lh}
     grants["B_SCORING"] = p["signer"].decision("B_SCORING", math.digest(sub))
     grants["B_LABEL_READ"] = p["signer"].decision(
         "B_LABEL_READ", math.digest({**sub, "path": str(path)})
     )
-    r = scoring.run_b(p["sp"], p["seal"]["sha256"], path, lh, p["ctx"], grants)
+    r = scoring.run_b(sp, seal["sha256"], path, lh, p["ctx"], grants)
     assert r["registered_count"] == 19032 and len(r["members"]) == 19032
     assert any(x["reason"] == "INCOMPLETE_CALENDAR" for x in r["failures"])
     for window in ("H7_PREFIX", "H15_LOCAL"):
         m = r["groups"][window]["metrics"]["DAILY_MAE"]
         assert m["common_count"] == m["candidate_count"] - 1
-    assert removed["date"] == "2026-04-15"
+    assert len(auth.read_json(path)["rows"]) == 9905
 
 
 def test_calculation_failure_inventory_never_drops_members(prepared: dict[str, Any]) -> None:
@@ -493,3 +497,80 @@ def test_window_numerators_are_not_mislabeled_as_mae_or_season_scores(
     assert r["error_denominators"]["SEASON_TOTAL_WAPE"] == "0"
     assert "SEASON_TOTAL_WAPE" not in r["error_numerators"]["baseline"]
     assert r["season_total_wape_status"] == "NOT_COMPUTABLE_FULL_SEASON_NOT_ADMITTED"
+
+
+def test_real_identity_cannot_be_redeclared_synthetic_before_file_io(tmp_path: Path) -> None:
+    from backend.tests.area_yield.build_v019_real_shape_fixture import Signer
+
+    s = Signer()
+    path = tmp_path.resolve() / "input-manifest.json"
+    manifest: dict[str, Any] = {
+        "version": 1,
+        "data_class": "SYNTHETIC",
+        "scope_version": "V0_19_SOURCE002_OWNER_RESEARCH_SCOPE_R1",
+        "support": ["2025-07-01", "2026-04-15"],
+        "files": {
+            k: {"path": str(tmp_path.resolve() / name), "sha256": cohort.REAL_HASHES[k]}
+            for k, name in cohort.FILES.items()
+        },
+    }
+    mh = write(path, manifest)
+    grants = {
+        "A_INPUT_READ": s.decision(
+            "A_INPUT_READ", math.digest({"manifest_path": str(path), "sha256": mh})
+        )
+    }
+    with pytest.raises(PermissionError, match="SYNTHETIC.*IDENTITY"):
+        cohort.load_inputs(path, s.context, grants, mh)
+
+
+@pytest.mark.parametrize("key", list(cohort.FILES))
+@pytest.mark.parametrize("variant", ["REAL_PIN", "UNREVIEWED_REENCODING"])
+def test_all_synthetic_input_identities_checked_before_any_data_read(
+    tmp_path: Path, key: str, variant: str
+) -> None:
+    from backend.tests.area_yield.build_v019_real_shape_fixture import Signer
+
+    s = Signer()
+    path = tmp_path.resolve() / "input-manifest.json"
+    manifest: dict[str, Any] = {
+        "version": 1,
+        "data_class": "SYNTHETIC",
+        "scope_version": "V0_19_SOURCE002_OWNER_RESEARCH_SCOPE_R1",
+        "support": ["2025-07-01", "2026-04-15"],
+        "files": {
+            k: {"path": str(path.parent / name), "sha256": cohort.SYNTHETIC_HASHES[k]}
+            for k, name in cohort.FILES.items()
+        },
+    }
+    manifest["files"][key]["sha256"] = (
+        cohort.REAL_HASHES[key] if variant == "REAL_PIN" else "0" * 64
+    )
+    mh = write(path, manifest)
+    grants = {
+        "A_INPUT_READ": s.decision(
+            "A_INPUT_READ", math.digest({"manifest_path": str(path), "sha256": mh})
+        )
+    }
+    with pytest.raises(PermissionError, match="SYNTHETIC.*IDENTITY"):
+        cohort.load_inputs(path, s.context, grants, mh)
+
+
+@pytest.mark.parametrize(
+    "label_hash", ["0" * 64, "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a"]
+)
+def test_unknown_or_real_label_identity_denied_before_seal_or_label_io(
+    tmp_path: Path, label_hash: str
+) -> None:
+    from backend.tests.area_yield.build_v019_real_shape_fixture import Signer
+
+    signer = Signer()
+    with pytest.raises(PermissionError, match="SYNTHETIC_REVIEWED_LABEL_IDENTITY"):
+        scoring.run_b(
+            tmp_path / "absent-a.json",
+            "1" * 64,
+            tmp_path / "labels.json",
+            label_hash,
+            signer.context,
+            {},
+        )
