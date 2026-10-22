@@ -1,0 +1,366 @@
+{
+  "task_id": "V0_19_S3_OWNER_PROTOCOL_APPROVAL_AND_C0_PREFLIGHT_R1",
+  "version": "V0_19_S3_OWNER_PROTOCOL_DECISION_R1",
+  "base_main_sha": "9e84439da7ee27b08448804d87413d9a9af24b41",
+  "recorded_at": "2026-10-21T15:15:21Z",
+  "recorded_at_source": "CLOCK_CURR_TIME_AT_RECORD_CONSTRUCTION",
+  "recorded_at_is_owner_approval_time": false,
+  "predecessor": {
+    "pr": 747,
+    "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/747",
+    "head_sha": "8f80659f7775f7f0c98552da58d156e6584e800c",
+    "merge_sha": "9e84439da7ee27b08448804d87413d9a9af24b41",
+    "markdown_path": "docs/v0-19/s3/retrospective-protocol-and-c0-approval-r1.md",
+    "markdown_sha256": "918624c6f443404a96b96c7eeaf17515e29b7f5d9a7538c3fc4a0cbf8a3c0158",
+    "markdown_git_blob": "486d46841930a38ab0873e79e6791f206c07e510",
+    "json_path": "docs/v0-19/evidence/v0.19-s3-retrospective-approval-package-r1.json",
+    "json_sha256": "7d65a7d6787a67c9583fb8c383e996acb47bb289737ae0423a25d7a252027ece",
+    "json_git_blob": "bbe51f8f89fa526b0f7448759f123a0dea08a597",
+    "original_package_unchanged": true
+  },
+  "baseline_ci": {
+    "run_id": 39619137769,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "not_current_pr_validation": true
+  },
+  "protocol_owner_decision": "APPROVED_LIMITED",
+  "scope_section_sha256": "61e030e830cbf9558b5568deac26e0a0ff2e6746ed3bec99b1eb913a084acfed",
+  "scope_section_hash_kind": "CANONICAL_PREDECESSOR_SCOPE_SECTION_NOT_NEW_PRIVATE_AUTHORITY",
+  "approval_provenance": {
+    "source_kind": "OWNER_REPLY_CONFIRMED_BY_CURRENT_OWNER_CORRECTION",
+    "source_task_id": "V0_19_S3_OWNER_PROTOCOL_APPROVAL_AND_C0_PREFLIGHT_R1",
+    "chat_message_id": null,
+    "original_approved_at": null,
+    "github_authorization_url": null,
+    "external_signature": null,
+    "timestamp_evidence": "RECORDING_CLOCK_ONLY_ORIGINAL_DECISION_TIME_UNKNOWN",
+    "captured_excerpt": "可以",
+    "captured_excerpt_sha256": "0ef5c86fab94f13a7b7d54aa531ceb5d586cd9ebee98198ad975df3852da824a",
+    "excerpt_hash_semantics": "OWNER_REPLY_BYTES_ONLY_NOT_REQUEST_CONTEXT_OR_SIGNATURE",
+    "preceding_request": "LIMITED_PROTOCOL_APPROVAL_REQUEST_AS_CONFIRMED_BY_CURRENT_OWNER",
+    "structured_scope_author": "ASSISTANT_INTERPRETATION_NOT_VERBATIM_OWNER_REPLY",
+    "provenance_correction": {
+      "task_id": "V0_19_S3_END_TO_END_RETROSPECTIVE_ENGINE_R1",
+      "recorded_at": "2026-10-21T16:00:27Z",
+      "supersedes_commit": "e6969a42282d979d8a23951db5ebe4f944b86349",
+      "superseded_record_sha256": "71fda4c069081960d0e89f9c1cf4283b769321a8f27fb4776bff6ecd3a040f22",
+      "superseded_assistant_excerpt_sha256": "33542e30ba5d9f7f98f51c440644d2c479f255ffd20c6152091c584a0868c46b",
+      "error": "ASSISTANT_STRUCTURED_INSTRUCTION_MISLABELED_AS_OWNER_QUOTE"
+    },
+    "recorder": "Codex",
+    "does_not_claim_external_independent_review": true
+  },
+  "identity": {
+    "experiment_type": "RETROSPECTIVE_REPLAY",
+    "historical_status": "EXPOSED_HISTORICAL_BENCHMARK",
+    "comparison_family": "V019_SOURCE002_FOLD_B_CROSS_SOURCE_REPLAY_PROPOSED_R1",
+    "strict_pit": false,
+    "production_eligible": false,
+    "status": "OWNER_APPROVED_LIMITED_NOT_EFFECTIVE"
+  },
+  "accepted_limitations": {
+    "physical_basis_equivalence": "NOT_PROVEN",
+    "historical_area_known_at": "NOT_PROVEN",
+    "historical_issuance_evidence": "NOT_PROVEN",
+    "does_not_prove_production_accuracy": true,
+    "training_tuning_promotion_forbidden": true
+  },
+  "scope": {
+    "version": "V0_19_SOURCE002_OWNER_RESEARCH_SCOPE_R1",
+    "bases": 39,
+    "included_farms": 80,
+    "excluded_farms": 4,
+    "unresolved": 0,
+    "season": "2025-2026",
+    "target_start": "2025-08-05",
+    "target_end": "2026-04-15",
+    "full_season_admitted": 0,
+    "exclusions": [
+      "嘉果莓森",
+      "曲靖师宗农场",
+      "格莱莓农场",
+      "老挝巴松一场"
+    ],
+    "exclusion_scope": "RESEARCH_ONLY_PRESERVE_RAW_AND_GLOBAL_V08_AUTHORITY",
+    "exact_additional_bindings": {
+      "文山古木农场": [
+        "base_ffdc1ebe359436aa3f0fa834",
+        "砚山盘龙基地"
+      ],
+      "文山喜古农场": [
+        "base_ffdc1ebe359436aa3f0fa834",
+        "砚山盘龙基地"
+      ],
+      "文山马塘农场": [
+        "base_ffdc1ebe359436aa3f0fa834",
+        "砚山盘龙基地"
+      ],
+      "大理巍山农场（WRM)": [
+        "base_f10df3ac242e4dbbf6c20b98",
+        "大理巍山基地"
+      ],
+      "弥勒朋普农场（MYM）": [
+        "base_c51783e2ec7c16bba447d64e",
+        "弥勒朋普基地"
+      ]
+    },
+    "prior_metadata_reference_only": {
+      "base_days": 9906,
+      "observed": 6416,
+      "authorized_zero": 3490,
+      "zero_to_observed_changes": {
+        "base_ffdc1ebe359436aa3f0fa834": 17,
+        "base_f10df3ac242e4dbbf6c20b98": 14,
+        "base_c51783e2ec7c16bba447d64e": 14
+      },
+      "reverified_private_objects_this_task": false
+    }
+  },
+  "input_identities": {
+    "source002_reference_not_phase_a_input": "fc83859871c544b584b3999b6796ddd518cdc8bb8dd9754f5b5c9d6ae62db81a",
+    "reference-B.json": "a0a5cbc3c3ca5bd2b0b8860328eee73840499b38da89c11a104f83d02fd77c5b",
+    "base-registry-v1.json": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "registry_payload_sha256": "d942f78e33495739319753c3f4d184fd0d4ee98a23888c8e710cc17e474cd293",
+    "owner_decision_sha256": "7d15f85752bc57e3facc4d912aa1d89e3c1ce7e61ee85c52b432cfc8af952bf2",
+    "owner-scope-metadata-r2.json": "bc1248835055c2488f9d5fa29351ef3d3605f3c91b36539f4c236f1ca584e572",
+    "h7-candidates.csv": "fc047941cda320d12f5b4bc913cf5585ccbcae508f73e976b557c83a8892abea",
+    "h15-candidates.csv": "699f75d7543bbe2ef9bd0c8c991ada3bf2d61bc0c9cea2fed02790f35b5e281f"
+  },
+  "algorithm": {
+    "baseline": "AREA_NORMALIZED_SEASON_WEEK_MEDIAN_V1",
+    "candidate": "BIN_CENTER_LINEAR_PER_BIN_MASS_V1",
+    "candidate_count": 1,
+    "fold": "B",
+    "season_anchor": "2025-07-01",
+    "full_support": [
+      "2025-07-01",
+      "2026-04-15"
+    ],
+    "query": "SLICE_PRECOMPUTED_SUPPORT_NO_RENORMALIZATION",
+    "generation_order": "FULL_SHARED_SUPPORT_THEN_H7_H15_SLICE",
+    "tuning": false,
+    "profile_train_row_set_hash": "c8b2da43696071648ac8280569fc2e28d7fa4b987f0a63b9edaae22122cc717e",
+    "numerics": "EXISTING_S2_INTEGER_MICRO_KG_PER_BIN_CONSERVATION_SIX_DECIMAL_OUTPUT"
+  },
+  "decisions": {
+    "PROTOCOL": {
+      "status": "OWNER_APPROVED_LIMITED",
+      "owner_approved": true,
+      "does_not_grant_c0_or_execution": true
+    },
+    "FORMAL_C0": {
+      "status": "NOT_APPROVED",
+      "owner_approved": false
+    },
+    "A_INPUT_READ": {
+      "status": "NOT_APPROVED",
+      "owner_approved": false
+    },
+    "A_EXECUTION": {
+      "status": "NOT_APPROVED",
+      "owner_approved": false
+    },
+    "A_SEAL_REVIEW": {
+      "status": "NOT_APPROVED",
+      "owner_approved": false
+    },
+    "B_LABEL_READ": {
+      "status": "NOT_APPROVED",
+      "owner_approved": false
+    },
+    "B_SCORING": {
+      "status": "NOT_APPROVED",
+      "owner_approved": false
+    },
+    "INDEPENDENT_REVIEWED_RESEARCH_IMPLEMENTATION": {
+      "status": "NOT_APPROVED",
+      "owner_approved": false
+    }
+  },
+  "states": {
+    "retrospective_protocol_effective": false,
+    "real_prediction_authorized": false,
+    "real_scoring_authorized": false,
+    "real_prediction_generated": false,
+    "real_scoring_performed": false,
+    "model_training_authorized": false,
+    "s3_formal_complete": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "deploy_authorized": false
+  },
+  "c0": {
+    "status": "C0_CANDIDATE_ONLY",
+    "formally_admitted_count": 0,
+    "formal_seal_sha256": null,
+    "candidate_windows": {
+      "H7_PREFIX": {
+        "manifest": "h7-candidates.csv",
+        "count": 9672,
+        "horizon_days": 7,
+        "origin_first": "2025-08-04",
+        "origin_last": "2026-04-08",
+        "status": "C0_CANDIDATE_ONLY"
+      },
+      "H15_LOCAL": {
+        "manifest": "h15-candidates.csv",
+        "count": 9360,
+        "horizon_days": 15,
+        "origin_first": "2025-08-04",
+        "origin_last": "2026-03-31",
+        "status": "C0_CANDIDATE_ONLY"
+      }
+    },
+    "candidate_columns": [
+      "candidate_id",
+      "base_id",
+      "season",
+      "window",
+      "origin_date",
+      "target_start",
+      "target_end",
+      "target_dates_sha256",
+      "day_authority_sha256",
+      "status"
+    ],
+    "private_objects_reopened_this_task": false,
+    "roster_location": "EXISTING_CONTROLLED_MANIFEST_EXPLICIT_PATH_NO_DISCOVERY",
+    "review_rows_sha256": null,
+    "support_status": "PROPOSED_FOR_C0_REVIEW",
+    "failure_inventory": {
+      "status": "PENDING_EXACT_MEMBER_REVIEW_NOT_ZERO_FAILURES",
+      "actual_failure_count": null,
+      "sha256": null,
+      "per_window_required": true,
+      "required_columns": [
+        "candidate_id",
+        "base_id",
+        "origin_date",
+        "window",
+        "disposition",
+        "primary_reason",
+        "evidence_sha256"
+      ],
+      "retain_all_members_and_failures": true
+    },
+    "review_checklist": {
+      "EXACT_MEMBERS_REGISTRY": {
+        "status": "PENDING_OWNER_C0_REVIEW",
+        "required_evidence": [
+          "EXACT_39_BASE_REGISTRY_IDS_AND_PAYLOAD_HASH",
+          "80_FARM_PER_BASE_MEMBERS_IDENTITY_HASHES",
+          "FIVE_EXACT_OWNER_BINDINGS",
+          "FOUR_RESEARCH_ONLY_EXCLUSIONS_PRESERVE_GLOBAL_HISTORY"
+        ]
+      },
+      "CALENDAR_ZERO_AREA_SOURCE": {
+        "status": "PENDING_OWNER_C0_REVIEW",
+        "required_evidence": [
+          "SOURCE002_AND_OWNER_SCOPE_HASH",
+          "9906_BASE_DAYS_6416_OBSERVED_3490_AUTHORIZED_ZERO",
+          "17_14_14_ZERO_STATUS_TRANSITIONS",
+          "AREA_AUTHORITY_ROW_HASH_MU_AND_VERSION",
+          "KNOWN_AT_AND_PHYSICAL_BASIS_NOT_PROVEN_LIMITATIONS"
+        ]
+      },
+      "H7_MEMBERS_AND_FAILURES": {
+        "status": "PENDING_OWNER_C0_REVIEW",
+        "required_evidence": [
+          "PINNED_H7_FULL_9672_MANIFEST",
+          "UNIQUE_EXACT_BASE_ORIGIN_TARGET_DATES",
+          "ALL_REVIEW_FAILURES_AND_REASONS_NOT_COUNT_ONLY"
+        ]
+      },
+      "H15_MEMBERS_AND_FAILURES": {
+        "status": "PENDING_OWNER_C0_REVIEW",
+        "required_evidence": [
+          "PINNED_H15_FULL_9360_MANIFEST",
+          "UNIQUE_EXACT_BASE_ORIGIN_TARGET_DATES",
+          "ALL_REVIEW_FAILURES_AND_REASONS_NOT_H7_SUBSTITUTE"
+        ]
+      },
+      "ORIGIN_CUTOFF_SEMANTICS": {
+        "status": "PENDING_OWNER_C0_REVIEW",
+        "required_evidence": [
+          "APPROVED_RESEARCH_TIME_RULE_NOT_HISTORICAL_ISSUANCE",
+          "FULL_SUPPORT_AND_SEASON_ANCHOR",
+          "ACTUAL_EXECUTION_TIME_SEPARATE"
+        ]
+      },
+      "C0_SEAL_AND_APPROVAL_BOUNDARY": {
+        "status": "PENDING_OWNER_C0_REVIEW",
+        "required_evidence": [
+          "CANONICAL_CANDIDATE_REVIEW_BODY",
+          "EXPLICIT_OWNER_FORMAL_C0_DECISION_REFERENCES_EXACT_BODY",
+          "NEW_FORMAL_SEAL_NO_HISTORY_OVERWRITE",
+          "A_B_PERMISSIONS_REMAIN_INDEPENDENT"
+        ]
+      }
+    }
+  },
+  "research_time_proposal": {
+    "status": "PROPOSED_NOT_APPROVED_FOR_FORMAL_C0",
+    "timezone": "Asia/Shanghai",
+    "origin_at_rule": "ORIGIN_LOCAL_DATE_T23:59:59+08:00",
+    "cutoff_rule": "SAME_AS_RESEARCH_ORIGIN_AT_NO_HISTORICAL_AVAILABILITY_CLAIM",
+    "target_start_rule": "ORIGIN_LOCAL_DATE_PLUS_1_T00:00:00+08:00",
+    "historical_issued_at": null,
+    "actual_executed_at_rule": "ACTUAL_UTC_TIME_NEVER_ORIGIN_BACKDATE",
+    "date_metadata_is_trusted_issuance": false
+  },
+  "seal_proposal": {
+    "formal_seal_generated": false,
+    "approval_reference_order": [
+      "CANDIDATE_REVIEW_BODY_HASH",
+      "OWNER_FORMAL_C0_DECISION_REFERENCES_BODY_HASH",
+      "NEW_FORMAL_C0_SEAL_REFERENCES_BOTH_NO_CIRCULAR_SELF_HASH"
+    ],
+    "canonicalization": "UTF8_SORT_KEYS_INDENT2_ENSURE_ASCII_FALSE_ALLOW_NAN_FALSE_TRAILING_LF",
+    "membership_order": "BASE_ID_ORIGIN_DATE_WINDOW_WITH_UNIQUE_CANDIDATE_ID",
+    "membership_selection": "IDENTITY_CALENDAR_AUTHORIZED_COMPLETENESS_NOT_WEIGHTS_OR_ERRORS",
+    "body_required": [
+      "SCOPE_AND_OWNER_MAPPING_HASH",
+      "INPUT_FILE_AND_REGISTRY_PAYLOAD_HASHES",
+      "H7_H15_EXACT_MEMBER_ROWSET_AND_ORIGINAL_FILE_HASHES",
+      "DAY_AREA_MEMBER_AUTHORITIES",
+      "ALL_REVIEW_FAILURES_AND_REASONS",
+      "RESEARCH_TIME_RULE_AND_COMPLETE_SUPPORT",
+      "ALGORITHM_FOLD_METHOD_AND_COMPARISON_FAMILY",
+      "LIMITATIONS_AND_PROTOCOL_DECISION_RECORD_HASH"
+    ],
+    "digest_is_signature_or_authorization": false,
+    "original_candidate_status_overwritten": false
+  },
+  "execution_boundary": {
+    "phase_a": "UNCONDITIONAL_REFUSAL_UNCHANGED",
+    "phase_b": "REAL_SCORING_NOT_AUTHORIZED",
+    "strict_scorer": "UNCHANGED_REFUSE_LATE_ISSUANCE",
+    "activation_review": "PENDING_SEPARATE_REVIEW_NO_FLAGS_ENABLE_EXECUTION"
+  },
+  "execution_this_task": {
+    "private_files_read": false,
+    "labels_read": false,
+    "real_prediction_generated": false,
+    "real_scoring_performed": false,
+    "model_training_performed": false
+  },
+  "historical_sources_sha256": {
+    "backend/research/v019_owner_scope_adapter.py": "a8525d3bdfdff763d58c2ee1cfee613dd85ce23d103be0f4180e14e56e407016",
+    "backend/research/v019_real_phase_a_adapter.py": "e08ad32d8e70eabd506d5f1f9a20d9c2fc6febb36aa49b4f0ee9803e03b81977",
+    "backend/research/v019_daily_curve.py": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff",
+    "backend/research/v019_replay_preparation.py": "1edf64c1be08bc95f5ed7a8626faa19e146b81165dc9f2a2beb5a0eb69394412",
+    "backend/research/v019_retrospective_entry.py": "53d26ef687d95c273e7499b4c598f966abfe66ff91f010c57076d5f298c063c6",
+    "backend/research/v019_synthetic_validation.py": "bffd788b36fb1100428df02248a17de8bfc057d784d80ff7085bb2fe122f2626",
+    "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md": "946f9212695fe4e40b3e41d757191daf01601a8d0c97a6f516c82f08edfebb27",
+    "docs/v0-19/evidence/v0.19-s1-model-baseline-peak-protocol-r1.json": "3ddd9617975bedd83aa608ab50a166b80edab5d2ee39ef768a2d66905c674c3e",
+    "docs/v0-19/s3/owner-scope-adapter-rebind-r2.md": "604528102119477b186e40bc4e958bd24479e01da6a109c9a64290f1a9f53e1d",
+    "docs/v0-19/evidence/v0.19-s3-owner-scope-adapter-rebind-r2.json": "657943dd631b2604a701038fc9e5e3499615f067d044aff8cd8462f655aec9b6"
+  },
+  "new_document_sha256": {
+    "docs/v0-19/s3/owner-protocol-decision-r1.md": "7d33a05702a4e962524b416698c2e79b1c29d40658166d3aef2fba548d21396a",
+    "docs/v0-19/s3/owner-c0-admission-preflight-r1.md": "4a07c05510e76e7a5c4686c9534d9206c9b2ce0eee4fb27982ddc022164b7cc2"
+  },
+  "delivery": "DRAFT_PR_ONE_NORMAL_EXACT_HEAD_CI_THEN_STOP_NO_READY_MERGE_DEPLOY"
+}
