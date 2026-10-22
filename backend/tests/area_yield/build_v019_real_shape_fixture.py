@@ -41,7 +41,11 @@ class Signer:
         )
 
     def decision(self, kind: str, subject: str) -> dict[str, Any]:
-        role = "REVIEWER" if kind in {"A_SEAL_REVIEW", "IMPLEMENTATION_REVIEW"} else "OWNER"
+        role = (
+            "REVIEWER"
+            if kind in {"A_SEAL_REVIEW", "IMPLEMENTATION_REVIEW", "C0_SEAL_REVIEW"}
+            else "OWNER"
+        )
         t = datetime.now(UTC)
         p = {
             "version": 1,

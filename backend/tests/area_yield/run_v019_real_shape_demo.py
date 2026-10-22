@@ -37,7 +37,9 @@ def run(output: Path) -> dict[str, Any]:
     grants["FORMAL_C0"] = signer.decision("FORMAL_C0", review["sha256"])
     formal = cohort.formalize(c, review, signer.context, grants)
     grants["IMPLEMENTATION_REVIEW"] = signer.decision("IMPLEMENTATION_REVIEW", auth.code_identity())
-    grants["A_EXECUTION"] = signer.decision("A_EXECUTION", formal["sha256"])
+    subject_a = auth.phase_a_subject(formal["sha256"], mp, mh)
+    grants["A_EXECUTION"] = signer.decision("A_EXECUTION", subject_a)
+    grants["C0_SEAL_REVIEW"] = signer.decision("C0_SEAL_REVIEW", subject_a)
     write(
         output / "synthetic-roots.json",
         {"synthetic_only": True, "keys": signer.context.synthetic_roots},
@@ -71,6 +73,32 @@ def run(output: Path) -> dict[str, Any]:
     )
     a_seconds = time.monotonic() - a_start
     seal = auth.read_json(output / "a/phase-a.json")
+    subprocess.run(
+        command
+        + [
+            "verify-a",
+            *common,
+            "--grants",
+            str(output / "a-grants.json"),
+            "--formal-hash",
+            formal["sha256"],
+            "--inputs",
+            str(mp),
+            "--inputs-hash",
+            mh,
+            "--seal",
+            str(output / "a/phase-a.json"),
+            "--seal-hash",
+            seal["sha256"],
+            "--output",
+            str(output / "a-verification"),
+        ],
+        check=True,
+    )
+    verification = auth.read_json(output / "a-verification/phase-a-verification.json")
+    assert verification["prediction_sha256"] == seal["payload"]["prediction_sha256"]
+    assert verification["member_count"] == 19032
+    assert verification["labels_read"] is False
     grants["A_SEAL_REVIEW"] = signer.decision("A_SEAL_REVIEW", seal["sha256"])
     grants["B_LABEL_READ"] = signer.decision(
         "B_LABEL_READ", digest({"a_sha256": seal["sha256"], "path": str(lp), "label_sha256": lh})

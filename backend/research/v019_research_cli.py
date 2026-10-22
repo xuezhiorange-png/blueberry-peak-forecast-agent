@@ -14,10 +14,11 @@ from backend.research.v019_daily_curve import canonical_bytes
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("command", choices=("prepare", "formalize", "stage-a", "stage-b"))
+    p.add_argument("command", choices=("prepare", "formalize", "stage-a", "verify-a", "stage-b"))
     p.add_argument("--mode", required=True, choices=("REAL", "SYNTHETIC"))
     p.add_argument("--synthetic-roots", type=Path)
     p.add_argument("--real-trust-config", type=Path)
+    p.add_argument("--real-phase-a-enrollment", type=Path)
     p.add_argument("--grants", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--inputs", type=Path)
@@ -33,9 +34,15 @@ def main() -> None:
     a = p.parse_args()
     if a.mode == "REAL" and a.synthetic_roots is not None:
         p.error("synthetic roots cannot authorize REAL")
-    if a.mode == "SYNTHETIC" and a.real_trust_config is not None:
+    if a.mode == "SYNTHETIC" and (
+        a.real_trust_config is not None or a.real_phase_a_enrollment is not None
+    ):
         p.error("real enrollment cannot authorize SYNTHETIC")
-    ctx = auth.Context(a.mode, real_trust_config=a.real_trust_config)
+    ctx = auth.Context(
+        a.mode,
+        real_trust_config=a.real_trust_config,
+        real_phase_a_enrollment=a.real_phase_a_enrollment,
+    )
     if a.mode == "SYNTHETIC":
         if a.synthetic_roots is None:
             p.error("explicit synthetic trust context required")
@@ -59,12 +66,43 @@ def main() -> None:
     elif a.command == "stage-a":
         if not a.formal or not a.formal_hash or not a.inputs or not a.inputs_hash:
             p.error("formal C0, exact seal hash and inputs required")
-        auth.require(ctx, grants, "A_EXECUTION", a.formal_hash)
+        auth.require_phase_a(ctx, grants, a.formal_hash, a.inputs, a.inputs_hash)
         formal = auth.read_json(a.formal)
         if formal["sha256"] != a.formal_hash:
             raise ValueError("FORMAL_C0_HASH_MISMATCH")
         value = phase_a.run_a(a.inputs, a.inputs_hash, formal, ctx, grants)
         files = {"phase-a.json": canonical_bytes(value)}
+    elif a.command == "verify-a":
+        if not a.seal or not a.seal_hash or not a.formal_hash or not a.inputs or not a.inputs_hash:
+            p.error("exact A seal, C0 and manifest identities required")
+        if a.labels or a.labels_hash:
+            p.error("Phase A verification cannot accept labels")
+        auth.require_phase_a(ctx, grants, a.formal_hash, a.inputs, a.inputs_hash)
+        value = auth.read_json(a.seal)
+        payload = auth.unseal(value)
+        if (
+            value["sha256"] != a.seal_hash
+            or payload["content"]["formal_c0"]["sha256"] != a.formal_hash
+            or payload["content"]["manifest_identity"]
+            != {"manifest_path": str(a.inputs), "sha256": a.inputs_hash}
+        ):
+            raise ValueError("EXACT_A_VERIFICATION_SCOPE_MISMATCH")
+        content = phase_a.verify_a(value, ctx)
+        files = {
+            "phase-a-verification.json": canonical_bytes(
+                {
+                    "a_sha256": value["sha256"],
+                    "prediction_sha256": payload["prediction_sha256"],
+                    "code_sha256": auth.code_identity(),
+                    "verified_at": auth.now(),
+                    "data_class": ctx.mode,
+                    "member_count": len(content["members"]),
+                    "failure_count": len(content["failures"]),
+                    "labels_read": False,
+                    "verification": "INDEPENDENT_PROCESS_RECOMPUTATION_NOT_HUMAN_REVIEW",
+                }
+            )
+        }
     else:
         if not a.seal or not a.seal_hash or not a.labels or not a.labels_hash:
             p.error("A seal, labels and exact hashes required")

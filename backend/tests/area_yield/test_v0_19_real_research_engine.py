@@ -65,7 +65,9 @@ def test_formal_c0_admission_bounds_end_to_end(
     grants = dict(p["grants"])
     grants["FORMAL_C0"] = p["signer"].decision("FORMAL_C0", review["sha256"])
     formal = cohort.formalize(p["candidate"], review, p["ctx"], grants)
-    grants["A_EXECUTION"] = p["signer"].decision("A_EXECUTION", formal["sha256"])
+    subject_a = auth.phase_a_subject(formal["sha256"], p["mp"], p["mh"])
+    grants["A_EXECUTION"] = p["signer"].decision("A_EXECUTION", subject_a)
+    grants["C0_SEAL_REVIEW"] = p["signer"].decision("C0_SEAL_REVIEW", subject_a)
     daily_calls = 0
     original_daily = _daily_row
 
@@ -173,7 +175,9 @@ def prepared(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     grants["FORMAL_C0"] = signer.decision("FORMAL_C0", review["sha256"])
     formal = cohort.formalize(candidate, review, ctx, grants)
     grants["IMPLEMENTATION_REVIEW"] = signer.decision("IMPLEMENTATION_REVIEW", auth.code_identity())
-    grants["A_EXECUTION"] = signer.decision("A_EXECUTION", formal["sha256"])
+    subject_a = auth.phase_a_subject(formal["sha256"], mp, mh)
+    grants["A_EXECUTION"] = signer.decision("A_EXECUTION", subject_a)
+    grants["C0_SEAL_REVIEW"] = signer.decision("C0_SEAL_REVIEW", subject_a)
     seal = execution.run_a(mp, mh, formal, ctx, grants)
     sp = directory / "phase-a.json"
     write(sp, seal)
@@ -245,7 +249,15 @@ def test_content_determinism_full_support_once_and_bin_mass(prepared: dict[str, 
 
 
 @pytest.mark.parametrize(
-    "key", ["PROTOCOL", "FORMAL_C0", "IMPLEMENTATION_REVIEW", "A_EXECUTION", "A_INPUT_READ"]
+    "key",
+    [
+        "PROTOCOL",
+        "FORMAL_C0",
+        "IMPLEMENTATION_REVIEW",
+        "C0_SEAL_REVIEW",
+        "A_EXECUTION",
+        "A_INPUT_READ",
+    ],
 )
 def test_each_a_permission_prevents_input_access(
     prepared: dict[str, Any], key: str, monkeypatch: pytest.MonkeyPatch
@@ -295,7 +307,12 @@ def test_signed_decision_scope_and_signature(
     target = grants["A_EXECUTION"] if field == "signature" else grants["A_EXECUTION"]["payload"]
     target[field] = bad
     with pytest.raises(PermissionError):
-        auth.require(p["ctx"], grants, "A_EXECUTION", p["formal"]["sha256"])
+        auth.require(
+            p["ctx"],
+            grants,
+            "A_EXECUTION",
+            auth.phase_a_subject(p["formal"]["sha256"], p["mp"], p["mh"]),
+        )
 
 
 def test_no_candidate_shrinking_and_independent_windows(prepared: dict[str, Any]) -> None:
@@ -397,6 +414,37 @@ def test_independent_a_b_processes_and_reports(prepared: dict[str, Any]) -> None
     seal_path = root / "independent-a/phase-a.json"
     seal = auth.read_json(seal_path)
     assert seal["payload"]["content_sha256"] == p["seal"]["payload"]["content_sha256"]
+    verify_command = command + [
+        "verify-a",
+        *common,
+        "--grants",
+        str(ga),
+        "--formal-hash",
+        p["formal"]["sha256"],
+        "--inputs",
+        str(p["mp"]),
+        "--inputs-hash",
+        p["mh"],
+        "--seal",
+        str(seal_path),
+        "--seal-hash",
+        seal["sha256"],
+    ]
+    subprocess.run(
+        verify_command + ["--output", str(root / "independent-verification")],
+        check=True,
+        capture_output=True,
+    )
+    verified = auth.read_json(root / "independent-verification/phase-a-verification.json")
+    assert verified["prediction_sha256"] == seal["payload"]["prediction_sha256"]
+    assert verified["member_count"] == 19032 and verified["labels_read"] is False
+    invalid = subprocess.run(
+        verify_command + ["--labels", str(p["lp"]), "--output", str(root / "invalid-verification")],
+        capture_output=True,
+        text=True,
+    )
+    assert invalid.returncode != 0 and "cannot accept labels" in invalid.stderr
+    assert not (root / "invalid-verification").exists()
     gb = dict(p["grants"])
     for kind, sub in {
         "A_SEAL_REVIEW": seal["sha256"],
@@ -563,6 +611,11 @@ def test_missing_label_window_failures_remain_in_full_report(
     grants["A_INPUT_READ"] = p["signer"].decision(
         "A_INPUT_READ", math.digest({"manifest_path": str(mp), "sha256": mh})
     )
+    # A new manifest location requires a fresh exact input review and execution
+    # grant even when its five fictional source objects have identical bytes.
+    subject_a = auth.phase_a_subject(p["formal"]["sha256"], mp, mh)
+    grants["C0_SEAL_REVIEW"] = p["signer"].decision("C0_SEAL_REVIEW", subject_a)
+    grants["A_EXECUTION"] = p["signer"].decision("A_EXECUTION", subject_a)
     seal = execution.run_a(mp, mh, p["formal"], p["ctx"], grants)
     sp = tmp_path.resolve() / "a.json"
     write(sp, seal)
