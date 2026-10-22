@@ -23,6 +23,10 @@ from backend.research.v019_synthetic_validation import digest
 # grant any real study operation. Synthetic roots are a separate test namespace.
 REAL_TRUST_ANCHORS: dict[str, dict[str, str]] = {}
 REAL_TRUST_CONFIG_SHA256 = "45a28a1879c17cb770896b8d9389bbad8adca708aef0b031b18a241bb710a0d6"
+# No independently held Reviewer enrollment has been verified. Only a reviewed
+# exact public enrollment may fill this pin; never accept a CLI/environment pin.
+# This is enrollment, NOT permission to execute: separate signed grants follow.
+REAL_PHASE_A_ENROLLMENT_SHA256: str | None = None
 REAL_ENROLLMENT_DECISIONS = {
     "OWNER": frozenset({"PROTOCOL", "FORMAL_C0", "A_INPUT_READ"}),
     "REVIEWER": frozenset({"IMPLEMENTATION_REVIEW", "A_SEAL_REVIEW"}),
@@ -37,6 +41,7 @@ DECISIONS = frozenset(
         "B_LABEL_READ",
         "B_SCORING",
         "IMPLEMENTATION_REVIEW",
+        "C0_SEAL_REVIEW",
     }
 )
 
@@ -46,6 +51,7 @@ class Context:
     mode: str
     synthetic_roots: dict[str, dict[str, str]] = field(default_factory=dict)
     real_trust_config: Path | None = None
+    real_phase_a_enrollment: Path | None = None
 
 
 def now() -> str:
@@ -114,8 +120,10 @@ def roots(ctx: Context) -> dict[str, Any]:
         if ctx.real_trust_config is None or ctx.synthetic_roots:
             raise PermissionError("TRUST_ANCHOR_NOT_PROVISIONED_REAL_EXECUTION_BLOCKED")
         result = _real_roots(ctx.real_trust_config)
+        if ctx.real_phase_a_enrollment is not None:
+            result = _phase_a_roots(ctx.real_phase_a_enrollment, result)
     else:
-        if ctx.real_trust_config is not None:
+        if ctx.real_trust_config is not None or ctx.real_phase_a_enrollment is not None:
             raise PermissionError("TRUST_NAMESPACES_MUST_BE_SEPARATE")
         result = ctx.synthetic_roots
     if not result:
@@ -125,6 +133,100 @@ def roots(ctx: Context) -> dict[str, Any]:
     if owner_keys & reviewer_keys:
         raise PermissionError("OWNER_REVIEWER_TRUST_KEYS_MUST_BE_DISTINCT")
     return result
+
+
+def _phase_a_roots(path: Path, parent: dict[str, Any]) -> dict[str, Any]:
+    """Reviewed public custody record, not a self-asserted independence flag.
+
+    The pin must be established through actual independent custody review.
+    Schema checks cannot establish human independence; absent evidence means no
+    pin and no REAL execution. The old same-custodian Reviewer is not retained.
+    """
+    if REAL_PHASE_A_ENROLLMENT_SHA256 is None:
+        raise PermissionError("INDEPENDENT_REVIEWER_ENROLLMENT_NOT_VERIFIED")
+    c = io._object(io._read_pinned(path, REAL_PHASE_A_ENROLLMENT_SHA256, "phase-a-enrollment.json"))
+    fields = {
+        "version",
+        "mode",
+        "scope",
+        "parent_enrollment_sha256",
+        "issued_at",
+        "expires_at",
+        "owner_key_id",
+        "reviewer_key_id",
+        "reviewer_public_key_hex",
+        "owner_custodian_id",
+        "reviewer_custodian_id",
+        "custody_evidence_sha256",
+    }
+    if (
+        set(c) != fields
+        or type(c["version"]) is not int
+        or c["version"] != 1
+        or any(type(c[k]) is not str or not c[k] for k in fields - {"version"})
+        or c["mode"] != "REAL"
+        or c["scope"] != "V0_19_SOURCE002_OWNER_RESEARCH_SCOPE_R1"
+        or c["parent_enrollment_sha256"] != REAL_TRUST_CONFIG_SHA256
+        or c["owner_custodian_id"] == c["reviewer_custodian_id"]
+        or c["owner_key_id"] not in parent
+        or parent[c["owner_key_id"]]["role"] != "OWNER"
+        or c["reviewer_key_id"] in parent
+        or not io.HEX.fullmatch(c["custody_evidence_sha256"])
+        or not io.HEX.fullmatch(c["reviewer_public_key_hex"])
+        or c["reviewer_public_key_hex"] in {k["public_key_hex"] for k in parent.values()}
+    ):
+        raise PermissionError("INDEPENDENT_ENROLLMENT_SCOPE_OR_CUSTODY")
+    if not aware(c["issued_at"]) <= aware(now()) < aware(c["expires_at"]):
+        raise PermissionError("INDEPENDENT_ENROLLMENT_EXPIRED_OR_FUTURE")
+    Ed25519PublicKey.from_public_bytes(bytes.fromhex(c["reviewer_public_key_hex"]))
+    return {
+        c["owner_key_id"]: {
+            **parent[c["owner_key_id"]],
+            "allowed_decisions": sorted(REAL_ENROLLMENT_DECISIONS["OWNER"] | {"A_EXECUTION"}),
+        },
+        c["reviewer_key_id"]: {
+            "role": "REVIEWER",
+            "public_key_hex": c["reviewer_public_key_hex"],
+            "allowed_decisions": sorted(REAL_ENROLLMENT_DECISIONS["REVIEWER"] | {"C0_SEAL_REVIEW"}),
+        },
+    }
+
+
+def phase_a_subject(formal_sha256: str, manifest_path: Path, manifest_sha256: str) -> str:
+    if (
+        not io.HEX.fullmatch(formal_sha256)
+        or not io.HEX.fullmatch(manifest_sha256)
+        or not manifest_path.is_absolute()
+    ):
+        raise ValueError("EXACT_PHASE_A_IDENTITIES_REQUIRED")
+    return digest(
+        {
+            "operation": "A_EXECUTION",
+            "formal_c0_sha256": formal_sha256,
+            "manifest_identity": {"manifest_path": str(manifest_path), "sha256": manifest_sha256},
+            "code_sha256": code_identity(),
+            "restrictions": restrictions(),
+        }
+    )
+
+
+def require_phase_a(
+    ctx: Context,
+    grants: object,
+    formal_sha256: str,
+    manifest_path: Path,
+    manifest_sha256: str,
+    *,
+    at: str | None = None,
+) -> None:
+    if ctx.mode == "REAL" and (
+        ctx.real_phase_a_enrollment is None or REAL_PHASE_A_ENROLLMENT_SHA256 is None
+    ):
+        raise PermissionError("INDEPENDENT_REVIEWER_ENROLLMENT_NOT_VERIFIED")
+    subject = phase_a_subject(formal_sha256, manifest_path, manifest_sha256)
+    require(ctx, grants, "IMPLEMENTATION_REVIEW", code_identity(), at=at)
+    require(ctx, grants, "C0_SEAL_REVIEW", subject, at=at)
+    require(ctx, grants, "A_EXECUTION", subject, at=at)
 
 
 def require(
@@ -169,7 +271,11 @@ def require(
     ):
         raise PermissionError("SIGNED_DECISION_TYPES")
     key = trusted.get(p["key_id"])
-    role = "REVIEWER" if kind in {"A_SEAL_REVIEW", "IMPLEMENTATION_REVIEW"} else "OWNER"
+    role = (
+        "REVIEWER"
+        if kind in {"A_SEAL_REVIEW", "IMPLEMENTATION_REVIEW", "C0_SEAL_REVIEW"}
+        else "OWNER"
+    )
     if (
         not key
         or key["role"] != role
