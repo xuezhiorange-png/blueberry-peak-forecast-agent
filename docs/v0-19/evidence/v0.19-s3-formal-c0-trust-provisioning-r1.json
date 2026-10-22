@@ -1,0 +1,79 @@
+{
+  "task_id": "V0_19_S3_FORMAL_C0_AND_TRUST_PROVISIONING_R1",
+  "base_main_sha": "2e7797554eb771360ad64f3114f08fa70d7034cd",
+  "recorded_at": "2026-10-22T11:43:56.027393+00:00",
+  "verified_at": "2026-10-22T11:45:15.659625+00:00",
+  "authorization_source": "DIRECT_OWNER_CHAT_TASK",
+  "signature_semantics": "TASK_DELEGATED_OPERATIONAL_RECORD_NOT_OWNER_PERSONAL_SIGNATURE",
+  "formal_c0_status": "OWNER_APPROVED_ALL_MEMBERS_LOCAL_SEAL_VERIFIED",
+  "formally_admitted_count": 19032,
+  "h7": 9672,
+  "h15": 9360,
+  "base_count": 39,
+  "rejected_count": 0,
+  "invalid_count": 0,
+  "formal_c0_payload_sha256": "d5dc13b119357934ddcbcf3abd5fbef413ffbfecc87035734ba4f2fcf93d4b2a",
+  "approved_members_sha256": "50a2dd0ae913920fb32515c5a1fb41c0c62cc90217bd66bd5a9686c912a9df13",
+  "code_sha256": "2d0a15be82064c8f8a7e9ba270ff39cb80f4ae7d727c3c720aaae70097490b8c",
+  "verification_file_sha256": "6c9cd14129b183a04ab5d1a3c28926bd80d3560c83f37a750cdd94e10a231267",
+  "private_artifact_scope": "C0 metadata, signatures and receipts only; no labels, predictions or private keys in Git",
+  "input_hashes": {
+    "profile": "a0a5cbc3c3ca5bd2b0b8860328eee73840499b38da89c11a104f83d02fd77c5b",
+    "registry": "502c73fecdf68e91e4aa35982a2207d224204390597eaf59420ebd1101539904",
+    "metadata": "bc1248835055c2488f9d5fa29351ef3d3605f3c91b36539f4c236f1ca584e572",
+    "h7": "fc047941cda320d12f5b4bc913cf5585ccbcae508f73e976b557c83a8892abea",
+    "h15": "699f75d7543bbe2ef9bd0c8c991ada3bf2d61bc0c9cea2fed02790f35b5e281f"
+  },
+  "time_contract": {
+    "timezone": "Asia/Shanghai",
+    "origin_cutoff": "D0 23:59:59+08:00",
+    "first_target": "D1",
+    "support": ["2025-07-01", "2026-04-15"],
+    "historical_issuance": "NOT_PROVEN"
+  },
+  "trust_config_sha256": "45a28a1879c17cb770896b8d9389bbad8adca708aef0b031b18a241bb710a0d6",
+  "trust_config_serialization": "json.dumps(enrollment, sort_keys=True, separators=(',', ':')).encode('utf-8'); no trailing newline",
+  "enrollment": {
+    "version": 1,
+    "mode": "REAL",
+    "task_id": "V0_19_S3_FORMAL_C0_AND_TRUST_PROVISIONING_R1",
+    "issued_at": "2026-10-22T11:40:22.466528+00:00",
+    "expires_at": "2026-11-21T11:40:22.466528+00:00",
+    "scope": "V0_19_SOURCE002_OWNER_RESEARCH_SCOPE_R1",
+    "keys": {
+      "v019-real-owner-c0-r1": {
+        "role": "OWNER",
+        "public_key_hex": "4381acab316823766aee5e5a19d4da5a10ea18d81011c6a7fe8949c9a332d216",
+        "allowed_decisions": ["PROTOCOL", "FORMAL_C0", "A_INPUT_READ"]
+      },
+      "v019-real-reviewer-c0-r1": {
+        "role": "REVIEWER",
+        "public_key_hex": "0332eaa35a09cd625dc41539c6f44c85a3ab191262494ebf6378261d99cb6747",
+        "allowed_decisions": ["IMPLEMENTATION_REVIEW", "A_SEAL_REVIEW"]
+      }
+    },
+    "custody": "TASK_LOCAL_DISTINCT_KEYS_SAME_OS_OWNER_NO_INDEPENDENT_REVIEW_SIGNED",
+    "authorization_source": "DIRECT_OWNER_CHAT_TASK_NOT_PERSONAL_SIGNATURE"
+  },
+  "issued_grant_kinds": ["A_INPUT_READ", "FORMAL_C0", "PROTOCOL"],
+  "owner_reviewer_cryptographic_role_separation": true,
+  "independent_key_custody": false,
+  "independent_human_review": "PENDING",
+  "reviewer_decisions_signed": 0,
+  "prediction_scoring_calls": [],
+  "real_a_execution_authorized": false,
+  "real_b_label_read_authorized": false,
+  "real_b_scoring_authorized": false,
+  "real_prediction_generated": false,
+  "real_scoring_performed": false,
+  "real_label_read_performed": false,
+  "model_training_performed": false,
+  "s3_formal_complete": false,
+  "strict_pit": false,
+  "physical_basis_equivalence": "NOT_PROVEN",
+  "historical_area_known_at": "NOT_PROVEN",
+  "production_eligible": false,
+  "ready_authorized": false,
+  "merge_authorized": false,
+  "ci_evidence": "Use final PR head Actions checks; this local receipt is not CI acceptance"
+}
