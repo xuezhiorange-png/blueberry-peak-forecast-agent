@@ -1,0 +1,3753 @@
+{
+  "formal_c0_admission_boundary_review_correction": {
+    "reviewed_head": "4914a6dca3ad6f6d0d6f09245d4c8b34274af33d",
+    "reviewed_head_ci_run_id": 39727492956,
+    "original_red": {"passed": 1, "failed": 2, "skipped": 0},
+    "original_red_junit_sha256": "c4d464042c7c1b98cd8d7884ab3b1ce09773aec864d44bbcf6222769deac1c14",
+    "code_sha256": "dc1daf51600a169217282cb08cb843d4550f6561604b52b59510d0556c2fc160",
+    "cases_verified_by_end_to_end_runtime_assertions": {
+      "ALL": {
+        "status": "PASS", "admitted": 19032, "bases_calculated": 39,
+        "a_daily_function_calls": 11271, "actual_daily_rows": 9906,
+        "rejected_inventory_count": 0, "h7_daily_mae_denominator": 67704,
+        "h15_daily_mae_denominator": 140400
+      },
+      "PARTIAL": {
+        "status": "PASS", "admitted": 4, "bases_calculated": 2,
+        "a_daily_function_calls": 578, "actual_daily_rows": 37,
+        "rejected_inventory_count": 19028, "h7_daily_mae_denominator": 14,
+        "h15_daily_mae_denominator": 30
+      },
+      "NONE": {
+        "status": "PASS", "admitted": 0, "bases_calculated": 0,
+        "a_daily_function_calls": 0, "actual_daily_rows": 0,
+        "rejected_inventory_count": 19032, "h7_daily_mae_denominator": 0,
+        "h15_daily_mae_denominator": 0, "empty_score_value": null
+      }
+    },
+    "all_admitted_numerical_fractions_match_original_snapshot": true,
+    "local_v019": {"passed": 493, "failed": 0, "skipped": 0, "deselected": 1902},
+    "local_v019_junit_sha256": "f64aa78f8735481d4f9e1302c5d32a2c5cb86a0e8d3a8d3ba55e19cbb38bf9be",
+    "local_v018": {"passed": 255, "failed": 0, "skipped": 0, "deselected": 763},
+    "local_v018_junit_sha256": "0436b28012d4cedc197ae282c6d02cac9648511b6804cbe258943ef0f474e6a8",
+    "exact_head_ci": "FINAL_RUN_RECEIPT_IN_SAME_PR_749_NOT_INHERITED_FROM_OLD_HEAD",
+    "real_formally_admitted_c0_count": 0,
+    "real_data_accessed": false, "real_prediction_generated": false,
+    "real_scoring_performed": false, "s3_formal_complete": false,
+    "ready_authorized": false, "merge_authorized": false
+  },
+  "post_initial_head_correction": {
+    "finding": "SYNTHETIC_REAL_RELABEL_BOUNDARY",
+    "original_head": "541748eaafc2331f45dbb3edc07f95d67fde00b4",
+    "original_ci_run_id": 39720815102,
+    "original_ci_conclusion": "SUCCESS_16_OF_16_NOT_CORRECTION_ACCEPTANCE",
+    "original_red_junit_sha256": "febe3642bc3a76f856c175b853d46c346fad4dd9d53f693e14ef73749ea2ba43",
+    "original_red_used_nonexistent_synthetic_paths_only": true,
+    "corrected_new_tests_passed": 47,
+    "corrected_new_tests_failed": 0,
+    "corrected_new_tests_skipped": 0,
+    "corrected_new_tests_junit_sha256": "4db6f2c457e7777ea86c220faef3fb1788d2932cc97f8db41ce9ff846f699c51",
+    "correction_exact_head_ci": "PENDING_FINAL_HEAD_RUN_RECEIPT",
+    "supplemental_ci_authorization": {
+      "source": "OWNER_DIRECT_REPLY_IN_CURRENT_CONVERSATION",
+      "owner_reply_verbatim": "允许必要修复及新 HEAD CI",
+      "recorded_at": "2026-10-22T05:19:47Z",
+      "original_approval_time": "NOT_INDEPENDENTLY_VERIFIED",
+      "scope": "SAME_PR_749_NECESSARY_CORRECTION_AND_ONE_CORRECTED_HEAD_CI",
+      "ready_authorized": false,
+      "merge_authorized": false
+    },
+    "corrected_related_tests": {"passed": 490, "failed": 0, "skipped": 0, "deselected": 1902},
+    "corrected_related_tests_junit_sha256": "b0cbce505c15d65aea57c5a32b47bfed4c376d542394e7f8353e8118cf6bf3f1",
+    "corrected_v018_tests": {"passed": 255, "failed": 0, "skipped": 0, "deselected": 763},
+    "corrected_v018_tests_junit_sha256": "0283c0c7fba2e5492973a40a89246816c2048bebb79beb548429e5869b5ca530",
+    "corrected_source_code_sha256": "0b0fa8f0987926295427ed9f7f099151d8594715b2e656fd60db34469957a534",
+    "corrected_independent_process_run": {
+      "data_class": "SYNTHETIC",
+      "recorded_at": "2026-10-22T04:28:36.867363+00:00",
+      "base_count": 39,
+      "h7_count": 9672,
+      "h15_count": 9360,
+      "phase_a_seconds": 11.53283641699818,
+      "phase_b_seconds": 16.54341650000424,
+      "total_seconds": 35.97970433298906,
+      "child_peak_rss_bytes": 1173012480,
+      "parent_peak_rss_bytes": 499761152,
+      "memory_measurement": "PER_PROCESS_PEAKS_NOT_SIMULTANEOUS_TOTAL",
+      "prediction_content_sha256": "ab0e71b53bf83bda42b30640d9a998de55d11df692e4045d8f99b82ace818e29",
+      "a_seal_sha256": "f4a6b336104cbb59b2375dc01acc3fa9cb38f4995b7a1a477cbfed210fbf28b2",
+      "report_sha256": "e7e243a7c6b90734dfa411f61bb5d8065cccb1821083f122828903eb652c231e",
+      "run_summary_file_sha256": "d0666872fa8fe549ca78403cd8f3a2d745a2975b1c4aa6b6bccb0851050a43da",
+      "metric_groups_equal_original_snapshot": true,
+      "numerical_example_equal_original_snapshot": true,
+      "artifacts": {
+        "a/phase-a.json": "b8a3de1449577b12dd14a5f7b0575374c02d7dd80a06cd21f76f2acc4e1df011",
+        "b/report.json": "beefe2c0b1515d0f366074ab86b265106d22b7f3f891dfc01d1168a88951d336",
+        "b/report.md": "e7937c28f19645eece4e5ad4dd0c31b25fe4749f66d0849be0e6cce1aeea511d",
+        "b/report.html": "37f1b2dbbf8dfa310ebc60f23d76bb95dc0b2bcb0b344224df998bbd5208def7"
+      }
+    },
+    "prior_fields_below_are_original_numerical_snapshot": true,
+    "real_data_accessed": false,
+    "real_prediction_generated": false,
+    "real_scoring_performed": false
+  },
+  "base_main_sha": "25af506d2b2f9b6f18c0965351acc9a7ad3db65a",
+  "ci_binding": "FINAL_HEAD_RUN_RECORDED_IN_PR_RECEIPT_NOT_INHERITED_MAIN_CI",
+  "data_class": "SYNTHETIC",
+  "example_daily": [
+    {
+      "baseline_kg": "3.000000",
+      "candidate_kg": "2.857143",
+      "date": "2026-01-01",
+      "synthetic_actual_kg": "15"
+    },
+    {
+      "baseline_kg": "3.000000",
+      "candidate_kg": "3.000000",
+      "date": "2026-01-02",
+      "synthetic_actual_kg": "16"
+    },
+    {
+      "baseline_kg": "3.000000",
+      "candidate_kg": "3.142857",
+      "date": "2026-01-03",
+      "synthetic_actual_kg": "17"
+    },
+    {
+      "baseline_kg": "3.000000",
+      "candidate_kg": "3.285714",
+      "date": "2026-01-04",
+      "synthetic_actual_kg": "18"
+    },
+    {
+      "baseline_kg": "3.000000",
+      "candidate_kg": "3.428571",
+      "date": "2026-01-05",
+      "synthetic_actual_kg": "19"
+    },
+    {
+      "baseline_kg": "4.000000",
+      "candidate_kg": "3.571429",
+      "date": "2026-01-06",
+      "synthetic_actual_kg": "1"
+    },
+    {
+      "baseline_kg": "4.000000",
+      "candidate_kg": "3.714286",
+      "date": "2026-01-07",
+      "synthetic_actual_kg": "2"
+    },
+    {
+      "baseline_kg": "4.000000",
+      "candidate_kg": "3.857143",
+      "date": "2026-01-08",
+      "synthetic_actual_kg": "3"
+    },
+    {
+      "baseline_kg": "4.000000",
+      "candidate_kg": "4.000000",
+      "date": "2026-01-09",
+      "synthetic_actual_kg": "4"
+    },
+    {
+      "baseline_kg": "4.000000",
+      "candidate_kg": "4.142857",
+      "date": "2026-01-10",
+      "synthetic_actual_kg": "5"
+    },
+    {
+      "baseline_kg": "4.000000",
+      "candidate_kg": "4.285714",
+      "date": "2026-01-11",
+      "synthetic_actual_kg": "6"
+    },
+    {
+      "baseline_kg": "4.000000",
+      "candidate_kg": "4.428571",
+      "date": "2026-01-12",
+      "synthetic_actual_kg": "7"
+    },
+    {
+      "baseline_kg": "5.000000",
+      "candidate_kg": "4.571429",
+      "date": "2026-01-13",
+      "synthetic_actual_kg": "8"
+    },
+    {
+      "baseline_kg": "5.000000",
+      "candidate_kg": "4.714286",
+      "date": "2026-01-14",
+      "synthetic_actual_kg": "9"
+    },
+    {
+      "baseline_kg": "5.000000",
+      "candidate_kg": "4.857143",
+      "date": "2026-01-15",
+      "synthetic_actual_kg": "10"
+    }
+  ],
+  "full_reports": {
+    "files": {
+      "report.html": "37f1b2dbbf8dfa310ebc60f23d76bb95dc0b2bcb0b344224df998bbd5208def7",
+      "report.json": "da22da2bf40bcd2312b195a884c649ac0562417d0f13891834882081ece5dd5e",
+      "report.md": "e7937c28f19645eece4e5ad4dd0c31b25fe4749f66d0849be0e6cce1aeea511d"
+    },
+    "local_directory": "/private/tmp/SYNTHETIC-v019-real-research-AsHTQA/run4/b",
+    "note": "FULL_19032_MEMBER_OUTPUTS_NOT_COPIED_TO_GIT_REPRODUCE_WITH_COMMITTED_SYNTHETIC_RUNNER"
+  },
+  "groups": {
+    "H15_LOCAL": {
+      "candidate_minus_baseline": {
+        "DAILY_MAE": "0.0331691040811965811965811965811965811965811965812",
+        "DAILY_WAPE": "0.0051505674465056555193156970937698042715843749067",
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": "0.853550006196581196581196581196581196581196581197",
+        "ROLLING_7DAY_PEAK_START_MAE": "0.0135559596627541742436766407670689370143825425690",
+        "SEASON_TOTAL_WAPE": null,
+        "SINGLE_DAY_PEAK_DATE_MAE": "0.6850719127128450983633658455943131096048933708051",
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": "0.3522519584401709401709401709401709401709401709401"
+      },
+      "metrics": {
+        "BASE_BREADTH": {
+          "improved": 16,
+          "improved_actual_kg_share": {
+            "denominator": "904161",
+            "numerator": "73098",
+            "value": "0.080846220971707472452361913420286873687318961999025"
+          },
+          "n_base": 39,
+          "per_base_delta": {
+            "SYNTHETIC-03": "-89.592217",
+            "SYNTHETIC-04": "-22.398052",
+            "SYNTHETIC-05": "-44.796104",
+            "SYNTHETIC-06": "-67.194162",
+            "SYNTHETIC-07": "-89.592217",
+            "SYNTHETIC-08": "-22.398052",
+            "SYNTHETIC-09": "-44.796104",
+            "SYNTHETIC-10": "-67.194162",
+            "SYNTHETIC-11": "-89.592217",
+            "SYNTHETIC-12": "-22.398052",
+            "SYNTHETIC-13": "-30.015668",
+            "SYNTHETIC-14": "604.866102",
+            "SYNTHETIC-15": "369.268339",
+            "SYNTHETIC-16": "80.105662",
+            "SYNTHETIC-17": "132.232682",
+            "SYNTHETIC-18": "364.851518",
+            "SYNTHETIC-19": "332.192321",
+            "SYNTHETIC-20": "-17.196454",
+            "SYNTHETIC-21": "141.775132",
+            "SYNTHETIC-22": "18.172308",
+            "SYNTHETIC-23": "140.391175",
+            "SYNTHETIC-24": "12.198966",
+            "SYNTHETIC-25": "397.885794",
+            "SYNTHETIC-26": "392.358776",
+            "SYNTHETIC-27": "762.670361",
+            "SYNTHETIC-28": "16.697070",
+            "SYNTHETIC-29": "64.207692",
+            "SYNTHETIC-30": "240.814044",
+            "SYNTHETIC-31": "152.848303",
+            "SYNTHETIC-32": "143.794922",
+            "SYNTHETIC-33": "144.787188",
+            "SYNTHETIC-34": "58.053528",
+            "SYNTHETIC-35": "-135.588857",
+            "SYNTHETIC-36": "104.536742",
+            "SYNTHETIC-37": "323.877288",
+            "SYNTHETIC-38": "488.449062",
+            "base_c51783e2ec7c16bba447d64e": "-41.523572",
+            "base_f10df3ac242e4dbbf6c20b98": "-23.418820",
+            "base_ffdc1ebe359436aa3f0fa834": "-22.398052"
+          },
+          "status": "COMPUTED",
+          "tied": 0,
+          "worsened": 23
+        },
+        "DAILY_MAE": {
+          "baseline": {
+            "denominator": "140400",
+            "numerator": "1011595.000000",
+            "value": "7.2050925925925925925925925925925925925925925925926"
+          },
+          "candidate": {
+            "denominator": "140400",
+            "numerator": "1016251.942213",
+            "value": "7.2382616966737891737891737891737891737891737891738"
+          },
+          "candidate_count": 9360,
+          "common_count": 9360,
+          "common_members_sha256": "21326075cc095924461703558ccd139769529a07e08369483708166eca4b8e4c",
+          "not_computable_count": 0,
+          "reasons": {},
+          "sample_coverage": "1"
+        },
+        "DAILY_WAPE": {
+          "baseline": {
+            "denominator": "904161",
+            "numerator": "1011595.000000",
+            "value": "1.1188217585142469095658848368819270019388139944103"
+          },
+          "candidate": {
+            "denominator": "904161",
+            "numerator": "1016251.942213",
+            "value": "1.1239723259607525650852005339756968062103983693170"
+          },
+          "candidate_count": 9360,
+          "common_count": 9360,
+          "common_members_sha256": "21326075cc095924461703558ccd139769529a07e08369483708166eca4b8e4c",
+          "not_computable_count": 0,
+          "reasons": {},
+          "sample_coverage": "1"
+        },
+        "NOT_COMPUTABLE_COUNT": {
+          "DAILY_MAE": 0,
+          "DAILY_WAPE": 0,
+          "ROLLING_7DAY_PEAK_QUANTITY_MAE": 0,
+          "ROLLING_7DAY_PEAK_START_MAE": 3311,
+          "SEASON_TOTAL_WAPE": 9360,
+          "SINGLE_DAY_PEAK_DATE_MAE": 3311,
+          "SINGLE_DAY_PEAK_QUANTITY_MAE": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": {
+            "denominator": "9360",
+            "numerator": "486941.000000",
+            "value": "52.023611111111111111111111111111111111111111111111"
+          },
+          "candidate": {
+            "denominator": "9360",
+            "numerator": "494930.228058",
+            "value": "52.877161117307692307692307692307692307692307692308"
+          },
+          "candidate_count": 9360,
+          "common_count": 9360,
+          "common_members_sha256": "21326075cc095924461703558ccd139769529a07e08369483708166eca4b8e4c",
+          "not_computable_count": 0,
+          "reasons": {},
+          "sample_coverage": "1"
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": {
+            "denominator": "6049",
+            "numerator": "23056",
+            "value": "3.8115390973714663580757149942139196561415109935527"
+          },
+          "candidate": {
+            "denominator": "6049",
+            "numerator": "23138",
+            "value": "3.8250950570342205323193916349809885931558935361217"
+          },
+          "candidate_count": 9360,
+          "common_count": 6049,
+          "common_members_sha256": "7f29bf914f056b270efd23b375f4f0fbde588675020db6c92e4a7345836583a7",
+          "not_computable_count": 3311,
+          "reasons": {
+            "NO_POSITIVE_ACTUAL_PEAK": 3311
+          },
+          "sample_coverage": "0.64626068376068376068376068376068376068376068376068"
+        },
+        "SAMPLE_COVERAGE": {
+          "DAILY_MAE": "1",
+          "DAILY_WAPE": "1",
+          "ROLLING_7DAY_PEAK_QUANTITY_MAE": "1",
+          "ROLLING_7DAY_PEAK_START_MAE": "0.64626068376068376068376068376068376068376068376068",
+          "SEASON_TOTAL_WAPE": "0",
+          "SINGLE_DAY_PEAK_DATE_MAE": "0.64626068376068376068376068376068376068376068376068",
+          "SINGLE_DAY_PEAK_QUANTITY_MAE": "1"
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": {
+            "denominator": "0",
+            "numerator": "0",
+            "value": null
+          },
+          "candidate": {
+            "denominator": "0",
+            "numerator": "0",
+            "value": null
+          },
+          "candidate_count": 9360,
+          "common_count": 0,
+          "common_members_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "not_computable_count": 9360,
+          "reasons": {
+            "INCOMPLETE_CALENDAR": 9360
+          },
+          "sample_coverage": "0"
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": {
+            "denominator": "6049",
+            "numerator": "33267",
+            "value": "5.4995867085468672507852537609522235080178541907753"
+          },
+          "candidate": {
+            "denominator": "6049",
+            "numerator": "37411",
+            "value": "6.1846586212597123491486196065465366176227475615804"
+          },
+          "candidate_count": 9360,
+          "common_count": 6049,
+          "common_members_sha256": "7f29bf914f056b270efd23b375f4f0fbde588675020db6c92e4a7345836583a7",
+          "not_computable_count": 3311,
+          "reasons": {
+            "NO_POSITIVE_ACTUAL_PEAK": 3311
+          },
+          "sample_coverage": "0.64626068376068376068376068376068376068376068376068"
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": {
+            "denominator": "9360",
+            "numerator": "82710.000000",
+            "value": "8.8365384615384615384615384615384615384615384615385"
+          },
+          "candidate": {
+            "denominator": "9360",
+            "numerator": "86007.078331",
+            "value": "9.1887904199786324786324786324786324786324786324786"
+          },
+          "candidate_count": 9360,
+          "common_count": 9360,
+          "common_members_sha256": "21326075cc095924461703558ccd139769529a07e08369483708166eca4b8e4c",
+          "not_computable_count": 0,
+          "reasons": {},
+          "sample_coverage": "1"
+        }
+      }
+    },
+    "H7_PREFIX": {
+      "candidate_minus_baseline": {
+        "DAILY_MAE": "0.0285114434597660404112017015242821694434597660404",
+        "DAILY_WAPE": "0.0044204780331637969135364259035772108243775204325",
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": "0.680186664598842018196856906534325889164598842018",
+        "ROLLING_7DAY_PEAK_START_MAE": "0",
+        "SEASON_TOTAL_WAPE": null,
+        "SINGLE_DAY_PEAK_DATE_MAE": "-1.0414466314610337654024643943030884941590654504720",
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": "0.1899798514267990074441687344913151364764267990075"
+      },
+      "metrics": {
+        "BASE_BREADTH": {
+          "improved": 17,
+          "improved_actual_kg_share": {
+            "denominator": "436681",
+            "numerator": "51467",
+            "value": "0.11785949010833995525337717922236140340431573620103"
+          },
+          "n_base": 39,
+          "per_base_delta": {
+            "SYNTHETIC-03": "-51.544006",
+            "SYNTHETIC-04": "-12.886001",
+            "SYNTHETIC-05": "-25.771998",
+            "SYNTHETIC-06": "-38.658005",
+            "SYNTHETIC-07": "-51.544006",
+            "SYNTHETIC-08": "-12.886001",
+            "SYNTHETIC-09": "-25.771998",
+            "SYNTHETIC-10": "-38.658005",
+            "SYNTHETIC-11": "-51.544006",
+            "SYNTHETIC-12": "-12.886001",
+            "SYNTHETIC-13": "-20.053880",
+            "SYNTHETIC-14": "261.257177",
+            "SYNTHETIC-15": "145.373666",
+            "SYNTHETIC-16": "39.816219",
+            "SYNTHETIC-17": "73.387268",
+            "SYNTHETIC-18": "233.192673",
+            "SYNTHETIC-19": "150.566000",
+            "SYNTHETIC-20": "-8.283349",
+            "SYNTHETIC-21": "51.435034",
+            "SYNTHETIC-22": "-11.733261",
+            "SYNTHETIC-23": "32.151774",
+            "SYNTHETIC-24": "12.196547",
+            "SYNTHETIC-25": "168.130022",
+            "SYNTHETIC-26": "150.753759",
+            "SYNTHETIC-27": "329.494610",
+            "SYNTHETIC-28": "11.955775",
+            "SYNTHETIC-29": "51.166790",
+            "SYNTHETIC-30": "112.525751",
+            "SYNTHETIC-31": "74.551768",
+            "SYNTHETIC-32": "54.324873",
+            "SYNTHETIC-33": "53.558246",
+            "SYNTHETIC-34": "6.877975",
+            "SYNTHETIC-35": "-90.885182",
+            "SYNTHETIC-36": "51.277203",
+            "SYNTHETIC-37": "177.926156",
+            "SYNTHETIC-38": "217.910957",
+            "base_c51783e2ec7c16bba447d64e": "-40.658005",
+            "base_f10df3ac242e4dbbf6c20b98": "-22.841770",
+            "base_ffdc1ebe359436aa3f0fa834": "-12.886001"
+          },
+          "status": "COMPUTED",
+          "tied": 0,
+          "worsened": 22
+        },
+        "DAILY_MAE": {
+          "baseline": {
+            "denominator": "67704",
+            "numerator": "490129.000000",
+            "value": "7.2392916223561384851707432352593642916223561384852"
+          },
+          "candidate": {
+            "denominator": "67704",
+            "numerator": "492059.338768",
+            "value": "7.2678030658159045255819449367836464610658159045256"
+          },
+          "candidate_count": 9672,
+          "common_count": 9672,
+          "common_members_sha256": "e66d51124c5cb37b9fd842bbe38aeec08b2658af9dad5a38c85e0ba77c28dfd1",
+          "not_computable_count": 0,
+          "reasons": {},
+          "sample_coverage": "1"
+        },
+        "DAILY_WAPE": {
+          "baseline": {
+            "denominator": "436681",
+            "numerator": "490129.000000",
+            "value": "1.1223959824219510351950279494642542267696556525244"
+          },
+          "candidate": {
+            "denominator": "436681",
+            "numerator": "492059.338768",
+            "value": "1.1268164604551148321085643753678314375940331729569"
+          },
+          "candidate_count": 9672,
+          "common_count": 9672,
+          "common_members_sha256": "e66d51124c5cb37b9fd842bbe38aeec08b2658af9dad5a38c85e0ba77c28dfd1",
+          "not_computable_count": 0,
+          "reasons": {},
+          "sample_coverage": "1"
+        },
+        "NOT_COMPUTABLE_COUNT": {
+          "DAILY_MAE": 0,
+          "DAILY_WAPE": 0,
+          "ROLLING_7DAY_PEAK_QUANTITY_MAE": 0,
+          "ROLLING_7DAY_PEAK_START_MAE": 3423,
+          "SEASON_TOTAL_WAPE": 9672,
+          "SINGLE_DAY_PEAK_DATE_MAE": 3423,
+          "SINGLE_DAY_PEAK_QUANTITY_MAE": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": {
+            "denominator": "9672",
+            "numerator": "432613.000000",
+            "value": "44.728391232423490488006617038875103391232423490488"
+          },
+          "candidate": {
+            "denominator": "9672",
+            "numerator": "439191.765420",
+            "value": "45.408577897022332506203473945409429280397022332506"
+          },
+          "candidate_count": 9672,
+          "common_count": 9672,
+          "common_members_sha256": "e66d51124c5cb37b9fd842bbe38aeec08b2658af9dad5a38c85e0ba77c28dfd1",
+          "not_computable_count": 0,
+          "reasons": {},
+          "sample_coverage": "1"
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": {
+            "denominator": "6249",
+            "numerator": "0",
+            "value": "0"
+          },
+          "candidate": {
+            "denominator": "6249",
+            "numerator": "0",
+            "value": "0"
+          },
+          "candidate_count": 9672,
+          "common_count": 6249,
+          "common_members_sha256": "5e4958ad0267d031d93b7526e16868913615e1cb7b567abd865701f28ca9076c",
+          "not_computable_count": 3423,
+          "reasons": {
+            "NO_POSITIVE_ACTUAL_PEAK": 3423
+          },
+          "sample_coverage": "0.64609181141439205955334987593052109181141439205955"
+        },
+        "SAMPLE_COVERAGE": {
+          "DAILY_MAE": "1",
+          "DAILY_WAPE": "1",
+          "ROLLING_7DAY_PEAK_QUANTITY_MAE": "1",
+          "ROLLING_7DAY_PEAK_START_MAE": "0.64609181141439205955334987593052109181141439205955",
+          "SEASON_TOTAL_WAPE": "0",
+          "SINGLE_DAY_PEAK_DATE_MAE": "0.64609181141439205955334987593052109181141439205955",
+          "SINGLE_DAY_PEAK_QUANTITY_MAE": "1"
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": {
+            "denominator": "0",
+            "numerator": "0",
+            "value": null
+          },
+          "candidate": {
+            "denominator": "0",
+            "numerator": "0",
+            "value": null
+          },
+          "candidate_count": 9672,
+          "common_count": 0,
+          "common_members_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "not_computable_count": 9672,
+          "reasons": {
+            "INCOMPLETE_CALENDAR": 9672
+          },
+          "sample_coverage": "0"
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": {
+            "denominator": "6249",
+            "numerator": "18725",
+            "value": "2.9964794367098735797727636421827492398783805408865"
+          },
+          "candidate": {
+            "denominator": "6249",
+            "numerator": "12217",
+            "value": "1.9550328052488398143702992478796607457193150904145"
+          },
+          "candidate_count": 9672,
+          "common_count": 6249,
+          "common_members_sha256": "5e4958ad0267d031d93b7526e16868913615e1cb7b567abd865701f28ca9076c",
+          "not_computable_count": 3423,
+          "reasons": {
+            "NO_POSITIVE_ACTUAL_PEAK": 3423
+          },
+          "sample_coverage": "0.64609181141439205955334987593052109181141439205955"
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": {
+            "denominator": "9672",
+            "numerator": "80341.000000",
+            "value": "8.3065550041356492969396195202646815550041356492969"
+          },
+          "candidate": {
+            "denominator": "9672",
+            "numerator": "82178.485123",
+            "value": "8.4965348555624483043837882547559966914805624483044"
+          },
+          "candidate_count": 9672,
+          "common_count": 9672,
+          "common_members_sha256": "e66d51124c5cb37b9fd842bbe38aeec08b2658af9dad5a38c85e0ba77c28dfd1",
+          "not_computable_count": 0,
+          "reasons": {},
+          "sample_coverage": "1"
+        }
+      }
+    }
+  },
+  "independent_acceptance": "PENDING",
+  "independent_processes": {
+    "actual_execution_clock_preserved": true,
+    "deterministic_numerics": "TESTED_BY_RECOMPUTATION_AND_INDEPENDENT_A_B_REGRESSION",
+    "phase_a": true,
+    "phase_b": true,
+    "same_input_prediction_hash": "30a2fe8098d782bfdd7a9b0c0466de95af6e5df4316b65484eca7e732a2c7c72"
+  },
+  "local_tests": [
+    {
+      "failed": 0,
+      "junit_sha256": "4085bd3920664240211c2cde5bbb1f848a29ba050a6f224889789dd1101f6257",
+      "passed": 477,
+      "skipped": 0
+    },
+    {
+      "failed": 0,
+      "junit_sha256": "72d8555978fc1d80aee187e3fc38693a0311f6d9c291ba7ecee7a47ef1aa9796",
+      "passed": 255,
+      "skipped": 0
+    }
+  ],
+  "numerical_example": {
+    "actual_peak": {
+      "date": "2026-01-05",
+      "quantity_kg": "19"
+    },
+    "actual_rolling7": {
+      "end_date": "2026-01-07",
+      "quantity_kg": "88",
+      "start_date": "2026-01-01"
+    },
+    "base_id": "SYNTHETIC-20",
+    "baseline": {
+      "rolling7_peak": {
+        "end_date": "2026-01-15",
+        "quantity_kg": "31.000000",
+        "start_date": "2026-01-09"
+      },
+      "single_day_peak": {
+        "date": "2026-01-13",
+        "quantity_kg": "5.000000"
+      },
+      "window_hash": "74fa172b95a4a1d0afe1e18d6d73c92e1df6a04c2589a36908f70141b79afa0f"
+    },
+    "candidate": {
+      "rolling7_peak": {
+        "end_date": "2026-01-15",
+        "quantity_kg": "31.000000",
+        "start_date": "2026-01-09"
+      },
+      "single_day_peak": {
+        "date": "2026-01-15",
+        "quantity_kg": "4.857143"
+      },
+      "window_hash": "ebf8e12febd812f112d5dd12272d3b91de220871a325fdf9c1249d160b86565d"
+    },
+    "candidate_id": "950b77f757841cfe9d5d10c08e22aec3b9fcda075adb29c06f88bf97e1ffd21a",
+    "cutoff": "2025-12-31T23:59:59+08:00",
+    "error_denominators": {
+      "DAILY_MAE": "15",
+      "DAILY_WAPE": "140",
+      "ROLLING_7DAY_PEAK_QUANTITY_MAE": "1",
+      "ROLLING_7DAY_PEAK_START_MAE": "1",
+      "SEASON_TOTAL_WAPE": "0",
+      "SINGLE_DAY_PEAK_DATE_MAE": "1",
+      "SINGLE_DAY_PEAK_QUANTITY_MAE": "1"
+    },
+    "error_numerators": {
+      "baseline": {
+        "DAILY_MAE": "94.000000",
+        "DAILY_WAPE": "94.000000",
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": "57.000000",
+        "ROLLING_7DAY_PEAK_START_MAE": "8",
+        "SINGLE_DAY_PEAK_DATE_MAE": "8",
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": "14.000000"
+      },
+      "candidate": {
+        "DAILY_MAE": "92.428573",
+        "DAILY_WAPE": "92.428573",
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": "57.000000",
+        "ROLLING_7DAY_PEAK_START_MAE": "8",
+        "SINGLE_DAY_PEAK_DATE_MAE": "10",
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": "14.142857"
+      }
+    },
+    "not_computable_reason": null,
+    "origin": "2025-12-31T23:59:59+08:00",
+    "season_total_wape_status": "NOT_COMPUTABLE_FULL_SEASON_NOT_ADMITTED",
+    "target_end": "2026-01-15",
+    "target_start": "2026-01-01",
+    "window": "H15_LOCAL"
+  },
+  "per_base_values_excerpt": {
+    "SYNTHETIC-03": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "13.758888888888888888888888888888888888888888888889",
+          "candidate": "13.734002161944444444444444444444444444444444444444",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "120.06666666666666666666666666666666666666666666667",
+          "candidate": "121.59565105",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "19.800000",
+          "candidate": "20.7930231875",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "13.861751152073732718894009216589861751152073732719",
+          "candidate": "13.832059904377880184331797235023041474654377880184",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "97.032258064516129032258064516129032258064516129032",
+          "candidate": "96.824419330645161290322580645161290322580645161290",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "16.741935483870967741935483870967741935483870967742",
+          "candidate": "17.241348544354838709677419354838709677419354838710",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-04": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "3.4397222222222222222222222222222222222222222222222",
+          "candidate": "3.4335005411111111111111111111111111111111111111111",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "30.016666666666666666666666666666666666666666666667",
+          "candidate": "30.398912570833333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.950000",
+          "candidate": "5.1982557208333333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "3.4654377880184331797235023041474654377880184331797",
+          "candidate": "3.4580149763824884792626728110599078341013824884793",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "24.258064516129032258064516129032258064516129032258",
+          "candidate": "24.206104834677419354838709677419354838709677419355",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.1854838709677419354838709677419354838709677419355",
+          "candidate": "4.3103371088709677419354838709677419354838709677419",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-05": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.8794444444444444444444444444444444444444444444444",
+          "candidate": "6.8670010822222222222222222222222222222222222222222",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "60.033333333333333333333333333333333333333333333333",
+          "candidate": "60.79782545",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "9.900000",
+          "candidate": "10.396511445833333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.9308755760368663594470046082949308755760368663594",
+          "candidate": "6.9160299550691244239631336405529953917050691244240",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "48.516129032258064516129032258064516129032258064516",
+          "candidate": "48.412209685483870967741935483870967741935483870968",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "8.3709677419354838709677419354838709677419354838710",
+          "candidate": "8.6206741975806451612903225806451612903225806451613",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-06": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "10.319166666666666666666666666666666666666666666667",
+          "candidate": "10.300501621666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "90.050000",
+          "candidate": "91.1967381875",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "14.850000",
+          "candidate": "15.594767466666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "10.396313364055299539170506912442396313364055299539",
+          "candidate": "10.374044927995391705069124423963133640552995391705",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "72.774193548387096774193548387096774193548387096774",
+          "candidate": "72.618314495967741935483870967741935483870967741935",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "12.556451612903225806451612903225806451612903225806",
+          "candidate": "12.931011435483870967741935483870967741935483870968",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-07": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "13.758888888888888888888888888888888888888888888889",
+          "candidate": "13.734002161944444444444444444444444444444444444444",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "120.06666666666666666666666666666666666666666666667",
+          "candidate": "121.59565105",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "19.800000",
+          "candidate": "20.7930231875",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "13.861751152073732718894009216589861751152073732719",
+          "candidate": "13.832059904377880184331797235023041474654377880184",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "97.032258064516129032258064516129032258064516129032",
+          "candidate": "96.824419330645161290322580645161290322580645161290",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "16.741935483870967741935483870967741935483870967742",
+          "candidate": "17.241348544354838709677419354838709677419354838710",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-08": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "3.4397222222222222222222222222222222222222222222222",
+          "candidate": "3.4335005411111111111111111111111111111111111111111",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "30.016666666666666666666666666666666666666666666667",
+          "candidate": "30.398912570833333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.950000",
+          "candidate": "5.1982557208333333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "3.4654377880184331797235023041474654377880184331797",
+          "candidate": "3.4580149763824884792626728110599078341013824884793",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "24.258064516129032258064516129032258064516129032258",
+          "candidate": "24.206104834677419354838709677419354838709677419355",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.1854838709677419354838709677419354838709677419355",
+          "candidate": "4.3103371088709677419354838709677419354838709677419",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-09": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.8794444444444444444444444444444444444444444444444",
+          "candidate": "6.8670010822222222222222222222222222222222222222222",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "60.033333333333333333333333333333333333333333333333",
+          "candidate": "60.79782545",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "9.900000",
+          "candidate": "10.396511445833333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.9308755760368663594470046082949308755760368663594",
+          "candidate": "6.9160299550691244239631336405529953917050691244240",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "48.516129032258064516129032258064516129032258064516",
+          "candidate": "48.412209685483870967741935483870967741935483870968",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "8.3709677419354838709677419354838709677419354838710",
+          "candidate": "8.6206741975806451612903225806451612903225806451613",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-10": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "10.319166666666666666666666666666666666666666666667",
+          "candidate": "10.300501621666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "90.050000",
+          "candidate": "91.1967381875",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "14.850000",
+          "candidate": "15.594767466666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "10.396313364055299539170506912442396313364055299539",
+          "candidate": "10.374044927995391705069124423963133640552995391705",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "72.774193548387096774193548387096774193548387096774",
+          "candidate": "72.618314495967741935483870967741935483870967741935",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "12.556451612903225806451612903225806451612903225806",
+          "candidate": "12.931011435483870967741935483870967741935483870968",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-11": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "13.758888888888888888888888888888888888888888888889",
+          "candidate": "13.734002161944444444444444444444444444444444444444",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "120.06666666666666666666666666666666666666666666667",
+          "candidate": "121.59565105",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "19.800000",
+          "candidate": "20.7930231875",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "13.861751152073732718894009216589861751152073732719",
+          "candidate": "13.832059904377880184331797235023041474654377880184",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "97.032258064516129032258064516129032258064516129032",
+          "candidate": "96.824419330645161290322580645161290322580645161290",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "16.741935483870967741935483870967741935483870967742",
+          "candidate": "17.241348544354838709677419354838709677419354838710",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-12": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "3.4397222222222222222222222222222222222222222222222",
+          "candidate": "3.4335005411111111111111111111111111111111111111111",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "30.016666666666666666666666666666666666666666666667",
+          "candidate": "30.398912570833333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.950000",
+          "candidate": "5.1982557208333333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "3.4654377880184331797235023041474654377880184331797",
+          "candidate": "3.4580149763824884792626728110599078341013824884793",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "24.258064516129032258064516129032258064516129032258",
+          "candidate": "24.206104834677419354838709677419354838709677419355",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.1854838709677419354838709677419354838709677419355",
+          "candidate": "4.3103371088709677419354838709677419354838709677419",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-13": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.795000",
+          "candidate": "6.7866623144444444444444444444444444444444444444444",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "12.570400822199383350462487153134635149023638232271",
+          "candidate": "12.554976532374100719424460431654676258992805755396",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "57.795833333333333333333333333333333333333333333333",
+          "candidate": "58.556487458333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "1.7619047619047619047619047619047619047619047619048",
+          "candidate": "1.7619047619047619047619047619047619047619047619048",
+          "common_count": 21
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "4.5238095238095238095238095238095238095238095238095",
+          "candidate": "6.5714285714285714285714285714285714285714285714286",
+          "common_count": 21
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "10.062500",
+          "candidate": "10.547106679166666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.8139400921658986175115207373271889400921658986175",
+          "candidate": "6.8023883179723502304147465437788018433179723502304",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "10.367221735319894829097283085013146362839614373357",
+          "candidate": "10.349646029798422436459246275197195442594215600351",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "45.762096774193548387096774193548387096774193548387",
+          "candidate": "45.668383717741935483870967741935483870967741935484",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 21
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "1.9523809523809523809523809523809523809523809523810",
+          "candidate": "2",
+          "common_count": 21
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "8.4475806451612903225806451612903225806451612903226",
+          "candidate": "8.6857663588709677419354838709677419354838709677419",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-14": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.4416666666666666666666666666666666666666666666667",
+          "candidate": "6.6096850283333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.67059946213238483560336601023683525635464561464388",
+          "candidate": "0.68809074642144530233365142708423700876203695671033",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "26.441666666666666666666666666666666666666666666667",
+          "candidate": "28.086421229166666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "4.0458333333333333333333333333333333333333333333333",
+          "candidate": "4.0625",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.6791666666666666666666666666666666666666666666667",
+          "candidate": "6.4416666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.0416666666666666666666666666666666666666666666667",
+          "candidate": "4.5118771416666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.5455069124423963133640552995391705069124423963134",
+          "candidate": "6.6960006779953917050691244239631336405529953917051",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.68754159859623646154777031524172566103951110304350",
+          "candidate": "0.70334949942518303382344043081018938706359290857385",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "32.197580645161290322580645161290322580645161290323",
+          "candidate": "33.835539012096774193548387096774193548387096774194",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9838709677419354838709677419354838709677419354839",
+          "candidate": "1.8427419354838709677419354838709677419354838709677",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.8870967741935483870967741935483870967741935483871",
+          "candidate": "6.1761053870967741935483870967741935483870967741935",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-15": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "8.3230555555555555555555555555555555555555555555556",
+          "candidate": "8.4256300941666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.94178846456074178846456074178846456074178846456074",
+          "candidate": "0.95339520160301744460160301744460160301744460160302",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "45.437500",
+          "candidate": "47.518212725",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.9833333333333333333333333333333333333333333333333",
+          "candidate": "3.9",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.7333333333333333333333333333333333333333333333333",
+          "candidate": "6.6208333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.412500",
+          "candidate": "5.5068816541666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "8.4464285714285714285714285714285714285714285714286",
+          "candidate": "8.5301691624423963133640552995391705069124423963134",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.95518207282913165266106442577030812324929971988796",
+          "candidate": "0.96465205302586150739365513647319392873428441143899",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "49.125000",
+          "candidate": "50.844413370967741935483870967741935483870967741935",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.0483870967741935483870967741935483870967741935484",
+          "candidate": "2.0040322580645161290322580645161290322580645161290",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "6.7983870967741935483870967741935483870967741935484",
+          "candidate": "7.2312127379032258064516129032258064516129032258065",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-16": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.3530555555555555555555555555555555555555555555556",
+          "candidate": "6.3753071283333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.68243122277257265620337769290445783851524735931253",
+          "candidate": "0.68482143766784030554395178134510950647490600942890",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "57.891666666666666666666666666666666666666666666667",
+          "candidate": "57.5094207625",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.85",
+          "candidate": "3.8333333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.3916666666666666666666666666666666666666666666667",
+          "candidate": "5.9625",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "11.654166666666666666666666666666666666666666666667",
+          "candidate": "11.405910945833333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.3934331797235023041474654377880184331797235023041",
+          "candidate": "6.4163687897465437788018433179723502304147465437788",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.68079494571551248236520885726553395080660001226768",
+          "candidate": "0.68323720904128074587499233269950315892780469852174",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "41.697580645161290322580645161290322580645161290323",
+          "candidate": "41.820774399193548387096774193548387096774193548387",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9193548387096774193548387096774193548387096774194",
+          "candidate": "2.0282258064516129032258064516129032258064516129032",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "9.7903225806451612903225806451612903225806451612903",
+          "candidate": "9.6654693427419354838709677419354838709677419354839",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-17": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "5.5611111111111111111111111111111111111111111111111",
+          "candidate": "5.5978424116666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.53207888162440865359060224312975070430021793440706",
+          "candidate": "0.53559327810556530059001754106203157391165683304098",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "36.745833333333333333333333333333333333333333333333",
+          "candidate": "36.392249283333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.6958333333333333333333333333333333333333333333333",
+          "candidate": "3.7041666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.375",
+          "candidate": "5.7541666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "7.8041666666666666666666666666666666666666666666667",
+          "candidate": "7.3076552208333333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "5.5472350230414746543778801843317972350230414746544",
+          "candidate": "5.5895087949308755760368663594470046082949308755760",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.52622950819672131147540983606557377049180327868852",
+          "candidate": "0.53023974142076502732240437158469945355191256830601",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "31.491935483870967741935483870967741935483870967742",
+          "candidate": "32.222444854838709677419354838709677419354838709677",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.0443548387096774193548387096774193548387096774194",
+          "candidate": "1.9596774193548387096774193548387096774193548387097",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "7.1008064516129032258064516129032258064516129032258",
+          "candidate": "6.9840974798387096774193548387096774193548387096774",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-18": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "5.9091666666666666666666666666666666666666666666667",
+          "candidate": "6.0105143105555555555555555555555555555555555555556",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.52744718833680452246355251413269860160666468313002",
+          "candidate": "0.53649339278984429237330159674699990082316770802341",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "27.312500",
+          "candidate": "28.928434679166666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.525",
+          "candidate": "3.5666666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.5291666666666666666666666666666666666666666666667",
+          "candidate": "6.1666666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "3.9583333333333333333333333333333333333333333333333",
+          "candidate": "4.4356866666666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "5.8076036866359447004608294930875576036866359447005",
+          "candidate": "5.9419312632488479262672811059907834101382488479263",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.51755646817248459958932238193018480492813141683778",
+          "candidate": "0.52952734460985626283367556468172484599589322381930",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "30.500000",
+          "candidate": "32.234548487903225806451612903225806451612903225806",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9274193548387096774193548387096774193548387096774",
+          "candidate": "1.8911290322580645161290322580645161290322580645161",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.3467741935483870967741935483870967741935483870968",
+          "candidate": "5.6807397580645161290322580645161290322580645161290",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-19": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "7.5741666666666666666666666666666666666666666666667",
+          "candidate": "7.6664423113888888888888888888888888888888888888889",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.71392663577095279239651244992537899615112716990024",
+          "candidate": "0.72262436365302542350692535281334275914434582253292",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "36.891666666666666666666666666666666666666666666667",
+          "candidate": "39.067591441666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.625",
+          "candidate": "3.725",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.4041666666666666666666666666666666666666666666667",
+          "candidate": "6.2833333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.4666666666666666666666666666666666666666666666667",
+          "candidate": "5.5611313791666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "7.6434331797235023041474654377880184331797235023041",
+          "candidate": "7.7301647465437788018433179723502304147465437788018",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.72567678424938474159146841673502871205906480721903",
+          "candidate": "0.73391118403062619633579436696745966639321848509707",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "42.504032258064516129032258064516129032258064516129",
+          "candidate": "44.341682451612903225806451612903225806451612903226",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.0887096774193548387096774193548387096774193548387",
+          "candidate": "1.9233870967741935483870967741935483870967741935484",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.9919354838709677419354838709677419354838709677419",
+          "candidate": "6.432807125",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-20": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "7.197500",
+          "candidate": "7.1927232072222222222222222222222222222222222222222",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.73021643557659790328035170781197159283057152519445",
+          "candidate": "0.72973180999887273137188592041483485514598128734077",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "67.179166666666666666666666666666666666666666666667",
+          "candidate": "66.7969207625",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.9916666666666666666666666666666666666666666666667",
+          "candidate": "3.975",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.55",
+          "candidate": "6.4625",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "13.716666666666666666666666666666666666666666666667",
+          "candidate": "13.468410945833333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "7.1071428571428571428571428571428571428571428571429",
+          "candidate": "7.1023713427419354838709677419354838709677419354839",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.72842130121620025977092927146062108867634903766678",
+          "candidate": "0.72793226183728893611996693824536545046640689573740",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "44.427419354838709677419354838709677419354838709677",
+          "candidate": "44.582571834677419354838709677419354838709677419355",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9758064516129032258064516129032258064516129032258",
+          "candidate": "1.8991935483870967741935483870967741935483870967742",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "11.592741935483870967741935483870967741935483870968",
+          "candidate": "11.467888697580645161290322580645161290322580645161",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-21": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "5.6711111111111111111111111111111111111111111111111",
+          "candidate": "5.7104930922222222222222222222222222222222222222222",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.62327512516790816949566491635120283306875076321895",
+          "candidate": "0.62760334387593112712174868726340212480156307241421",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "32.000000",
+          "candidate": "32.149263033333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "4.15",
+          "candidate": "4.1333333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.6666666666666666666666666666666666666666666666667",
+          "candidate": "6.5625",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "8.7958333333333333333333333333333333333333333333333",
+          "candidate": "8.2993218875",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "5.6572580645161290322580645161290322580645161290323",
+          "candidate": "5.6868865403225806451612903225806451612903225806452",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.62383281458425967096487327701200533570475767007559",
+          "candidate": "0.62709998310360160071142730102267674522009782125389",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "27.262096774193548387096774193548387096774193548387",
+          "candidate": "28.112937298387096774193548387096774193548387096774",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9516129032258064516129032258064516129032258064516",
+          "candidate": "1.9798387096774193548387096774193548387096774193548",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "7.4919354838709677419354838709677419354838709677419",
+          "candidate": "7.421015625",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-22": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.0283333333333333333333333333333333333333333333333",
+          "candidate": "6.0333811966666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.67449883449883449883449883449883449883449883449883",
+          "candidate": "0.67506363039627039627039627039627039627039627039627",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "28.408333333333333333333333333333333333333333333333",
+          "candidate": "30.017795520833333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.925",
+          "candidate": "3.8916666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.4916666666666666666666666666666666666666666666667",
+          "candidate": "5.9625",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "3.7458333333333333333333333333333333333333333333333",
+          "candidate": "4.2962486583333333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.0697004608294930875576036866359447004608294930876",
+          "candidate": "6.0629416699308755760368663594470046082949308755760",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.67410914208943765594011899430618642441302539824707",
+          "candidate": "0.67335850163137355255581856567078241955089245729640",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "32.213709677419354838709677419354838709677419354839",
+          "candidate": "33.818657592741935483870967741935483870967741935484",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9516129032258064516129032258064516129032258064516",
+          "candidate": "2.0282258064516129032258064516129032258064516129032",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.0403225806451612903225806451612903225806451612903",
+          "candidate": "5.3348496935483870967741935483870967741935483870968",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-23": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "7.277500",
+          "candidate": "7.3164975486111111111111111111111111111111111111111",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.72275097244061905156004303566994951584871306794670",
+          "candidate": "0.72662393928108361609975447598554442881182929184253",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "38.783333333333333333333333333333333333333333333333",
+          "candidate": "40.959258108333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.7083333333333333333333333333333333333333333333333",
+          "candidate": "3.75",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.3416666666666666666666666666666666666666666666667",
+          "candidate": "5.7875",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.7791666666666666666666666666666666666666666666667",
+          "candidate": "5.9432862291666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "7.3254608294930875576036866359447004608294930875576",
+          "candidate": "7.3439814366359447004608294930875576036866359447005",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.72063240210800702669008896696322321074403581345271",
+          "candidate": "0.72245434204114013713379044596815322717742392474642",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "41.463709677419354838709677419354838709677419354839",
+          "candidate": "43.344767072580645161290322580645161290322580645161",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.0806451612903225806451612903225806451612903225806",
+          "candidate": "1.9879032258064516129032258064516129032258064516129",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.9919354838709677419354838709677419354838709677419",
+          "candidate": "6.4811453830645161290322580645161290322580645161290",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-24": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "8.1480555555555555555555555555555555555555555555556",
+          "candidate": "8.1514441572222222222222222222222222222222222222222",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.72642397226349678058444774640911342248637939574047",
+          "candidate": "0.72672607642397226349678058444774640911342248637940",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "71.104166666666666666666666666666666666666666666667",
+          "candidate": "70.7219207625",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.6291666666666666666666666666666666666666666666667",
+          "candidate": "3.6291666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.5416666666666666666666666666666666666666666666667",
+          "candidate": "5.8791666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "13.512500",
+          "candidate": "13.264244279166666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "8.1687788018433179723502304147465437788018433179724",
+          "candidate": "8.1758044625576036866359447004608294930875576036866",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.72540794925571640493119852677886336897027980970894",
+          "candidate": "0.72603184546524118880761164253926032022098317049465",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "54.762096774193548387096774193548387096774193548387",
+          "candidate": "54.882939721774193548387096774193548387096774193548",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9919354838709677419354838709677419354838709677419",
+          "candidate": "1.8427419354838709677419354838709677419354838709677",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "11.701612903225806451612903225806451612903225806452",
+          "candidate": "11.576759665322580645161290322580645161290322580645",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-25": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.3866666666666666666666666666666666666666666666667",
+          "candidate": "6.4971904983333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.58809085328422344996930632289748311847759361571516",
+          "candidate": "0.59826800168815224063842848373235113566605279312462",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "43.179166666666666666666666666666666666666666666667",
+          "candidate": "42.755634733333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.5625",
+          "candidate": "3.6791666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.2166666666666666666666666666666666666666666666667",
+          "candidate": "6.2041666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "8.7666666666666666666666666666666666666666666666667",
+          "candidate": "8.2701552208333333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.3928571428571428571428571428571428571428571428571",
+          "candidate": "6.4897062338709677419354838709677419354838709677419",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.59119965906669507777541018538248455145962071169827",
+          "candidate": "0.60015608470061794161517153206903899424675047943746",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "33.879032258064516129032258064516129032258064516129",
+          "candidate": "34.589714741935483870967741935483870967741935483871",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.0322580645161290322580645161290322580645161290323",
+          "candidate": "1.9475806451612903225806451612903225806451612903226",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "8.0967741935483870967741935483870967741935483870968",
+          "candidate": "7.9401713427419354838709677419354838709677419354839",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-26": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.4544444444444444444444444444444444444444444444444",
+          "candidate": "6.5634329933333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.63857971253469645752603951960865144144886910160222",
+          "candidate": "0.64936265083683733201418088877895951850935773765356",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "27.050000",
+          "candidate": "28.707795070833333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.8833333333333333333333333333333333333333333333333",
+          "candidate": "3.9",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.4625",
+          "candidate": "6.4",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.0666666666666666666666666666666666666666666666667",
+          "candidate": "4.47674425",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.5552995391705069124423963133640552995391705069124",
+          "candidate": "6.6421392620967741935483870967741935483870967741935",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.65522800552740672501151543067710732381391064025795",
+          "candidate": "0.66390797783279594656840165822201750345462920313220",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "32.096774193548387096774193548387096774193548387097",
+          "candidate": "33.672667407258064516129032258064516129032258064516",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9717741935483870967741935483870967741935483870968",
+          "candidate": "1.9193548387096774193548387096774193548387096774194",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.8024193548387096774193548387096774193548387096774",
+          "candidate": "6.0447901048387096774193548387096774193548387096774",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-27": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "8.0822222222222222222222222222222222222222222222222",
+          "candidate": "8.2940751002777777777777777777777777777777777777778",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.86394679018944117821723380248233268008789120494091",
+          "candidate": "0.88659274187897143535839420393134984262723439634183",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "41.737500",
+          "candidate": "43.86023735",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "4.2125",
+          "candidate": "4.2541666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.6041666666666666666666666666666666666666666666667",
+          "candidate": "6.4333333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.3916666666666666666666666666666666666666666666667",
+          "candidate": "5.5085843208333333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "8.2367511520737327188940092165898617511520737327189",
+          "candidate": "8.4265521947004608294930875576036866359447004608295",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.88621010226216299969011465757669662224976758599318",
+          "candidate": "0.90663121227145955996281375890920359466997211031918",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "47.262096774193548387096774193548387096774193548387",
+          "candidate": "49.063742032258064516129032258064516129032258064516",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9838709677419354838709677419354838709677419354839",
+          "candidate": "1.9233870967741935483870967741935483870967741935484",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "6.5403225806451612903225806451612903225806451612903",
+          "candidate": "6.9894626008064516129032258064516129032258064516129",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-28": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "5.9294444444444444444444444444444444444444444444444",
+          "candidate": "5.9340825194444444444444444444444444444444444444444",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.69181656133527791281801976989142764543834062550640",
+          "candidate": "0.69235770766488413547237076648841354723707664884135",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "52.975000",
+          "candidate": "52.6224052375",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.95",
+          "candidate": "3.9",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.6125",
+          "candidate": "5.9083333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "11.058333333333333333333333333333333333333333333333",
+          "candidate": "10.8100776125",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "5.9268433179723502304147465437788018433179723502304",
+          "candidate": "5.9337302851382488479262672811059907834101382488479",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.68781335650778795374022327695701584330503375894111",
+          "candidate": "0.68861259275352630523430710608997927668961828999265",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "36.625000",
+          "candidate": "36.802371479838709677419354838709677419354838709677",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9838709677419354838709677419354838709677419354839",
+          "candidate": "1.9959677419354838709677419354838709677419354838710",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "9.0161290322580645161290322580645161290322580645161",
+          "candidate": "8.8912757943548387096774193548387096774193548387097",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-29": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "5.2533333333333333333333333333333333333333333333333",
+          "candidate": "5.2711688033333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.54232622161046111493461803165863730213351686166552",
+          "candidate": "0.54416746077081899518238128011011699931176875430145",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "32.770833333333333333333333333333333333333333333333",
+          "candidate": "32.807033308333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.7625",
+          "candidate": "3.7708333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.3125",
+          "candidate": "5.9",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "7.0583333333333333333333333333333333333333333333333",
+          "candidate": "6.6488373625",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "5.2332949308755760368663594470046082949308755760369",
+          "candidate": "5.2627688882488479262672811059907834101382488479263",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.53519882179675994108983799705449189985272459499264",
+          "candidate": "0.53821306568483063328424153166421207658321060382916",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "28.302419354838709677419354838709677419354838709677",
+          "candidate": "29.230194709677419354838709677419354838709677419355",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3",
+          "candidate": "1.9959677419354838709677419354838709677419354838710",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "6.3629032258064516129032258064516129032258064516129",
+          "candidate": "6.3252318508064516129032258064516129032258064516129",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-30": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "5.7016666666666666666666666666666666666666666666667",
+          "candidate": "5.7685594566666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.52626721021459887700946081070686870240750711483732",
+          "candidate": "0.53244145434966541035304976540266133374355818783171",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "26.600000",
+          "candidate": "28.200101120833333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.6666666666666666666666666666666666666666666666667",
+          "candidate": "3.6416666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.3708333333333333333333333333333333333333333333333",
+          "candidate": "5.6833333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "3.700000",
+          "candidate": "4.3700720416666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "5.6405529953917050691244239631336405529953917050691",
+          "candidate": "5.7053719763824884792626728110599078341013824884793",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.51716488856026196260695045949086299778176824759692",
+          "candidate": "0.52310794079433822752719974648779972536178303580860",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "29.862903225806451612903225806451612903225806451613",
+          "candidate": "31.550133754032258064516129032258064516129032258065",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.0201612903225806451612903225806451612903225806452",
+          "candidate": "1.9112903225806451612903225806451612903225806451613",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.1169354838709677419354838709677419354838709677419",
+          "candidate": "5.5067790483870967741935483870967741935483870967742",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-31": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "7.3661111111111111111111111111111111111111111111111",
+          "candidate": "7.4085689730555555555555555555555555555555555555556",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.66772422823185778314951906128821070655184569673163",
+          "candidate": "0.67157295419751221231807423074986150979503449665106",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "36.516666666666666666666666666666666666666666666667",
+          "candidate": "38.650566816666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.5291666666666666666666666666666666666666666666667",
+          "candidate": "3.6041666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.4166666666666666666666666666666666666666666666667",
+          "candidate": "6.1875",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.462500",
+          "candidate": "5.5521197541666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "7.3444700460829493087557603686635944700460829493088",
+          "candidate": "7.3874146129032258064516129032258064516129032258065",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.66663181010143260483111994144097040677611628150162",
+          "candidate": "0.67052973794834257032312035971975321551814284220433",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "40.314516129032258064516129032258064516129032258065",
+          "candidate": "42.329852362903225806451612903225806451612903225806",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9879032258064516129032258064516129032258064516129",
+          "candidate": "1.9112903225806451612903225806451612903225806451613",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.8991935483870967741935483870967741935483870967742",
+          "candidate": "6.3241186733870967741935483870967741935483870967742",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-32": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "7.6308333333333333333333333333333333333333333333333",
+          "candidate": "7.6707763672222222222222222222222222222222222222222",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.73668543845534995977473853580048270313757039420756",
+          "candidate": "0.74054156401179941002949852507374631268436578171091",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "72.116666666666666666666666666666666666666666666667",
+          "candidate": "71.7344207625",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.7416666666666666666666666666666666666666666666667",
+          "candidate": "3.7916666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.4083333333333333333333333333333333333333333333333",
+          "candidate": "6.3291666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "13.716666666666666666666666666666666666666666666667",
+          "candidate": "13.468410945833333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "7.5697004608294930875576036866359447004608294930876",
+          "candidate": "7.6009935904377880184331797235023041474654377880184",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.73755402144019756412415109165403827804905427400797",
+          "candidate": "0.74060306858618173654375035078857271145535163046529",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "47.891129032258064516129032258064516129032258064516",
+          "candidate": "48.003160181451612903225806451612903225806451612903",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9717741935483870967741935483870967741935483870968",
+          "candidate": "1.9435483870967741935483870967741935483870967741935",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "11.810483870967741935483870967741935483870967741935",
+          "candidate": "11.685630633064516129032258064516129032258064516129",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-33": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.0313888888888888888888888888888888888888888888889",
+          "candidate": "6.0716075522222222222222222222222222222222222222222",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.62788814667013678031288858043434255805210953992077",
+          "candidate": "0.63207504664411092796622422717677337266128799051502",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "35.425000",
+          "candidate": "35.137168983333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "4.0458333333333333333333333333333333333333333333333",
+          "candidate": "4.0625",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.6791666666666666666666666666666666666666666666667",
+          "candidate": "6.4416666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "8.7666666666666666666666666666666666666666666666667",
+          "candidate": "8.2701552208333333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.0397465437788018433179723502304147465437788018433",
+          "candidate": "6.0705980679723502304147465437788018433179723502304",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.63441640951170811399528045017244508985296787075694",
+          "candidate": "0.63765706093059841471531433411992497125915169117202",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "29.358870967741935483870967741935483870967741935484",
+          "candidate": "30.107453596774193548387096774193548387096774193548",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9838709677419354838709677419354838709677419354839",
+          "candidate": "1.8427419354838709677419354838709677419354838709677",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "7.8225806451612903225806451612903225806451612903226",
+          "candidate": "7.7672714395161290322580645161290322580645161290323",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-34": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.3427777777777777777777777777777777777777777777778",
+          "candidate": "6.3589037577777777777777777777777777777777777777778",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.71771177117711771177117711771177117711771177117712",
+          "candidate": "0.71953649310073864529310073864529310073864529310074",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "29.004166666666666666666666666666666666666666666667",
+          "candidate": "30.602488204166666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.9833333333333333333333333333333333333333333333333",
+          "candidate": "3.9",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.7333333333333333333333333333333333333333333333333",
+          "candidate": "6.6208333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.0458333333333333333333333333333333333333333333333",
+          "candidate": "4.4349806916666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.4084101382488479262672811059907834101382488479263",
+          "candidate": "6.4123721054147465437788018433179723502304147465438",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.72470848804638134323496840596703797798189043059084",
+          "candidate": "0.72515653540485961826591101556901830499641717151977",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "33.334677419354838709677419354838709677419354838710",
+          "candidate": "34.833586302419354838709677419354838709677419354839",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.0483870967741935483870967741935483870967741935484",
+          "candidate": "2.0040322580645161290322580645161290322580645161290",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.7983870967741935483870967741935483870967741935484",
+          "candidate": "6.0202105887096774193548387096774193548387096774194",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-35": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "7.7966666666666666666666666666666666666666666666667",
+          "candidate": "7.7590030952777777777777777777777777777777777777778",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.83750074595691352867458375604225099958226412842394",
+          "candidate": "0.83345500814584949573312645461598138091543832428239",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "42.291666666666666666666666666666666666666666666667",
+          "candidate": "44.44773735",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.85",
+          "candidate": "3.8333333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.3916666666666666666666666666666666666666666666667",
+          "candidate": "5.9625",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.362500",
+          "candidate": "6.4313814541666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "7.8819124423963133640552995391705069124423963133641",
+          "candidate": "7.8295592269585253456221198156682027649769585253456",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.83929338158621112678648101576396982150524443353984",
+          "candidate": "0.83371862957737839661412010059498251855486720235539",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "44.818548387096774193548387096774193548387096774194",
+          "candidate": "46.681079612903225806451612903225806451612903225806",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9193548387096774193548387096774193548387096774194",
+          "candidate": "2.0282258064516129032258064516129032258064516129032",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "6.5403225806451612903225806451612903225806451612903",
+          "candidate": "6.8778508346774193548387096774193548387096774193548",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-36": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "7.3480555555555555555555555555555555555555555555556",
+          "candidate": "7.3770935394444444444444444444444444444444444444444",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.70305108169882528039121883803752724180088236857492",
+          "candidate": "0.70582939302609897411364482007122734279487588369744",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "65.795833333333333333333333333333333333333333333333",
+          "candidate": "65.413587429166666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.6958333333333333333333333333333333333333333333333",
+          "candidate": "3.7041666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.375",
+          "candidate": "5.7541666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "12.754166666666666666666666666666666666666666666667",
+          "candidate": "12.505910945833333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "7.4043778801843317972350230414746543778801843317972",
+          "candidate": "7.4339154395161290322580645161290322580645161290323",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.70240437158469945355191256830601092896174863387978",
+          "candidate": "0.70520640453551912568306010928961748633879781420765",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "49.798387096774193548387096774193548387096774193548",
+          "candidate": "49.925660221774193548387096774193548387096774193548",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.0443548387096774193548387096774193548387096774194",
+          "candidate": "1.9596774193548387096774193548387096774193548387097",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "10.947580645161290322580645161290322580645161290323",
+          "candidate": "10.822727407258064516129032258064516129032258064516",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-37": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.2927777777777777777777777777777777777777777777778",
+          "candidate": "6.3827436911111111111111111111111111111111111111111",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.56168798968560944163443419617177427352970346127145",
+          "candidate": "0.56971827055439849251214916195576713279777843895666",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "42.679166666666666666666666666666666666666666666667",
+          "candidate": "42.23124935",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.525",
+          "candidate": "3.5666666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.5291666666666666666666666666666666666666666666667",
+          "candidate": "6.1666666666666666666666666666666666666666666666667",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "8.6916666666666666666666666666666666666666666666667",
+          "candidate": "8.1951552208333333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.2523041474654377880184331797235023041474654377880",
+          "candidate": "6.3547961728110599078341013824884792626728110599078",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.55718685831622176591375770020533880903490759753593",
+          "candidate": "0.56632064455852156057494866529774127310061601642710",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "35.870967741935483870967741935483870967741935483871",
+          "candidate": "36.451677241935483870967741935483870967741935483871",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "2.9274193548387096774193548387096774193548387096774",
+          "candidate": "1.8911290322580645161290322580645161290322580645161",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "7.9838709677419354838709677419354838709677419354839",
+          "candidate": "7.8605174879032258064516129032258064516129032258065",
+          "common_count": 248
+        }
+      }
+    },
+    "SYNTHETIC-38": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "6.2677777777777777777777777777777777777777777777778",
+          "candidate": "6.4034580727777777777777777777777777777777777777778",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.59078888801612860995470374152331579085172675621187",
+          "candidate": "0.60357785620401644280365512004817636739716702013458",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "27.508333333333333333333333333333333333333333333333",
+          "candidate": "29.065923595833333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "3.625",
+          "candidate": "3.725",
+          "common_count": 240
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "5.4041666666666666666666666666666666666666666666667",
+          "candidate": "6.2833333333333333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.0416666666666666666666666666666666666666666666667",
+          "candidate": "4.4094961916666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "6.3116359447004608294930875576036866359447004608295",
+          "candidate": "6.4371606895161290322580645161290322580645161290323",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "0.59923434509160514082581350834016953787257314738857",
+          "candidate": "0.61115181607875307629204265791632485643970467596390",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "30.875000",
+          "candidate": "32.421858358870967741935483870967741935483870967742",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 248
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.0887096774193548387096774193548387096774193548387",
+          "candidate": "1.9233870967741935483870967741935483870967741935484",
+          "common_count": 248
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "5.5806451612903225806451612903225806451612903225806",
+          "candidate": "5.8301244758064516129032258064516129032258064516129",
+          "common_count": 248
+        }
+      }
+    },
+    "base_c51783e2ec7c16bba447d64e": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "10.376666666666666666666666666666666666666666666667",
+          "candidate": "10.365132341111111111111111111111111111111111111111",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "40.210979547900968783638320775026910656620021528525",
+          "candidate": "40.166282484391819160387513455328310010764262648009",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "87.516666666666666666666666666666666666666666666667",
+          "candidate": "88.7522967875",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "6.4285714285714285714285714285714285714285714285714",
+          "candidate": "6.4285714285714285714285714285714285714285714285714",
+          "common_count": 14
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "8.0714285714285714285714285714285714285714285714286",
+          "candidate": "9.5714285714285714285714285714285714285714285714286",
+          "common_count": 14
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "14.308333333333333333333333333333333333333333333333",
+          "candidate": "15.044767466666666666666666666666666666666666666667",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "10.434907834101382488479262672811059907834101382488",
+          "candidate": "10.411487324308755760368663594470046082949308755760",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "29.170692431561996779388083735909822866344605475040",
+          "candidate": "29.105220603864734299516908212560386473429951690821",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "71.616935483870967741935483870967741935483870967742",
+          "candidate": "71.708928471774193548387096774193548387096774193548",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 14
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.4285714285714285714285714285714285714285714285714",
+          "candidate": "4.5",
+          "common_count": 14
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "12.310483870967741935483870967741935483870967741935",
+          "candidate": "12.667708370967741935483870967741935483870967741935",
+          "common_count": 248
+        }
+      }
+    },
+    "base_f10df3ac242e4dbbf6c20b98": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "7.0252777777777777777777777777777777777777777777778",
+          "candidate": "7.01877255",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": "20.645714285714285714285714285714285714285714285714",
+          "candidate": "20.626596881632653061224489795918367346938775510204",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "59.329166666666666666666666666666666666666666666667",
+          "candidate": "60.144931",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "6.4285714285714285714285714285714285714285714285714",
+          "candidate": "6.4285714285714285714285714285714285714285714285714",
+          "common_count": 14
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "9",
+          "candidate": "10.071428571428571428571428571428571428571428571429",
+          "common_count": 14
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "9.7833333333333333333333333333333333333333333333333",
+          "candidate": "10.263565720833333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "7.0720046082949308755760368663594470046082949308756",
+          "candidate": "7.0588469066820276497695852534562211981566820276498",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": "14.738295318127250900360144057623049219687875150060",
+          "candidate": "14.710874225690276110444177671068427370948379351741",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "48.383064516129032258064516129032258064516129032258",
+          "candidate": "48.494072",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": "0",
+          "candidate": "0",
+          "common_count": 14
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": "3.8571428571428571428571428571428571428571428571429",
+          "candidate": "4.5",
+          "common_count": 14
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "8.3225806451612903225806451612903225806451612903226",
+          "candidate": "8.604366125",
+          "common_count": 248
+        }
+      }
+    },
+    "base_ffdc1ebe359436aa3f0fa834": {
+      "H15_LOCAL": {
+        "DAILY_MAE": {
+          "baseline": "3.4397222222222222222222222222222222222222222222222",
+          "candidate": "3.4335005411111111111111111111111111111111111111111",
+          "common_count": 240
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "30.016666666666666666666666666666666666666666666667",
+          "candidate": "30.398912570833333333333333333333333333333333333333",
+          "common_count": 240
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.950000",
+          "candidate": "5.1982557208333333333333333333333333333333333333333",
+          "common_count": 240
+        }
+      },
+      "H7_PREFIX": {
+        "DAILY_MAE": {
+          "baseline": "3.4654377880184331797235023041474654377880184331797",
+          "candidate": "3.4580149763824884792626728110599078341013824884793",
+          "common_count": 248
+        },
+        "DAILY_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "ROLLING_7DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "24.258064516129032258064516129032258064516129032258",
+          "candidate": "24.206104834677419354838709677419354838709677419355",
+          "common_count": 248
+        },
+        "ROLLING_7DAY_PEAK_START_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SEASON_TOTAL_WAPE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_DATE_MAE": {
+          "baseline": null,
+          "candidate": null,
+          "common_count": 0
+        },
+        "SINGLE_DAY_PEAK_QUANTITY_MAE": {
+          "baseline": "4.1854838709677419354838709677419354838709677419355",
+          "candidate": "4.3103371088709677419354838709677419354838709677419",
+          "common_count": 248
+        }
+      }
+    }
+  },
+  "performance": {
+    "a_seal_sha256": "217bbb2240c20b3edcd5975eec79dcb83cdc3f4e5dafcea74e7da95984f2d1a4",
+    "base_count": 39,
+    "child_peak_rss_bytes": 1253457920,
+    "data_class": "SYNTHETIC",
+    "memory_measurement": "PER_PROCESS_PEAKS_NOT_SIMULTANEOUS_TOTAL",
+    "parent_peak_rss_bytes": 540983296,
+    "phase_a_seconds": 11.39297383298981,
+    "phase_b_seconds": 16.638098458002787,
+    "platform": "darwin",
+    "prediction_content_sha256": "30a2fe8098d782bfdd7a9b0c0466de95af6e5df4316b65484eca7e732a2c7c72",
+    "python_version": "3.12.13",
+    "real_formally_admitted_c0_count": 0,
+    "real_prediction_generated": false,
+    "real_scoring_performed": false,
+    "recorded_at": "2026-10-22T01:01:37.900885+00:00",
+    "registered_count": 19032,
+    "report_sha256": "b3a815e0a0ee2653af4252811c3ed50a444dbbd56e0c1e81302e656fa9e1babe",
+    "s3_formal_complete": false,
+    "simulation_admitted_count": 19032,
+    "source_code_sha256": "140632ef267772478fa85f0c41719138322d1337020de0b614acf8cd2693c467",
+    "total_seconds": 36.04695083400293
+  },
+  "protected_paths_unchanged": [
+    "backend/app",
+    "frontend",
+    "backend/alembic",
+    ".github",
+    "pyproject.toml",
+    "uv.lock",
+    "backend/research/v019_daily_curve.py",
+    "backend/research/v019_synthetic_validation.py",
+    "backend/research/v019_owner_scope_adapter.py",
+    "backend/research/v019_real_phase_a_adapter.py",
+    "backend/research/v019_retrospective_engine.py",
+    "backend/research/v019_retrospective_scoring.py"
+  ],
+  "real_states": {
+    "deploy_authorized": false,
+    "formally_admitted_c0_count": 0,
+    "merge_authorized": false,
+    "model_training_performed": false,
+    "ready_authorized": false,
+    "real_input_objects_read": false,
+    "real_prediction_generated": false,
+    "real_scoring_performed": false,
+    "s3_formal_complete": false
+  },
+  "scope_counts": {
+    "authorized_zero_base_days": 3490,
+    "base_days": 9906,
+    "bases": 39,
+    "excluded_farms": 4,
+    "h15_candidates": 9360,
+    "h7_candidates": 9672,
+    "included_farms": 80,
+    "note": "VALIDATED_SYNTHETIC_STRUCTURE_NOT_PRIVATE_OBJECTS",
+    "observed_base_days": 6416
+  },
+  "status": "FULL_REAL_SHAPE_SYNTHETIC_E2E_PASS_NOT_REAL_STUDY",
+  "task_id": "V0_19_S3_REAL_RETROSPECTIVE_END_TO_END_R1"
+}
