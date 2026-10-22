@@ -1,0 +1,484 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>SYNTHETIC research report</title><style>body{max-width:1100px;margin:2rem auto;padding:1rem;font:15px/1.5 system-ui}p{overflow-wrap:anywhere}.table{overflow:auto}table{border-collapse:collapse;width:100%}td,th{border:1px solid #bbb;padding:.4rem;text-align:left}th{background:#eee}</style><h1>SYNTHETIC retrospective numerical report</h1>
+<p>SYNTHETIC_NUMERICAL_REHEARSAL_NOT_REAL_ACCURACY_OR_MODEL_PROMOTION</p>
+<p>Report SHA256: `33e5f666d45b1d3de43f650f041601314b9af5cabc495370bfcc8073ee920ae0`</p>
+<p>Late computation is preserved; strict PIT=false. Real C0=0; real execution BLOCKED.</p>
+<h2>RETROSPECTIVE_REPLAY:H15_LOCAL</h2>
+<div class="table"><table>
+<tr><th>Metric</th><th>baseline</th><th>candidate</th><th>common / candidate</th></tr>
+<tr><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>0 / 8</td></tr>
+<tr><td>DAILY_WAPE</td><td>0.23219911783238815374921235034656584751102709514808</td><td>0.33423901827347195967233774417139256458727158160050</td><td>6 / 8</td></tr>
+<tr><td>DAILY_MAE</td><td>4.0944444444444444444444444444444444444444444444444</td><td>5.8937480222222222222222222222222222222222222222222</td><td>6 / 8</td></tr>
+<tr><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>2</td><td>2</td><td>4 / 8</td></tr>
+<tr><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>8.3333333333333333333333333333333333333333333333333</td><td>11.708333333333333333333333333333333333333333333333</td><td>6 / 8</td></tr>
+<tr><td>ROLLING_7DAY_PEAK_START_MAE</td><td>0</td><td>0</td><td>4 / 8</td></tr>
+<tr><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>35.000000</td><td>35.000000</td><td>6 / 8</td></tr>
+<tr><td>BASE_BREADTH</td><td>{&quot;improved&quot;: 1, &quot;improved_actual_kg_share&quot;: {&quot;denominator&quot;: &quot;1587&quot;, &quot;numerator&quot;: &quot;537&quot;, &quot;value&quot;: &quot;0.33837429111531190926275992438563327032136105860113&quot;}, &quot;n_base&quot;: 3, &quot;per_base_delta&quot;: {&quot;SYNTHETIC-BASE-A&quot;: &quot;-24.195895&quot;, &quot;SYNTHETIC-BASE-B&quot;: &quot;177.875282&quot;, &quot;SYNTHETIC-BASE-C&quot;: &quot;8.257935&quot;}, &quot;status&quot;: &quot;PASS_SYNTHETIC&quot;, &quot;tied&quot;: 0, &quot;worsened&quot;: 2}</td><td>—</td><td>—</td></tr>
+<tr><td>SAMPLE_COVERAGE</td><td>{&quot;DAILY_MAE&quot;: &quot;0.75&quot;, &quot;DAILY_WAPE&quot;: &quot;0.75&quot;, &quot;ROLLING_7DAY_PEAK_QUANTITY_MAE&quot;: &quot;0.75&quot;, &quot;ROLLING_7DAY_PEAK_START_MAE&quot;: &quot;0.5&quot;, &quot;SEASON_TOTAL_WAPE&quot;: &quot;0&quot;, &quot;SINGLE_DAY_PEAK_DATE_MAE&quot;: &quot;0.5&quot;, &quot;SINGLE_DAY_PEAK_QUANTITY_MAE&quot;: &quot;0.75&quot;}</td><td>—</td><td>—</td></tr>
+<tr><td>NOT_COMPUTABLE_COUNT</td><td>{&quot;DAILY_MAE&quot;: 2, &quot;DAILY_WAPE&quot;: 2, &quot;ROLLING_7DAY_PEAK_QUANTITY_MAE&quot;: 2, &quot;ROLLING_7DAY_PEAK_START_MAE&quot;: 4, &quot;SEASON_TOTAL_WAPE&quot;: 8, &quot;SINGLE_DAY_PEAK_DATE_MAE&quot;: 4, &quot;SINGLE_DAY_PEAK_QUANTITY_MAE&quot;: 2}</td><td>—</td><td>—</td></tr>
+</table></div>
+<h3>Per Base paired absolute-error delta (candidate - baseline)</h3>
+<p>- SYNTHETIC-BASE-A: -24.195895 kg</p>
+<p>- SYNTHETIC-BASE-B: 177.875282 kg</p>
+<p>- SYNTHETIC-BASE-C: 8.257935 kg</p>
+<h3>Per Base numerical comparison (negative delta = lower error)</h3>
+<div class="table"><table>
+<tr><th>Base</th><th>Metric</th><th>baseline</th><th>candidate</th><th>delta</th></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>DAILY_WAPE</td><td>0.19739292364990689013035381750465549348230912476723</td><td>0.15233539106145251396648044692737430167597765363128</td><td>-0.04505753258845437616387337057728119180633147113595</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>DAILY_MAE</td><td>3.5333333333333333333333333333333333333333333333333</td><td>2.7268035</td><td>-0.8065298333333333333333333333333333333333333333333</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>4</td><td>1</td><td>-3</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>10.000000</td><td>3.250000</td><td>-6.750000</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>0.000000</td><td>0.000000</td><td>0.000000</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>DAILY_WAPE</td><td>0.000000</td><td>0.16940503047619047619047619047619047619047619047619</td><td>0.16940503047619047619047619047619047619047619047619</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>DAILY_MAE</td><td>0.000000</td><td>5.9291760666666666666666666666666666666666666666667</td><td>5.9291760666666666666666666666666666666666666666667</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>0</td><td>3</td><td>3</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>0.000000</td><td>13.500000</td><td>13.500000</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>0.000000</td><td>0.000000</td><td>0.000000</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>DAILY_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>DAILY_MAE</td><td>8.750000</td><td>9.0252645</td><td>0.2752645</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>15.000000</td><td>18.375000</td><td>3.375000</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>105.000000</td><td>105.000000</td><td>0.000000</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>DAILY_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>DAILY_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+</table></div>
+<h2>RETROSPECTIVE_REPLAY:H7_PREFIX</h2>
+<div class="table"><table>
+<tr><th>Metric</th><th>baseline</th><th>candidate</th><th>common / candidate</th></tr>
+<tr><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>0 / 8</td></tr>
+<tr><td>DAILY_WAPE</td><td>0.23333333333333333333333333333333333333333333333333</td><td>0.309139125</td><td>6 / 8</td></tr>
+<tr><td>DAILY_MAE</td><td>5.3333333333333333333333333333333333333333333333333</td><td>7.0660371428571428571428571428571428571428571428571</td><td>6 / 8</td></tr>
+<tr><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>1.5</td><td>1.5</td><td>4 / 8</td></tr>
+<tr><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>6.6666666666666666666666666666666666666666666666667</td><td>10.250000</td><td>6 / 8</td></tr>
+<tr><td>ROLLING_7DAY_PEAK_START_MAE</td><td>0</td><td>0</td><td>4 / 8</td></tr>
+<tr><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>29.666666666666666666666666666666666666666666666667</td><td>36.259391333333333333333333333333333333333333333333</td><td>6 / 8</td></tr>
+<tr><td>BASE_BREADTH</td><td>{&quot;improved&quot;: 1, &quot;improved_actual_kg_share&quot;: {&quot;denominator&quot;: &quot;960&quot;, &quot;numerator&quot;: &quot;320&quot;, &quot;value&quot;: &quot;0.33333333333333333333333333333333333333333333333333&quot;}, &quot;n_base&quot;: 3, &quot;per_base_delta&quot;: {&quot;SYNTHETIC-BASE-A&quot;: &quot;-16.206969&quot;, &quot;SYNTHETIC-BASE-B&quot;: &quot;80.758195&quot;, &quot;SYNTHETIC-BASE-C&quot;: &quot;8.222334&quot;}, &quot;status&quot;: &quot;PASS_SYNTHETIC&quot;, &quot;tied&quot;: 0, &quot;worsened&quot;: 2}</td><td>—</td><td>—</td></tr>
+<tr><td>SAMPLE_COVERAGE</td><td>{&quot;DAILY_MAE&quot;: &quot;0.75&quot;, &quot;DAILY_WAPE&quot;: &quot;0.75&quot;, &quot;ROLLING_7DAY_PEAK_QUANTITY_MAE&quot;: &quot;0.75&quot;, &quot;ROLLING_7DAY_PEAK_START_MAE&quot;: &quot;0.5&quot;, &quot;SEASON_TOTAL_WAPE&quot;: &quot;0&quot;, &quot;SINGLE_DAY_PEAK_DATE_MAE&quot;: &quot;0.5&quot;, &quot;SINGLE_DAY_PEAK_QUANTITY_MAE&quot;: &quot;0.75&quot;}</td><td>—</td><td>—</td></tr>
+<tr><td>NOT_COMPUTABLE_COUNT</td><td>{&quot;DAILY_MAE&quot;: 2, &quot;DAILY_WAPE&quot;: 2, &quot;ROLLING_7DAY_PEAK_QUANTITY_MAE&quot;: 2, &quot;ROLLING_7DAY_PEAK_START_MAE&quot;: 4, &quot;SEASON_TOTAL_WAPE&quot;: 8, &quot;SINGLE_DAY_PEAK_DATE_MAE&quot;: 4, &quot;SINGLE_DAY_PEAK_QUANTITY_MAE&quot;: 2}</td><td>—</td><td>—</td></tr>
+</table></div>
+<h3>Per Base paired absolute-error delta (candidate - baseline)</h3>
+<p>- SYNTHETIC-BASE-A: -16.206969 kg</p>
+<p>- SYNTHETIC-BASE-B: 80.758195 kg</p>
+<p>- SYNTHETIC-BASE-C: 8.222334 kg</p>
+<h3>Per Base numerical comparison (negative delta = lower error)</h3>
+<div class="table"><table>
+<tr><th>Base</th><th>Metric</th><th>baseline</th><th>candidate</th><th>delta</th></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>DAILY_WAPE</td><td>0.200000</td><td>0.149353221875</td><td>-0.050646778125</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>DAILY_MAE</td><td>4.5714285714285714285714285714285714285714285714286</td><td>3.4137879285714285714285714285714285714285714285714</td><td>-1.1576406428571428571428571428571428571428571428572</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>3</td><td>0.5</td><td>-2.5</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>5.000000</td><td>3.250000</td><td>-1.750000</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>9.000000</td><td>8.2223355</td><td>-0.7776645</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>DAILY_WAPE</td><td>0.000000</td><td>0.1261846796875</td><td>0.1261846796875</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>DAILY_MAE</td><td>0.000000</td><td>5.7684425</td><td>5.7684425</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>0</td><td>2.5</td><td>2.5</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>0.000000</td><td>10.000000</td><td>10.000000</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>0.000000</td><td>16.4446715</td><td>16.4446715</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>DAILY_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>DAILY_MAE</td><td>11.428571428571428571428571428571428571428571428571</td><td>12.015881</td><td>0.587309571428571428571428571428571428571428571429</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>15.000000</td><td>17.500000</td><td>2.500000</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>80.000000</td><td>84.111167</td><td>4.111167</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>DAILY_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>DAILY_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+</table></div>
+<h2>SYNTHETIC_COMPLETE_CALENDAR_CONTROL:FULL_SEASON</h2>
+<div class="table"><table>
+<tr><th>Metric</th><th>baseline</th><th>candidate</th><th>common / candidate</th></tr>
+<tr><td>SEASON_TOTAL_WAPE</td><td>0.16666666666666666666666666666666666666666666666667</td><td>0.16666666666666666666666666666666666666666666666667</td><td>3 / 4</td></tr>
+<tr><td>DAILY_WAPE</td><td>0.23439153439153439153439153439153439153439153439153</td><td>0.33052478095238095238095238095238095238095238095238</td><td>3 / 4</td></tr>
+<tr><td>DAILY_MAE</td><td>3.5158730158730158730158730158730158730158730158730</td><td>4.9578717142857142857142857142857142857142857142857</td><td>3 / 4</td></tr>
+<tr><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>2</td><td>2</td><td>2 / 4</td></tr>
+<tr><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>8.3333333333333333333333333333333333333333333333333</td><td>11.708333333333333333333333333333333333333333333333</td><td>3 / 4</td></tr>
+<tr><td>ROLLING_7DAY_PEAK_START_MAE</td><td>0</td><td>0</td><td>2 / 4</td></tr>
+<tr><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>35.000000</td><td>35.000000</td><td>3 / 4</td></tr>
+<tr><td>BASE_BREADTH</td><td>{&quot;improved&quot;: 1, &quot;improved_actual_kg_share&quot;: {&quot;denominator&quot;: &quot;945&quot;, &quot;numerator&quot;: &quot;315&quot;, &quot;value&quot;: &quot;0.33333333333333333333333333333333333333333333333333&quot;}, &quot;n_base&quot;: 3, &quot;per_base_delta&quot;: {&quot;SYNTHETIC-BASE-A&quot;: &quot;-20.509236&quot;, &quot;SYNTHETIC-BASE-B&quot;: &quot;111.355154&quot;, &quot;SYNTHETIC-BASE-C&quot;: &quot;0.000000&quot;}, &quot;status&quot;: &quot;PASS_SYNTHETIC&quot;, &quot;tied&quot;: 1, &quot;worsened&quot;: 1}</td><td>—</td><td>—</td></tr>
+<tr><td>SAMPLE_COVERAGE</td><td>{&quot;DAILY_MAE&quot;: &quot;0.75&quot;, &quot;DAILY_WAPE&quot;: &quot;0.75&quot;, &quot;ROLLING_7DAY_PEAK_QUANTITY_MAE&quot;: &quot;0.75&quot;, &quot;ROLLING_7DAY_PEAK_START_MAE&quot;: &quot;0.5&quot;, &quot;SEASON_TOTAL_WAPE&quot;: &quot;0.75&quot;, &quot;SINGLE_DAY_PEAK_DATE_MAE&quot;: &quot;0.5&quot;, &quot;SINGLE_DAY_PEAK_QUANTITY_MAE&quot;: &quot;0.75&quot;}</td><td>—</td><td>—</td></tr>
+<tr><td>NOT_COMPUTABLE_COUNT</td><td>{&quot;DAILY_MAE&quot;: 1, &quot;DAILY_WAPE&quot;: 1, &quot;ROLLING_7DAY_PEAK_QUANTITY_MAE&quot;: 1, &quot;ROLLING_7DAY_PEAK_START_MAE&quot;: 2, &quot;SEASON_TOTAL_WAPE&quot;: 1, &quot;SINGLE_DAY_PEAK_DATE_MAE&quot;: 2, &quot;SINGLE_DAY_PEAK_QUANTITY_MAE&quot;: 1}</td><td>—</td><td>—</td></tr>
+</table></div>
+<h3>Per Base paired absolute-error delta (candidate - baseline)</h3>
+<p>- SYNTHETIC-BASE-A: -20.509236 kg</p>
+<p>- SYNTHETIC-BASE-B: 111.355154 kg</p>
+<p>- SYNTHETIC-BASE-C: 0.000000 kg</p>
+<h3>Per Base numerical comparison (negative delta = lower error)</h3>
+<div class="table"><table>
+<tr><th>Base</th><th>Metric</th><th>baseline</th><th>candidate</th><th>delta</th></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>SEASON_TOTAL_WAPE</td><td>0.000000</td><td>0.000000</td><td>0.000000</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>DAILY_WAPE</td><td>0.20317460317460317460317460317460317460317460317460</td><td>0.13806591746031746031746031746031746031746031746032</td><td>-0.06510868571428571428571428571428571428571428571428</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>DAILY_MAE</td><td>3.0476190476190476190476190476190476190476190476190</td><td>2.0709887619047619047619047619047619047619047619048</td><td>-0.9766302857142857142857142857142857142857142857142</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>4</td><td>1</td><td>-3</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>10.000000</td><td>3.250000</td><td>-6.750000</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>SYNTHETIC-BASE-A</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>0.000000</td><td>0.000000</td><td>0.000000</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>SEASON_TOTAL_WAPE</td><td>0.000000</td><td>0.000000</td><td>0.000000</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>DAILY_WAPE</td><td>0.000000</td><td>0.17675421269841269841269841269841269841269841269841</td><td>0.17675421269841269841269841269841269841269841269841</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>DAILY_MAE</td><td>0.000000</td><td>5.3026263809523809523809523809523809523809523809524</td><td>5.3026263809523809523809523809523809523809523809524</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>0</td><td>3</td><td>3</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>0.000000</td><td>13.500000</td><td>13.500000</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>SYNTHETIC-BASE-B</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>0.000000</td><td>0.000000</td><td>0.000000</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>DAILY_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>DAILY_MAE</td><td>7.500000</td><td>7.500000</td><td>0.000000</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>15.000000</td><td>18.375000</td><td>3.375000</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-C</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>105.000000</td><td>105.000000</td><td>0.000000</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>SEASON_TOTAL_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>DAILY_WAPE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>DAILY_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>SINGLE_DAY_PEAK_DATE_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>SINGLE_DAY_PEAK_QUANTITY_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>ROLLING_7DAY_PEAK_START_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+<tr><td>SYNTHETIC-BASE-D</td><td>ROLLING_7DAY_PEAK_QUANTITY_MAE</td><td>None</td><td>None</td><td>None</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-A-FULL_SEASON-2000-06-30</h2>
+<p>origin=2000-06-30T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;30.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;210.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;36.750000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;210.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>actual peak: {&quot;date&quot;: &quot;2000-07-12&quot;, &quot;quantity_kg&quot;: &quot;40&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;210&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-01</td><td>10.000000</td><td>8.032787</td><td>8</td></tr>
+<tr><td>2000-07-02</td><td>10.000000</td><td>8.032787</td><td>8</td></tr>
+<tr><td>2000-07-03</td><td>10.000000</td><td>8.032787</td><td>8</td></tr>
+<tr><td>2000-07-04</td><td>10.000000</td><td>8.032787</td><td>8</td></tr>
+<tr><td>2000-07-05</td><td>10.000000</td><td>10.327869</td><td>11</td></tr>
+<tr><td>2000-07-06</td><td>10.000000</td><td>12.622951</td><td>13</td></tr>
+<tr><td>2000-07-07</td><td>10.000000</td><td>14.918032</td><td>14</td></tr>
+<tr><td>2000-07-08</td><td>30.000000</td><td>26.250000</td><td>20</td></tr>
+<tr><td>2000-07-09</td><td>30.000000</td><td>29.750000</td><td>25</td></tr>
+<tr><td>2000-07-10</td><td>30.000000</td><td>33.250000</td><td>30</td></tr>
+<tr><td>2000-07-11</td><td>30.000000</td><td>36.750000</td><td>35</td></tr>
+<tr><td>2000-07-12</td><td>30.000000</td><td>32.375000</td><td>40</td></tr>
+<tr><td>2000-07-13</td><td>30.000000</td><td>28.000000</td><td>35</td></tr>
+<tr><td>2000-07-14</td><td>30.000000</td><td>23.625000</td><td>25</td></tr>
+<tr><td>2000-07-15</td><td>5.000000</td><td>9.746835</td><td>7</td></tr>
+<tr><td>2000-07-16</td><td>5.000000</td><td>7.531645</td><td>6</td></tr>
+<tr><td>2000-07-17</td><td>5.000000</td><td>5.316456</td><td>5</td></tr>
+<tr><td>2000-07-18</td><td>5.000000</td><td>3.101266</td><td>4</td></tr>
+<tr><td>2000-07-19</td><td>5.000000</td><td>3.101266</td><td>3</td></tr>
+<tr><td>2000-07-20</td><td>5.000000</td><td>3.101266</td><td>4</td></tr>
+<tr><td>2000-07-21</td><td>5.000000</td><td>3.101266</td><td>6</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-A-H15_LOCAL-2000-07-03</h2>
+<p>origin=2000-07-03T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;30.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;210.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;36.750000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;210.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>actual peak: {&quot;date&quot;: &quot;2000-07-12&quot;, &quot;quantity_kg&quot;: &quot;40&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;210&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-04</td><td>10.000000</td><td>8.032787</td><td>8</td></tr>
+<tr><td>2000-07-05</td><td>10.000000</td><td>10.327869</td><td>11</td></tr>
+<tr><td>2000-07-06</td><td>10.000000</td><td>12.622951</td><td>13</td></tr>
+<tr><td>2000-07-07</td><td>10.000000</td><td>14.918032</td><td>14</td></tr>
+<tr><td>2000-07-08</td><td>30.000000</td><td>26.250000</td><td>20</td></tr>
+<tr><td>2000-07-09</td><td>30.000000</td><td>29.750000</td><td>25</td></tr>
+<tr><td>2000-07-10</td><td>30.000000</td><td>33.250000</td><td>30</td></tr>
+<tr><td>2000-07-11</td><td>30.000000</td><td>36.750000</td><td>35</td></tr>
+<tr><td>2000-07-12</td><td>30.000000</td><td>32.375000</td><td>40</td></tr>
+<tr><td>2000-07-13</td><td>30.000000</td><td>28.000000</td><td>35</td></tr>
+<tr><td>2000-07-14</td><td>30.000000</td><td>23.625000</td><td>25</td></tr>
+<tr><td>2000-07-15</td><td>5.000000</td><td>9.746835</td><td>7</td></tr>
+<tr><td>2000-07-16</td><td>5.000000</td><td>7.531645</td><td>6</td></tr>
+<tr><td>2000-07-17</td><td>5.000000</td><td>5.316456</td><td>5</td></tr>
+<tr><td>2000-07-18</td><td>5.000000</td><td>3.101266</td><td>4</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-A-H15_LOCAL-2000-07-06</h2>
+<p>origin=2000-07-06T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;30.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;210.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;36.750000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;210.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>actual peak: {&quot;date&quot;: &quot;2000-07-12&quot;, &quot;quantity_kg&quot;: &quot;40&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;210&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-07</td><td>10.000000</td><td>14.918032</td><td>14</td></tr>
+<tr><td>2000-07-08</td><td>30.000000</td><td>26.250000</td><td>20</td></tr>
+<tr><td>2000-07-09</td><td>30.000000</td><td>29.750000</td><td>25</td></tr>
+<tr><td>2000-07-10</td><td>30.000000</td><td>33.250000</td><td>30</td></tr>
+<tr><td>2000-07-11</td><td>30.000000</td><td>36.750000</td><td>35</td></tr>
+<tr><td>2000-07-12</td><td>30.000000</td><td>32.375000</td><td>40</td></tr>
+<tr><td>2000-07-13</td><td>30.000000</td><td>28.000000</td><td>35</td></tr>
+<tr><td>2000-07-14</td><td>30.000000</td><td>23.625000</td><td>25</td></tr>
+<tr><td>2000-07-15</td><td>5.000000</td><td>9.746835</td><td>7</td></tr>
+<tr><td>2000-07-16</td><td>5.000000</td><td>7.531645</td><td>6</td></tr>
+<tr><td>2000-07-17</td><td>5.000000</td><td>5.316456</td><td>5</td></tr>
+<tr><td>2000-07-18</td><td>5.000000</td><td>3.101266</td><td>4</td></tr>
+<tr><td>2000-07-19</td><td>5.000000</td><td>3.101266</td><td>3</td></tr>
+<tr><td>2000-07-20</td><td>5.000000</td><td>3.101266</td><td>4</td></tr>
+<tr><td>2000-07-21</td><td>5.000000</td><td>3.101266</td><td>6</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-A-H7_PREFIX-2000-07-03</h2>
+<p>origin=2000-07-03T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;30.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;130.000000&quot;, &quot;start_date&quot;: &quot;2000-07-04&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;33.250000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;135.151639&quot;, &quot;start_date&quot;: &quot;2000-07-04&quot;}</p>
+<p>actual peak: {&quot;date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;30&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;121&quot;, &quot;start_date&quot;: &quot;2000-07-04&quot;}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-04</td><td>10.000000</td><td>8.032787</td><td>8</td></tr>
+<tr><td>2000-07-05</td><td>10.000000</td><td>10.327869</td><td>11</td></tr>
+<tr><td>2000-07-06</td><td>10.000000</td><td>12.622951</td><td>13</td></tr>
+<tr><td>2000-07-07</td><td>10.000000</td><td>14.918032</td><td>14</td></tr>
+<tr><td>2000-07-08</td><td>30.000000</td><td>26.250000</td><td>20</td></tr>
+<tr><td>2000-07-09</td><td>30.000000</td><td>29.750000</td><td>25</td></tr>
+<tr><td>2000-07-10</td><td>30.000000</td><td>33.250000</td><td>30</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-A-H7_PREFIX-2000-07-06</h2>
+<p>origin=2000-07-06T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;30.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-13&quot;, &quot;quantity_kg&quot;: &quot;190.000000&quot;, &quot;start_date&quot;: &quot;2000-07-07&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;36.750000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-13&quot;, &quot;quantity_kg&quot;: &quot;201.293032&quot;, &quot;start_date&quot;: &quot;2000-07-07&quot;}</p>
+<p>actual peak: {&quot;date&quot;: &quot;2000-07-12&quot;, &quot;quantity_kg&quot;: &quot;40&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-13&quot;, &quot;quantity_kg&quot;: &quot;199&quot;, &quot;start_date&quot;: &quot;2000-07-07&quot;}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-07</td><td>10.000000</td><td>14.918032</td><td>14</td></tr>
+<tr><td>2000-07-08</td><td>30.000000</td><td>26.250000</td><td>20</td></tr>
+<tr><td>2000-07-09</td><td>30.000000</td><td>29.750000</td><td>25</td></tr>
+<tr><td>2000-07-10</td><td>30.000000</td><td>33.250000</td><td>30</td></tr>
+<tr><td>2000-07-11</td><td>30.000000</td><td>36.750000</td><td>35</td></tr>
+<tr><td>2000-07-12</td><td>30.000000</td><td>32.375000</td><td>40</td></tr>
+<tr><td>2000-07-13</td><td>30.000000</td><td>28.000000</td><td>35</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-B-FULL_SEASON-2000-06-30</h2>
+<p>origin=2000-06-30T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;60.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;420.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;73.500000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;420.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>actual peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;60&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;420&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-01</td><td>20.000000</td><td>16.065574</td><td>20</td></tr>
+<tr><td>2000-07-02</td><td>20.000000</td><td>16.065574</td><td>20</td></tr>
+<tr><td>2000-07-03</td><td>20.000000</td><td>16.065574</td><td>20</td></tr>
+<tr><td>2000-07-04</td><td>20.000000</td><td>16.065574</td><td>20</td></tr>
+<tr><td>2000-07-05</td><td>20.000000</td><td>20.655738</td><td>20</td></tr>
+<tr><td>2000-07-06</td><td>20.000000</td><td>25.245901</td><td>20</td></tr>
+<tr><td>2000-07-07</td><td>20.000000</td><td>29.836065</td><td>20</td></tr>
+<tr><td>2000-07-08</td><td>60.000000</td><td>52.500000</td><td>60</td></tr>
+<tr><td>2000-07-09</td><td>60.000000</td><td>59.500000</td><td>60</td></tr>
+<tr><td>2000-07-10</td><td>60.000000</td><td>66.500000</td><td>60</td></tr>
+<tr><td>2000-07-11</td><td>60.000000</td><td>73.500000</td><td>60</td></tr>
+<tr><td>2000-07-12</td><td>60.000000</td><td>64.750000</td><td>60</td></tr>
+<tr><td>2000-07-13</td><td>60.000000</td><td>56.000000</td><td>60</td></tr>
+<tr><td>2000-07-14</td><td>60.000000</td><td>47.250000</td><td>60</td></tr>
+<tr><td>2000-07-15</td><td>10.000000</td><td>19.493671</td><td>10</td></tr>
+<tr><td>2000-07-16</td><td>10.000000</td><td>15.063291</td><td>10</td></tr>
+<tr><td>2000-07-17</td><td>10.000000</td><td>10.632911</td><td>10</td></tr>
+<tr><td>2000-07-18</td><td>10.000000</td><td>6.202532</td><td>10</td></tr>
+<tr><td>2000-07-19</td><td>10.000000</td><td>6.202532</td><td>10</td></tr>
+<tr><td>2000-07-20</td><td>10.000000</td><td>6.202532</td><td>10</td></tr>
+<tr><td>2000-07-21</td><td>10.000000</td><td>6.202531</td><td>10</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-B-H15_LOCAL-2000-07-03</h2>
+<p>origin=2000-07-03T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;60.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;420.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;73.500000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;420.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>actual peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;60&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;420&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-04</td><td>20.000000</td><td>16.065574</td><td>20</td></tr>
+<tr><td>2000-07-05</td><td>20.000000</td><td>20.655738</td><td>20</td></tr>
+<tr><td>2000-07-06</td><td>20.000000</td><td>25.245901</td><td>20</td></tr>
+<tr><td>2000-07-07</td><td>20.000000</td><td>29.836065</td><td>20</td></tr>
+<tr><td>2000-07-08</td><td>60.000000</td><td>52.500000</td><td>60</td></tr>
+<tr><td>2000-07-09</td><td>60.000000</td><td>59.500000</td><td>60</td></tr>
+<tr><td>2000-07-10</td><td>60.000000</td><td>66.500000</td><td>60</td></tr>
+<tr><td>2000-07-11</td><td>60.000000</td><td>73.500000</td><td>60</td></tr>
+<tr><td>2000-07-12</td><td>60.000000</td><td>64.750000</td><td>60</td></tr>
+<tr><td>2000-07-13</td><td>60.000000</td><td>56.000000</td><td>60</td></tr>
+<tr><td>2000-07-14</td><td>60.000000</td><td>47.250000</td><td>60</td></tr>
+<tr><td>2000-07-15</td><td>10.000000</td><td>19.493671</td><td>10</td></tr>
+<tr><td>2000-07-16</td><td>10.000000</td><td>15.063291</td><td>10</td></tr>
+<tr><td>2000-07-17</td><td>10.000000</td><td>10.632911</td><td>10</td></tr>
+<tr><td>2000-07-18</td><td>10.000000</td><td>6.202532</td><td>10</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-B-H15_LOCAL-2000-07-06</h2>
+<p>origin=2000-07-06T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;60.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;420.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;73.500000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;420.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>actual peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;60&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;420&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-07</td><td>20.000000</td><td>29.836065</td><td>20</td></tr>
+<tr><td>2000-07-08</td><td>60.000000</td><td>52.500000</td><td>60</td></tr>
+<tr><td>2000-07-09</td><td>60.000000</td><td>59.500000</td><td>60</td></tr>
+<tr><td>2000-07-10</td><td>60.000000</td><td>66.500000</td><td>60</td></tr>
+<tr><td>2000-07-11</td><td>60.000000</td><td>73.500000</td><td>60</td></tr>
+<tr><td>2000-07-12</td><td>60.000000</td><td>64.750000</td><td>60</td></tr>
+<tr><td>2000-07-13</td><td>60.000000</td><td>56.000000</td><td>60</td></tr>
+<tr><td>2000-07-14</td><td>60.000000</td><td>47.250000</td><td>60</td></tr>
+<tr><td>2000-07-15</td><td>10.000000</td><td>19.493671</td><td>10</td></tr>
+<tr><td>2000-07-16</td><td>10.000000</td><td>15.063291</td><td>10</td></tr>
+<tr><td>2000-07-17</td><td>10.000000</td><td>10.632911</td><td>10</td></tr>
+<tr><td>2000-07-18</td><td>10.000000</td><td>6.202532</td><td>10</td></tr>
+<tr><td>2000-07-19</td><td>10.000000</td><td>6.202532</td><td>10</td></tr>
+<tr><td>2000-07-20</td><td>10.000000</td><td>6.202532</td><td>10</td></tr>
+<tr><td>2000-07-21</td><td>10.000000</td><td>6.202531</td><td>10</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-B-H7_PREFIX-2000-07-03</h2>
+<p>origin=2000-07-03T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;60.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;260.000000&quot;, &quot;start_date&quot;: &quot;2000-07-04&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;66.500000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;270.303278&quot;, &quot;start_date&quot;: &quot;2000-07-04&quot;}</p>
+<p>actual peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;60&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;260&quot;, &quot;start_date&quot;: &quot;2000-07-04&quot;}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-04</td><td>20.000000</td><td>16.065574</td><td>20</td></tr>
+<tr><td>2000-07-05</td><td>20.000000</td><td>20.655738</td><td>20</td></tr>
+<tr><td>2000-07-06</td><td>20.000000</td><td>25.245901</td><td>20</td></tr>
+<tr><td>2000-07-07</td><td>20.000000</td><td>29.836065</td><td>20</td></tr>
+<tr><td>2000-07-08</td><td>60.000000</td><td>52.500000</td><td>60</td></tr>
+<tr><td>2000-07-09</td><td>60.000000</td><td>59.500000</td><td>60</td></tr>
+<tr><td>2000-07-10</td><td>60.000000</td><td>66.500000</td><td>60</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-B-H7_PREFIX-2000-07-06</h2>
+<p>origin=2000-07-06T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;60.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-13&quot;, &quot;quantity_kg&quot;: &quot;380.000000&quot;, &quot;start_date&quot;: &quot;2000-07-07&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;73.500000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-13&quot;, &quot;quantity_kg&quot;: &quot;402.586065&quot;, &quot;start_date&quot;: &quot;2000-07-07&quot;}</p>
+<p>actual peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;60&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-13&quot;, &quot;quantity_kg&quot;: &quot;380&quot;, &quot;start_date&quot;: &quot;2000-07-07&quot;}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-07</td><td>20.000000</td><td>29.836065</td><td>20</td></tr>
+<tr><td>2000-07-08</td><td>60.000000</td><td>52.500000</td><td>60</td></tr>
+<tr><td>2000-07-09</td><td>60.000000</td><td>59.500000</td><td>60</td></tr>
+<tr><td>2000-07-10</td><td>60.000000</td><td>66.500000</td><td>60</td></tr>
+<tr><td>2000-07-11</td><td>60.000000</td><td>73.500000</td><td>60</td></tr>
+<tr><td>2000-07-12</td><td>60.000000</td><td>64.750000</td><td>60</td></tr>
+<tr><td>2000-07-13</td><td>60.000000</td><td>56.000000</td><td>60</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-C-FULL_SEASON-2000-06-30</h2>
+<p>origin=2000-06-30T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;15.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;105.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;18.375000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;105.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>actual peak: {&quot;date&quot;: null, &quot;quantity_kg&quot;: &quot;0&quot;}; rolling7: {&quot;end_date&quot;: null, &quot;quantity_kg&quot;: &quot;0&quot;, &quot;start_date&quot;: null}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-01</td><td>5.000000</td><td>4.016394</td><td>0</td></tr>
+<tr><td>2000-07-02</td><td>5.000000</td><td>4.016394</td><td>0</td></tr>
+<tr><td>2000-07-03</td><td>5.000000</td><td>4.016394</td><td>0</td></tr>
+<tr><td>2000-07-04</td><td>5.000000</td><td>4.016393</td><td>0</td></tr>
+<tr><td>2000-07-05</td><td>5.000000</td><td>5.163934</td><td>0</td></tr>
+<tr><td>2000-07-06</td><td>5.000000</td><td>6.311475</td><td>0</td></tr>
+<tr><td>2000-07-07</td><td>5.000000</td><td>7.459016</td><td>0</td></tr>
+<tr><td>2000-07-08</td><td>15.000000</td><td>13.125000</td><td>0</td></tr>
+<tr><td>2000-07-09</td><td>15.000000</td><td>14.875000</td><td>0</td></tr>
+<tr><td>2000-07-10</td><td>15.000000</td><td>16.625000</td><td>0</td></tr>
+<tr><td>2000-07-11</td><td>15.000000</td><td>18.375000</td><td>0</td></tr>
+<tr><td>2000-07-12</td><td>15.000000</td><td>16.187500</td><td>0</td></tr>
+<tr><td>2000-07-13</td><td>15.000000</td><td>14.000000</td><td>0</td></tr>
+<tr><td>2000-07-14</td><td>15.000000</td><td>11.812500</td><td>0</td></tr>
+<tr><td>2000-07-15</td><td>2.500000</td><td>4.873417</td><td>0</td></tr>
+<tr><td>2000-07-16</td><td>2.500000</td><td>3.765823</td><td>0</td></tr>
+<tr><td>2000-07-17</td><td>2.500000</td><td>2.658228</td><td>0</td></tr>
+<tr><td>2000-07-18</td><td>2.500000</td><td>1.550633</td><td>0</td></tr>
+<tr><td>2000-07-19</td><td>2.500000</td><td>1.550633</td><td>0</td></tr>
+<tr><td>2000-07-20</td><td>2.500000</td><td>1.550633</td><td>0</td></tr>
+<tr><td>2000-07-21</td><td>2.500000</td><td>1.550633</td><td>0</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-C-H15_LOCAL-2000-07-03</h2>
+<p>origin=2000-07-03T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;15.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;105.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;18.375000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;105.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>actual peak: {&quot;date&quot;: null, &quot;quantity_kg&quot;: &quot;0&quot;}; rolling7: {&quot;end_date&quot;: null, &quot;quantity_kg&quot;: &quot;0&quot;, &quot;start_date&quot;: null}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-04</td><td>5.000000</td><td>4.016393</td><td>0</td></tr>
+<tr><td>2000-07-05</td><td>5.000000</td><td>5.163934</td><td>0</td></tr>
+<tr><td>2000-07-06</td><td>5.000000</td><td>6.311475</td><td>0</td></tr>
+<tr><td>2000-07-07</td><td>5.000000</td><td>7.459016</td><td>0</td></tr>
+<tr><td>2000-07-08</td><td>15.000000</td><td>13.125000</td><td>0</td></tr>
+<tr><td>2000-07-09</td><td>15.000000</td><td>14.875000</td><td>0</td></tr>
+<tr><td>2000-07-10</td><td>15.000000</td><td>16.625000</td><td>0</td></tr>
+<tr><td>2000-07-11</td><td>15.000000</td><td>18.375000</td><td>0</td></tr>
+<tr><td>2000-07-12</td><td>15.000000</td><td>16.187500</td><td>0</td></tr>
+<tr><td>2000-07-13</td><td>15.000000</td><td>14.000000</td><td>0</td></tr>
+<tr><td>2000-07-14</td><td>15.000000</td><td>11.812500</td><td>0</td></tr>
+<tr><td>2000-07-15</td><td>2.500000</td><td>4.873417</td><td>0</td></tr>
+<tr><td>2000-07-16</td><td>2.500000</td><td>3.765823</td><td>0</td></tr>
+<tr><td>2000-07-17</td><td>2.500000</td><td>2.658228</td><td>0</td></tr>
+<tr><td>2000-07-18</td><td>2.500000</td><td>1.550633</td><td>0</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-C-H15_LOCAL-2000-07-06</h2>
+<p>origin=2000-07-06T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;15.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;105.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;18.375000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-14&quot;, &quot;quantity_kg&quot;: &quot;105.000000&quot;, &quot;start_date&quot;: &quot;2000-07-08&quot;}</p>
+<p>actual peak: {&quot;date&quot;: null, &quot;quantity_kg&quot;: &quot;0&quot;}; rolling7: {&quot;end_date&quot;: null, &quot;quantity_kg&quot;: &quot;0&quot;, &quot;start_date&quot;: null}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-07</td><td>5.000000</td><td>7.459016</td><td>0</td></tr>
+<tr><td>2000-07-08</td><td>15.000000</td><td>13.125000</td><td>0</td></tr>
+<tr><td>2000-07-09</td><td>15.000000</td><td>14.875000</td><td>0</td></tr>
+<tr><td>2000-07-10</td><td>15.000000</td><td>16.625000</td><td>0</td></tr>
+<tr><td>2000-07-11</td><td>15.000000</td><td>18.375000</td><td>0</td></tr>
+<tr><td>2000-07-12</td><td>15.000000</td><td>16.187500</td><td>0</td></tr>
+<tr><td>2000-07-13</td><td>15.000000</td><td>14.000000</td><td>0</td></tr>
+<tr><td>2000-07-14</td><td>15.000000</td><td>11.812500</td><td>0</td></tr>
+<tr><td>2000-07-15</td><td>2.500000</td><td>4.873417</td><td>0</td></tr>
+<tr><td>2000-07-16</td><td>2.500000</td><td>3.765823</td><td>0</td></tr>
+<tr><td>2000-07-17</td><td>2.500000</td><td>2.658228</td><td>0</td></tr>
+<tr><td>2000-07-18</td><td>2.500000</td><td>1.550633</td><td>0</td></tr>
+<tr><td>2000-07-19</td><td>2.500000</td><td>1.550633</td><td>0</td></tr>
+<tr><td>2000-07-20</td><td>2.500000</td><td>1.550633</td><td>0</td></tr>
+<tr><td>2000-07-21</td><td>2.500000</td><td>1.550633</td><td>0</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-C-H7_PREFIX-2000-07-03</h2>
+<p>origin=2000-07-03T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;15.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;65.000000&quot;, &quot;start_date&quot;: &quot;2000-07-04&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;16.625000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-10&quot;, &quot;quantity_kg&quot;: &quot;67.575818&quot;, &quot;start_date&quot;: &quot;2000-07-04&quot;}</p>
+<p>actual peak: {&quot;date&quot;: null, &quot;quantity_kg&quot;: &quot;0&quot;}; rolling7: {&quot;end_date&quot;: null, &quot;quantity_kg&quot;: &quot;0&quot;, &quot;start_date&quot;: null}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-04</td><td>5.000000</td><td>4.016393</td><td>0</td></tr>
+<tr><td>2000-07-05</td><td>5.000000</td><td>5.163934</td><td>0</td></tr>
+<tr><td>2000-07-06</td><td>5.000000</td><td>6.311475</td><td>0</td></tr>
+<tr><td>2000-07-07</td><td>5.000000</td><td>7.459016</td><td>0</td></tr>
+<tr><td>2000-07-08</td><td>15.000000</td><td>13.125000</td><td>0</td></tr>
+<tr><td>2000-07-09</td><td>15.000000</td><td>14.875000</td><td>0</td></tr>
+<tr><td>2000-07-10</td><td>15.000000</td><td>16.625000</td><td>0</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-C-H7_PREFIX-2000-07-06</h2>
+<p>origin=2000-07-06T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>baseline peak: {&quot;date&quot;: &quot;2000-07-08&quot;, &quot;quantity_kg&quot;: &quot;15.000000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-13&quot;, &quot;quantity_kg&quot;: &quot;95.000000&quot;, &quot;start_date&quot;: &quot;2000-07-07&quot;}</p>
+<p>candidate peak: {&quot;date&quot;: &quot;2000-07-11&quot;, &quot;quantity_kg&quot;: &quot;18.375000&quot;}; rolling7: {&quot;end_date&quot;: &quot;2000-07-13&quot;, &quot;quantity_kg&quot;: &quot;100.646516&quot;, &quot;start_date&quot;: &quot;2000-07-07&quot;}</p>
+<p>actual peak: {&quot;date&quot;: null, &quot;quantity_kg&quot;: &quot;0&quot;}; rolling7: {&quot;end_date&quot;: null, &quot;quantity_kg&quot;: &quot;0&quot;, &quot;start_date&quot;: null}</p>
+<div class="table"><table>
+<tr><th>Date</th><th>baseline kg</th><th>candidate kg</th><th>actual kg</th></tr>
+<tr><td>2000-07-07</td><td>5.000000</td><td>7.459016</td><td>0</td></tr>
+<tr><td>2000-07-08</td><td>15.000000</td><td>13.125000</td><td>0</td></tr>
+<tr><td>2000-07-09</td><td>15.000000</td><td>14.875000</td><td>0</td></tr>
+<tr><td>2000-07-10</td><td>15.000000</td><td>16.625000</td><td>0</td></tr>
+<tr><td>2000-07-11</td><td>15.000000</td><td>18.375000</td><td>0</td></tr>
+<tr><td>2000-07-12</td><td>15.000000</td><td>16.187500</td><td>0</td></tr>
+<tr><td>2000-07-13</td><td>15.000000</td><td>14.000000</td><td>0</td></tr>
+</table></div>
+<h2>SYNTHETIC-BASE-D-FULL_SEASON-2000-06-30</h2>
+<p>origin=2000-06-30T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>Failure/reason: MISSING_REGISTERED_INPUT / IDENTITY_OR_SOURCE_HASH_MISMATCH</p>
+<h2>SYNTHETIC-BASE-D-H15_LOCAL-2000-07-03</h2>
+<p>origin=2000-07-03T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>Failure/reason: MISSING_REGISTERED_INPUT / IDENTITY_OR_SOURCE_HASH_MISMATCH</p>
+<h2>SYNTHETIC-BASE-D-H15_LOCAL-2000-07-06</h2>
+<p>origin=2000-07-06T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>Failure/reason: MISSING_REGISTERED_INPUT / IDENTITY_OR_SOURCE_HASH_MISMATCH</p>
+<h2>SYNTHETIC-BASE-D-H7_PREFIX-2000-07-03</h2>
+<p>origin=2000-07-03T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>Failure/reason: MISSING_REGISTERED_INPUT / IDENTITY_OR_SOURCE_HASH_MISMATCH</p>
+<h2>SYNTHETIC-BASE-D-H7_PREFIX-2000-07-06</h2>
+<p>origin=2000-07-06T23:59:59+08:00; computed_at=2002-01-01T00:00:00+00:00; historical_issued_at=None</p>
+<p>Failure/reason: MISSING_REGISTERED_INPUT / IDENTITY_OR_SOURCE_HASH_MISMATCH</p></html>
