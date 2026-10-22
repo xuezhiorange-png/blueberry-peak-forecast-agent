@@ -17,6 +17,13 @@ from backend.research import v019_retrospective_scoring as old_scoring
 from backend.research import v019_synthetic_validation as metrics
 from backend.research.v019_daily_curve import DailyKg, canonical_bytes
 
+SYNTHETIC_LABEL_HASHES = frozenset(
+    {
+        "c2fdb0cc44097366e632f82b5c16f9f9c55727ce6acd61dc92bdc2cc024960f1",  # default
+        "3ff5b510f007482b78aaf242af854f28347f5cfd22660120a3e9a28f5ae556f4",  # missing final day
+    }
+)
+
 
 def _accumulator() -> dict[str, Any]:
     return {
@@ -204,6 +211,9 @@ def run_b(
     ctx: auth.Context,
     grants: object,
 ) -> dict[str, Any]:
+    auth.roots(ctx)
+    if ctx.mode == "SYNTHETIC" and label_sha256 not in SYNTHETIC_LABEL_HASHES:
+        raise PermissionError("SYNTHETIC_REVIEWED_LABEL_IDENTITY_REQUIRED")
     auth.require(
         ctx,
         grants,
@@ -223,6 +233,11 @@ def run_b(
     if seal["sha256"] != seal_sha256:
         raise ValueError("APPROVED_A_SEAL_REQUIRED")
     content = phase_a.verify_a(seal, ctx)  # must complete BEFORE label I/O
+    if (
+        ctx.mode == "SYNTHETIC"
+        and label_path.parent != Path(content["manifest_identity"]["manifest_path"]).parent
+    ):
+        raise PermissionError("SYNTHETIC_LABEL_OWNED_PATH_REQUIRED")
     raw = io._read_pinned(label_path, label_sha256, "labels.json")
     clock = auth.now()
     labels = io._object(raw)

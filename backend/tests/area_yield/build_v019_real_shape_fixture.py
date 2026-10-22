@@ -71,7 +71,9 @@ def write(path: Path, value: object) -> str:
     return io._hash(raw)
 
 
-def build(directory: Path) -> tuple[Path, str, Path, str, Signer, dict[str, Any]]:
+def build(
+    directory: Path, *, label_variant: str = "DEFAULT"
+) -> tuple[Path, str, Path, str, Signer, dict[str, Any]]:
     directory.mkdir(mode=0o700)
     # Reuse the already validated 39-base/84-farm fixture, not a second schema.
     profile, registry, meta, h7, h15, _ = inspect.unwrap(documents)()
@@ -124,6 +126,10 @@ def build(directory: Path) -> tuple[Path, str, Path, str, Signer, dict[str, Any]
             }
         )
     lp = directory / "labels.json"
+    if label_variant == "MISSING_END":
+        labels.pop()
+    elif label_variant != "DEFAULT":
+        raise ValueError("REVIEWED_SYNTHETIC_FIXTURE_ONLY")
     lh = write(
         lp,
         {
