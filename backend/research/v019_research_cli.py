@@ -1,4 +1,4 @@
-"""Independent process interfaces; REAL has no installed trust anchor."""
+"""Independent processes; real enrollment and each operation are separate gates."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ def main() -> None:
     p.add_argument("command", choices=("prepare", "formalize", "stage-a", "stage-b"))
     p.add_argument("--mode", required=True, choices=("REAL", "SYNTHETIC"))
     p.add_argument("--synthetic-roots", type=Path)
+    p.add_argument("--real-trust-config", type=Path)
     p.add_argument("--grants", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--inputs", type=Path)
@@ -30,7 +31,11 @@ def main() -> None:
     p.add_argument("--labels", type=Path)
     p.add_argument("--labels-hash")
     a = p.parse_args()
-    ctx = auth.Context(a.mode)
+    if a.mode == "REAL" and a.synthetic_roots is not None:
+        p.error("synthetic roots cannot authorize REAL")
+    if a.mode == "SYNTHETIC" and a.real_trust_config is not None:
+        p.error("real enrollment cannot authorize SYNTHETIC")
+    ctx = auth.Context(a.mode, real_trust_config=a.real_trust_config)
     if a.mode == "SYNTHETIC":
         if a.synthetic_roots is None:
             p.error("explicit synthetic trust context required")
@@ -38,7 +43,7 @@ def main() -> None:
         if set(root) != {"synthetic_only", "keys"} or root["synthetic_only"] is not True:
             p.error("synthetic-only root context required")
         ctx = auth.Context("SYNTHETIC", root["keys"])
-    auth.roots(ctx)  # REAL denied BEFORE opening grants/inputs/C0/seal/labels.
+    auth.roots(ctx)  # Unenrolled REAL denied before grants/inputs/C0/seal/labels.
     grants = auth.read_json(a.grants)
     if a.command == "prepare":
         if not a.inputs or not a.inputs_hash:

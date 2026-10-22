@@ -1,8 +1,7 @@
-"""Signed, subject-bound research decisions. No real trust anchor is installed.
+"""Signed, subject-bound decisions with explicitly pinned real enrollment.
 
-Synthetic test keys are never eligible for REAL. Provisioning a real Owner and
-independent reviewer anchor requires separately reviewed implementation/config;
-neither JSON approval fields, environment variables nor CLI keys can do so.
+Synthetic roots never authorize REAL. A real context must name the exact
+Owner-authorized enrollment bytes. Enrollment does not grant any operation.
 """
 
 from __future__ import annotations
@@ -23,6 +22,11 @@ from backend.research.v019_synthetic_validation import digest
 # Deliberately empty. Current development permission does not install trust or
 # grant any real study operation. Synthetic roots are a separate test namespace.
 REAL_TRUST_ANCHORS: dict[str, dict[str, str]] = {}
+REAL_TRUST_CONFIG_SHA256 = "45a28a1879c17cb770896b8d9389bbad8adca708aef0b031b18a241bb710a0d6"
+REAL_ENROLLMENT_DECISIONS = {
+    "OWNER": frozenset({"PROTOCOL", "FORMAL_C0", "A_INPUT_READ"}),
+    "REVIEWER": frozenset({"IMPLEMENTATION_REVIEW", "A_SEAL_REVIEW"}),
+}
 DECISIONS = frozenset(
     {
         "PROTOCOL",
@@ -41,6 +45,7 @@ DECISIONS = frozenset(
 class Context:
     mode: str
     synthetic_roots: dict[str, dict[str, str]] = field(default_factory=dict)
+    real_trust_config: Path | None = None
 
 
 def now() -> str:
@@ -54,10 +59,65 @@ def aware(value: str) -> datetime:
     return t
 
 
-def roots(ctx: Context) -> dict[str, dict[str, str]]:
+def _real_roots(path: Path) -> dict[str, Any]:
+    raw = io._read_pinned(path, REAL_TRUST_CONFIG_SHA256, "real-trust-config.json")
+    config = io._object(raw)
+    if (
+        set(config)
+        != {
+            "version",
+            "mode",
+            "task_id",
+            "issued_at",
+            "expires_at",
+            "scope",
+            "keys",
+            "custody",
+            "authorization_source",
+        }
+        or type(config["version"]) is not int
+        or config["version"] != 1
+        or config["mode"] != "REAL"
+        or config["task_id"] != "V0_19_S3_FORMAL_C0_AND_TRUST_PROVISIONING_R1"
+        or config["scope"] != "V0_19_SOURCE002_OWNER_RESEARCH_SCOPE_R1"
+        or type(config["keys"]) is not dict
+        or len(config["keys"]) != 2
+    ):
+        raise PermissionError("REAL_TRUST_ENROLLMENT_SCHEMA_OR_SCOPE")
+    if not aware(config["issued_at"]) <= aware(now()) < aware(config["expires_at"]):
+        raise PermissionError("REAL_TRUST_ENROLLMENT_EXPIRED_OR_FUTURE")
+    result = config["keys"]
+    roles = []
+    for key_id, key in result.items():
+        if (
+            type(key_id) is not str
+            or not key_id
+            or type(key) is not dict
+            or set(key) != {"role", "public_key_hex", "allowed_decisions"}
+            or key["role"] not in REAL_ENROLLMENT_DECISIONS
+            or type(key["allowed_decisions"]) is not list
+            or frozenset(key["allowed_decisions"]) != REAL_ENROLLMENT_DECISIONS[key["role"]]
+            or not io.HEX.fullmatch(key["public_key_hex"])
+        ):
+            raise PermissionError("REAL_TRUST_ROLE_OR_CAPABILITY_INVALID")
+        Ed25519PublicKey.from_public_bytes(bytes.fromhex(key["public_key_hex"]))
+        roles.append(key["role"])
+    if sorted(roles) != ["OWNER", "REVIEWER"]:
+        raise PermissionError("OWNER_AND_REVIEWER_ROOTS_REQUIRED")
+    return result
+
+
+def roots(ctx: Context) -> dict[str, Any]:
     if type(ctx) is not Context or ctx.mode not in {"REAL", "SYNTHETIC"}:
         raise PermissionError("EXPLICIT_DATA_CLASS_REQUIRED")
-    result = REAL_TRUST_ANCHORS if ctx.mode == "REAL" else ctx.synthetic_roots
+    if ctx.mode == "REAL":
+        if ctx.real_trust_config is None or ctx.synthetic_roots:
+            raise PermissionError("TRUST_ANCHOR_NOT_PROVISIONED_REAL_EXECUTION_BLOCKED")
+        result = _real_roots(ctx.real_trust_config)
+    else:
+        if ctx.real_trust_config is not None:
+            raise PermissionError("TRUST_NAMESPACES_MUST_BE_SEPARATE")
+        result = ctx.synthetic_roots
     if not result:
         raise PermissionError("TRUST_ANCHOR_NOT_PROVISIONED_REAL_EXECUTION_BLOCKED")
     owner_keys = {k["public_key_hex"] for k in result.values() if k["role"] == "OWNER"}
@@ -113,6 +173,7 @@ def require(
     if (
         not key
         or key["role"] != role
+        or (ctx.mode == "REAL" and kind not in key["allowed_decisions"])
         or p["version"] != 1
         or p["mode"] != ctx.mode
         or p["kind"] != kind
