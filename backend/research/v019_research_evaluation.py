@@ -241,6 +241,41 @@ def run_b(
     raw = io._read_pinned(label_path, label_sha256, "labels.json")
     clock = auth.now()
     labels = io._object(raw)
+    result = score_verified(seal, content, labels, label_sha256, ctx, clock=clock)
+    # Signed route remains independently gated before releasing numerical results.
+    auth.require(
+        ctx,
+        grants,
+        "B_SCORING",
+        metrics.digest({"a_sha256": seal_sha256, "label_sha256": label_sha256}),
+    )
+    auth.require(ctx, grants, "A_SEAL_REVIEW", seal_sha256)
+    auth.require(
+        ctx,
+        grants,
+        "B_LABEL_READ",
+        metrics.digest(
+            {"a_sha256": seal_sha256, "path": str(label_path), "label_sha256": label_sha256}
+        ),
+    )
+    return result
+
+
+def score_verified(
+    seal: dict[str, Any],
+    content: dict[str, Any],
+    labels: dict[str, Any],
+    label_sha256: str,
+    ctx: auth.Context,
+    *,
+    clock: str,
+) -> dict[str, Any]:
+    """Pure numerical reporting core. Callers authorize and verify before label I/O.
+
+    Not an execution/authorization entry point; no file or database access.
+    Shared by the signed and explicitly Owner-controlled local research routes.
+    """
+    seal_sha256 = seal["sha256"]
     rows, invalid = _label_rows(labels, content, ctx, clock=clock)
     c0 = auth.unseal(content["formal_c0"])
     members = auth.unseal(c0["review"])["members"]
@@ -390,22 +425,6 @@ def run_b(
         **result,
         "overall_winner": None,
     }
-    # Current permissions are checked again, after calculations and before release.
-    auth.require(
-        ctx,
-        grants,
-        "B_SCORING",
-        metrics.digest({"a_sha256": seal_sha256, "label_sha256": label_sha256}),
-    )
-    auth.require(ctx, grants, "A_SEAL_REVIEW", seal_sha256)
-    auth.require(
-        ctx,
-        grants,
-        "B_LABEL_READ",
-        metrics.digest(
-            {"a_sha256": seal_sha256, "path": str(label_path), "label_sha256": label_sha256}
-        ),
-    )
     return {**body, "report_sha256": metrics.digest(body)}
 
 
@@ -417,6 +436,9 @@ def render(report: dict[str, Any]) -> dict[str, bytes]:
         "",
         "STRICT_PIT=false; historical_issued_at=null; no training/promotion.",
         "Physical equivalence and historical area known_at NOT_PROVEN.",
+        report.get(
+            "label_physical_basis_description", "Label physical basis as declared in input."
+        ),
         "",
         f"Registered={report['registered_count']}; admitted={report['admitted_count']}; "
         f"Bases={report['base_count']}",
