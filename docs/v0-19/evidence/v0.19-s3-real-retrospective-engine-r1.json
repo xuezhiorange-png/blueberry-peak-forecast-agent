@@ -1,4 +1,41 @@
 {
+  "formal_c0_admission_boundary_review_correction": {
+    "reviewed_head": "4914a6dca3ad6f6d0d6f09245d4c8b34274af33d",
+    "reviewed_head_ci_run_id": 39727492956,
+    "original_red": {"passed": 1, "failed": 2, "skipped": 0},
+    "original_red_junit_sha256": "c4d464042c7c1b98cd8d7884ab3b1ce09773aec864d44bbcf6222769deac1c14",
+    "code_sha256": "dc1daf51600a169217282cb08cb843d4550f6561604b52b59510d0556c2fc160",
+    "cases_verified_by_end_to_end_runtime_assertions": {
+      "ALL": {
+        "status": "PASS", "admitted": 19032, "bases_calculated": 39,
+        "a_daily_function_calls": 11271, "actual_daily_rows": 9906,
+        "rejected_inventory_count": 0, "h7_daily_mae_denominator": 67704,
+        "h15_daily_mae_denominator": 140400
+      },
+      "PARTIAL": {
+        "status": "PASS", "admitted": 4, "bases_calculated": 2,
+        "a_daily_function_calls": 578, "actual_daily_rows": 37,
+        "rejected_inventory_count": 19028, "h7_daily_mae_denominator": 14,
+        "h15_daily_mae_denominator": 30
+      },
+      "NONE": {
+        "status": "PASS", "admitted": 0, "bases_calculated": 0,
+        "a_daily_function_calls": 0, "actual_daily_rows": 0,
+        "rejected_inventory_count": 19032, "h7_daily_mae_denominator": 0,
+        "h15_daily_mae_denominator": 0, "empty_score_value": null
+      }
+    },
+    "all_admitted_numerical_fractions_match_original_snapshot": true,
+    "local_v019": {"passed": 493, "failed": 0, "skipped": 0, "deselected": 1902},
+    "local_v019_junit_sha256": "f64aa78f8735481d4f9e1302c5d32a2c5cb86a0e8d3a8d3ba55e19cbb38bf9be",
+    "local_v018": {"passed": 255, "failed": 0, "skipped": 0, "deselected": 763},
+    "local_v018_junit_sha256": "0436b28012d4cedc197ae282c6d02cac9648511b6804cbe258943ef0f474e6a8",
+    "exact_head_ci": "FINAL_RUN_RECEIPT_IN_SAME_PR_749_NOT_INHERITED_FROM_OLD_HEAD",
+    "real_formally_admitted_c0_count": 0,
+    "real_data_accessed": false, "real_prediction_generated": false,
+    "real_scoring_performed": false, "s3_formal_complete": false,
+    "ready_authorized": false, "merge_authorized": false
+  },
   "post_initial_head_correction": {
     "finding": "SYNTHETIC_REAL_RELABEL_BOUNDARY",
     "original_head": "541748eaafc2331f45dbb3edc07f95d67fde00b4",
