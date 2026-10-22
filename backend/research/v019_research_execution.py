@@ -64,9 +64,11 @@ def calculate(
     profile = load_frozen_reference_profile(profile_payload)
     start, end = cohort.SUPPORT.start, cohort.SUPPORT.end
     calendar = tuple(start + timedelta(days=i) for i in range((end - start).days + 1))
+    admitted_bases = {m["base_id"] for m in members if m["admission_status"] == "ADMIT"}
+    execution_bases = [b for b in registry["bases"] if b["base_id"] in admitted_bases]
     full, base_failures = {}, {}
     with localcontext(Context(prec=50)):
-        for b in sorted(registry["bases"], key=lambda b: b["base_id"]):
+        for b in sorted(execution_bases, key=lambda b: b["base_id"]):
             bid = b["base_id"]
             try:
                 area = Decimal(str(b["productive_area_mu"]))
@@ -121,7 +123,7 @@ def calculate(
         "full_curves": full,
         "members": results,
         "base_failures": base_failures,
-        "full_support_calculation_count": len(registry["bases"]),
+        "full_support_calculation_count": len(execution_bases),
         "failures": [r for r in results if r["failure_reason"]],
     }
 

@@ -244,6 +244,16 @@ def run_b(
     rows, invalid = _label_rows(labels, content, ctx, clock=clock)
     c0 = auth.unseal(content["formal_c0"])
     members = auth.unseal(c0["review"])["members"]
+    # Label snapshot permission does not enlarge the formal C0 report scope.
+    # Overlapping admitted windows share rows; rejected windows add no dates.
+    admitted_dates: set[tuple[str, str]] = set()
+    for m in members:
+        if m["admission_status"] == "ADMIT":
+            start, end = (date.fromisoformat(m[k]) for k in ("target_start", "target_end"))
+            admitted_dates.update(
+                (m["base_id"], str(start + timedelta(days=i)))
+                for i in range((end - start).days + 1)
+            )
     predictions = {r["candidate_id"]: r for r in content["members"]}
     full = {
         b: {side: {r.day: r for r in phase_a.curve_rows(rr)} for side, rr in c.items()}
@@ -365,7 +375,9 @@ def run_b(
         "phase_a_failures": content["failures"],
         "daily_predictions": content["full_curves"],
         "actual_daily": [
-            {"base_id": bid, "date": day, "kg": str(r.kg)} for (bid, day), r in sorted(rows.items())
+            {"base_id": bid, "date": day, "kg": str(r.kg)}
+            for (bid, day), r in sorted(rows.items())
+            if (bid, day) in admitted_dates
         ],
         "admission_inventory": [
             {

@@ -4,12 +4,14 @@ import subprocess
 import sys
 import time
 from copy import deepcopy
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from backend.app.forecast_quality.operational_peak import _daily_row
 from backend.research import v019_real_phase_a_adapter as file_io
 from backend.research import v019_research_authorization as auth
 from backend.research import v019_research_cohort as cohort
@@ -19,6 +21,128 @@ from backend.research import v019_synthetic_validation as math
 from backend.tests.area_yield.build_v019_real_shape_fixture import build, write
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
+
+
+@pytest.mark.parametrize("admission", ["ALL", "PARTIAL", "NONE"])
+def test_formal_c0_admission_bounds_end_to_end(
+    prepared: dict[str, Any], tmp_path: Path, monkeypatch: pytest.MonkeyPatch, admission: str
+) -> None:
+    p = prepared
+    candidates = p["candidate"]["payload"]["members"]
+    selected = {
+        ("SYNTHETIC-20", "H7_PREFIX", "2026-01-01"),
+        ("SYNTHETIC-20", "H15_LOCAL", "2026-01-01"),
+        ("SYNTHETIC-20", "H7_PREFIX", "2026-01-20"),
+        ("SYNTHETIC-21", "H15_LOCAL", "2026-01-10"),
+    }
+    admitted = [
+        m
+        for m in candidates
+        if admission == "ALL"
+        or (admission == "PARTIAL" and (m["base_id"], m["window"], m["target_start"]) in selected)
+    ]
+    assert len(admitted) == {"ALL": 19032, "PARTIAL": 4, "NONE": 0}[admission]
+    admitted_ids = {m["candidate_id"] for m in admitted}
+    active_bases = {m["base_id"] for m in admitted}
+    covered_dates: set[tuple[str, str]] = set()
+    for m in admitted:
+        start, end = (date.fromisoformat(m[k]) for k in ("target_start", "target_end"))
+        covered_dates.update(
+            (m["base_id"], str(start + timedelta(days=i))) for i in range((end - start).days + 1)
+        )
+    assert len(covered_dates) == {"ALL": 9906, "PARTIAL": 37, "NONE": 0}[admission]
+    reason = "SYNTHETIC_EXPLICIT_PRE_LABEL_REVIEW_EXCLUSION"
+    review = cohort.review_candidates(
+        p["candidate"],
+        {
+            m["candidate_id"]: {
+                "status": "ADMIT" if m["candidate_id"] in admitted_ids else "REJECT",
+                "reason": "" if m["candidate_id"] in admitted_ids else reason,
+            }
+            for m in candidates
+        },
+    )
+    grants = dict(p["grants"])
+    grants["FORMAL_C0"] = p["signer"].decision("FORMAL_C0", review["sha256"])
+    formal = cohort.formalize(p["candidate"], review, p["ctx"], grants)
+    grants["A_EXECUTION"] = p["signer"].decision("A_EXECUTION", formal["sha256"])
+    daily_calls = 0
+    original_daily = _daily_row
+
+    def observed_daily(*args: Any, **kwargs: Any) -> Any:
+        nonlocal daily_calls
+        daily_calls += 1
+        return original_daily(*args, **kwargs)
+
+    monkeypatch.setattr(execution, "_daily_row", observed_daily)
+    seal = execution.run_a(p["mp"], p["mh"], formal, p["ctx"], grants)
+    a_daily_calls = daily_calls
+    path = tmp_path / "phase-a.json"
+    write(path, seal)
+    grants["A_SEAL_REVIEW"] = p["signer"].decision("A_SEAL_REVIEW", seal["sha256"])
+    subject = {"a_sha256": seal["sha256"], "label_sha256": p["lh"]}
+    grants["B_SCORING"] = p["signer"].decision("B_SCORING", math.digest(subject))
+    grants["B_LABEL_READ"] = p["signer"].decision(
+        "B_LABEL_READ", math.digest({**subject, "path": str(p["lp"])})
+    )
+    report = scoring.run_b(path, seal["sha256"], p["lp"], p["lh"], p["ctx"], grants)
+    content = seal["payload"]["content"]
+    # Observations wrap the actual algorithm, never fabricate numerical results.
+    assert {
+        "base_curves": len(content["full_curves"]),
+        "calculation_count": content["full_support_calculation_count"],
+        "actual_daily_rows": len(report["actual_daily"]),
+        "a_daily_calls": a_daily_calls,
+        "a_plus_verified_b_daily_calls": daily_calls,
+    } == {
+        "base_curves": len(active_bases),
+        "calculation_count": len(active_bases),
+        "actual_daily_rows": len(covered_dates),
+        "a_daily_calls": len(active_bases) * 289,
+        "a_plus_verified_b_daily_calls": len(active_bases) * 289 * 2,
+    }
+    assert set(content["full_curves"]) == set(report["daily_predictions"]) == active_bases
+    assert {(r["base_id"], r["date"]) for r in report["actual_daily"]} == covered_dates
+    assert len(content["members"]) == report["registered_count"] == 19032
+    rejected_ids = {m["candidate_id"] for m in candidates} - admitted_ids
+    assert {r["candidate_id"] for r in content["failures"]} == rejected_ids
+    assert {r["candidate_id"] for r in report["failures"]} == rejected_ids
+    assert all(r["failure_reason"] == "C0_NOT_ADMITTED:" + reason for r in content["failures"])
+    assert all(
+        r["reason"] == "C0_NOT_ADMITTED" and r["detail"] == reason for r in report["failures"]
+    )
+    assert all("baseline" not in r and "candidate" not in r for r in content["failures"])
+    assert {r["candidate_id"] for r in report["members"]} == admitted_ids
+    assert report["admitted_count"] == len(admitted_ids)
+    assert len(report["admission_inventory"]) == 19032
+    for window, width in (("H7_PREFIX", 7), ("H15_LOCAL", 15)):
+        count = sum(m["window"] == window for m in admitted)
+        metrics = report["groups"][window]["metrics"]
+        assert metrics["DAILY_MAE"]["candidate_count"] == count
+        assert metrics["DAILY_MAE"]["common_count"] == count
+        for side in ("baseline", "candidate"):
+            assert metrics["DAILY_MAE"][side]["denominator"] == str(count * width)
+        assert metrics["SEASON_TOTAL_WAPE"]["not_computable_count"] == count
+        if not count:
+            assert metrics["DAILY_MAE"]["baseline"]["value"] is None
+            assert metrics["SAMPLE_COVERAGE"]["DAILY_MAE"] is None
+    if admission == "ALL":
+        assert content["full_curves"] == p["seal"]["payload"]["content"]["full_curves"]
+        assert report["groups"] == p["report"]["groups"]
+        assert report["per_base"] == p["report"]["per_base"]
+        snapshot = auth.read_json(
+            Path(__file__).resolve().parents[3]
+            / "docs/v0-19/evidence/v0.19-s3-real-retrospective-engine-r1.json"
+        )
+        for window in report["groups"]:
+            for name in math.ERROR_METRICS:
+                for side in ("baseline", "candidate"):
+                    assert (
+                        report["groups"][window]["metrics"][name][side]
+                        == snapshot["groups"][window]["metrics"][name][side]
+                    )
+    for filename, raw in scoring.render(report).items():
+        assert filename in {"report.json", "report.md", "report.html"} and raw
 
 
 def test_real_rejection_precedes_input_access(tmp_path: Path) -> None:
