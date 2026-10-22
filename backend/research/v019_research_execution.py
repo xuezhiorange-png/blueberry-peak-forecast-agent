@@ -135,8 +135,7 @@ def run_a(
     ctx: auth.Context,
     grants: object,
 ) -> dict[str, Any]:
-    auth.require(ctx, grants, "IMPLEMENTATION_REVIEW", auth.code_identity())
-    auth.require(ctx, grants, "A_EXECUTION", formal["sha256"])
+    auth.require_phase_a(ctx, grants, formal["sha256"], manifest_path, manifest_sha256)
     f = auth.unseal(formal)
     if cohort.formalize(f["candidate"], f["review"], ctx, grants) != formal:
         raise ValueError("FORMAL_C0_SEAL_MISMATCH")
@@ -164,7 +163,7 @@ def run_a(
         "labels_read": False,
         "real_prediction_generated": ctx.mode == "REAL",
     }
-    auth.require(ctx, grants, "A_EXECUTION", formal["sha256"])
+    auth.require_phase_a(ctx, grants, formal["sha256"], manifest_path, manifest_sha256)
     return auth.sealed(
         {
             "content": content,
@@ -201,9 +200,13 @@ def verify_a(value: dict[str, Any], ctx: auth.Context) -> dict[str, Any]:
     f = auth.unseal(formal)
     if cohort.formalize(f["candidate"], f["review"], ctx, p["grant_evidence"]) != formal:
         raise ValueError("A_FORMAL_C0_INVALID")
-    auth.require(ctx, p["grant_evidence"], "A_EXECUTION", formal["sha256"], at=p["executed_at"])
-    auth.require(
-        ctx, p["grant_evidence"], "IMPLEMENTATION_REVIEW", auth.code_identity(), at=p["executed_at"]
+    auth.require_phase_a(
+        ctx,
+        p["grant_evidence"],
+        formal["sha256"],
+        Path(content["manifest_identity"]["manifest_path"]),
+        content["manifest_identity"]["sha256"],
+        at=p["executed_at"],
     )
     auth.require(
         ctx,
