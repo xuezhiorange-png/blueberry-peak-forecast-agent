@@ -115,8 +115,19 @@ def bridge_prior(
             if valid:
                 assert r is not None and z is not None
                 value = Decimal(z["new_quantity_kg"])
-                if z["new_quantity_status"] == "CONFIRMED_ZERO" and training._authorized_zero(
-                    r, z, value
+                inherited_zero = (
+                    z.get("resolution_reason") == "UNCHANGED_EXISTING_AUTHORITY"
+                    and r["quantity_status"] == "CONFIRMED_ZERO"
+                    and r["quantity_completeness_status"] == "AUTHORIZED_ZERO"
+                    and r["confirmed_zero_basis"] == "R7B_SOURCE_ZERO_SEMANTICS"
+                    and int(r["source_row_count"]) == int(z["source_row_count"]) == 0
+                    and Decimal(r["mapped_observed_subtotal_kg"]) == value == 0
+                )
+                # S6 explicitly retained existing R7B zero authority unchanged.
+                # The S4 helper only needed the earlier training seasons; do not
+                # confuse that narrow adapter with the frozen S6 zero contract.
+                if z["new_quantity_status"] == "CONFIRMED_ZERO" and (
+                    training._authorized_zero(r, z, value) or inherited_zero
                 ):
                     kg, state = str(value), "CONFIRMED_ZERO"
                 elif (

@@ -308,6 +308,23 @@ def test_old_zero_authority_only_transfers_with_exact_member_set():
     )
     with pytest.raises(ValueError, match="DUPLICATE"):
         sources.bridge_prior(ledger + ledger[:1], overlay, identity, current)
+    for r in ledger:
+        r.update(
+            quantity_status="CONFIRMED_ZERO",
+            quantity_completeness_status="AUTHORIZED_ZERO",
+            confirmed_zero_basis="R7B_SOURCE_ZERO_SEMANTICS",
+            source_row_count="0",
+        )
+    for z in overlay:
+        z.update(zero_basis="", resolution_reason="UNCHANGED_EXISTING_AUTHORITY")
+    _, a = sources.bridge_prior(ledger, overlay, identity, current)
+    assert a["SYNTHETIC-a"]["accepted_prior_days"] == 14
+    assert a["SYNTHETIC-b"]["accepted_prior_days"] == 0
+    ledger[0]["confirmed_zero_basis"] = "UNVERIFIED"
+    ledger[1]["mapped_observed_subtotal_kg"] = "1"
+    ledger[2]["source_row_count"] = "1"
+    _, a = sources.bridge_prior(ledger, overlay, identity, current)
+    assert a["SYNTHETIC-a"]["accepted_prior_days"] == 11
 
 
 def test_candidate_counts_cannot_substitute_for_exact_member_payloads():
