@@ -1,7 +1,7 @@
 """Two fixed S4 research estimators; no production registration or private IO.
 
-Real fitting is deliberately unavailable until a traceable training bundle is
-admitted. Synthetic fitting is executable, not a claimed real accuracy result.
+The public synthetic interface stays isolated. The explicit Owner research
+adapter reuses the same numerical cores after validating frozen real sources.
 """
 
 from __future__ import annotations
@@ -66,6 +66,15 @@ def fit(
 ) -> dict[str, Any]:
     if data_class != "SYNTHETIC":
         raise PermissionError("REAL_TRAINING_SOURCE_AND_PHYSICAL_BASIS_NOT_ADMITTED")
+    if any(not b.base_id.startswith("SYNTHETIC-") for b in bins):
+        raise ValueError("SYNTHETIC_IDENTITY_REQUIRED")
+    return _fit_bins(bins, evaluation_start=evaluation_start, data_class=data_class)
+
+
+def _fit_bins(
+    bins: tuple[TrainingBin, ...], *, evaluation_start: date, data_class: str
+) -> dict[str, Any]:
+    """Shared arithmetic; real-source admission belongs to the research adapter."""
     if not bins:
         raise ValueError("EMPTY_TRAINING")
     seen = set()
@@ -76,8 +85,7 @@ def fit(
         for b in sorted(bins, key=lambda b: (b.base_id, b.start)):
             key = b.base_id, b.start
             if (
-                not b.base_id.startswith("SYNTHETIC-")
-                or key in seen
+                key in seen
                 or b.start < b.season_start
                 or (b.start - b.season_start).days % 7
                 or b.start + timedelta(days=6) >= evaluation_start
@@ -139,11 +147,18 @@ def fit(
 def predict(
     fitted: dict[str, Any], base_id: str, season_start: date, baseline: tuple[DailyKg, ...]
 ) -> dict[str, tuple[DailyKg, ...]]:
+    if fitted.get("data_class") != "SYNTHETIC" or not base_id.startswith("SYNTHETIC-"):
+        raise PermissionError("REAL_MODEL_NOT_ADMITTED")
+    return _predict_curve(fitted, base_id, season_start, baseline)
+
+
+def _predict_curve(
+    fitted: dict[str, Any], base_id: str, season_start: date, baseline: tuple[DailyKg, ...]
+) -> dict[str, tuple[DailyKg, ...]]:
+    """No IO or labels; callers validate the model's source and training identity."""
     body = {k: v for k, v in fitted.items() if k != "sha256"}
     if digest(body) != fitted.get("sha256") or fitted["config"] != CONFIG:
         raise ValueError("FIT_SEAL_MISMATCH")
-    if fitted["data_class"] != "SYNTHETIC" or not base_id.startswith("SYNTHETIC-"):
-        raise PermissionError("REAL_MODEL_NOT_ADMITTED")
     if (
         not baseline
         or baseline[0].day < season_start
