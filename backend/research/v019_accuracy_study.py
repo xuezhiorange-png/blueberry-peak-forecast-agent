@@ -56,16 +56,22 @@ def compare(
     curves: dict[str, dict[str, tuple[DailyKg, ...]]],
     actual: dict[str, tuple[DailyKg, ...]],
     members: list[dict[str, Any]],
+    *,
+    label_identity: str = "SYNTHETIC_FIXTURE",
+    scored_at: datetime | None = None,
 ) -> dict[str, Any]:
     """Joint Cm across all supplied methods; no per-model favorable exclusions."""
     with localcontext(Context(prec=50)):
-        return _compare(curves, actual, members)
+        return _compare(curves, actual, members, label_identity=label_identity, scored_at=scored_at)
 
 
 def _compare(
     curves: dict[str, dict[str, tuple[DailyKg, ...]]],
     actual: dict[str, tuple[DailyKg, ...]],
     members: list[dict[str, Any]],
+    *,
+    label_identity: str,
+    scored_at: datetime | None,
 ) -> dict[str, Any]:
     if "baseline" not in curves:
         raise ValueError("BASELINE_REQUIRED")
@@ -86,12 +92,12 @@ def _compare(
             pp = {m: models.window(cc.get(bid, ()), start, days) for m, cc in curves.items()}
             total = sum((r.kg for r in aa), Decimal(0))
             lab = metrics.Labels(
-                "synthetic",
-                "synthetic",
-                "a" * 64,
+                member["candidate_id"],
+                label_identity,
+                label_identity,
                 aa,
-                datetime(2026, 1, 1, tzinfo=UTC),
-                datetime(2026, 1, 1, tzinfo=UTC),
+                scored_at or datetime(2026, 1, 1, tzinfo=UTC),
+                scored_at or datetime(2026, 1, 1, tzinfo=UTC),
                 True,
             )
             for m, rr in pp.items():
