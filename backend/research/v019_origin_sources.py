@@ -25,7 +25,7 @@ from backend.research.v019_synthetic_validation import digest
 
 TRACE_PINS = {
     "training-manifest.json": "2cbaec57b51feb8814f1748b2ebf76c7430918b352ddddbb5665e49f91b40e74",
-    "input-manifest.json": "c9f41495cc45c80b45ccfc4d51e472dbbc6e39a689ae7d4d8991be5b5c833e",
+    "input-manifest.json": "c9f41495cc45c80b45ccfc4d51e472dbbc6e39a689ae7d4d8991be5b5c5c833e",
 }
 # Measured canonical member bytes from the individually pinned S4 prediction file.
 # Not recalculated from a new working tree, nor inferred from candidate counts.
