@@ -48,10 +48,11 @@ async def test_real_issue_reload_compare_immutable_and_idempotent(
         assert saved["status"] == "COMPUTED" and saved["issued_at"] is None
         assert saved["result"]["feature_snapshot"]["values"]["past_7d_harvest_kg"] == "224.000000"
         assert (await post(client, issue_body())).json()["data"] == saved
-        b = await post(client, issue_body(1))
+        b = await post(client, {**issue_body(1), "rerun_of_run_id": saved["run_id"]})
         assert b.status_code == 200, b.text
         newer = b.json()["data"]
         assert newer["run_id"] != saved["run_id"]
+        assert newer["rerun_of_run_id"] == saved["run_id"]
         detail = await client.get(f"/api/v1/rolling-forecast-runs/{saved['run_id']}")
         assert detail.json()["data"] == saved
         daily = await client.get(f"/api/v1/rolling-forecast-runs/{saved['run_id']}/daily")
@@ -179,6 +180,66 @@ async def test_unauthorized_reads_zero_and_account_revocation(pg_auth, tmp_path)
             assert not reads
     finally:
         event.remove(engine.sync_engine, "before_cursor_execute", observe)
+
+
+@pytest.mark.parametrize("changed", ["base_id", "season", "organization_id"])
+@pytest.mark.asyncio
+async def test_reused_context_never_reauthorizes_previous_resource(pg_auth, tmp_path, changed):
+    auth, factory, _, account, _ = pg_auth
+    _, path = await seed(factory, account.principal_id, tmp_path)
+    auth.settings.rolling_forecast_catalog_path = str(path)
+    app = create_app(auth.settings)
+    app.state.local_auth = auth
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="https://synthetic.test"
+    ) as client:
+        assert (await login(client)).status_code == 200
+        first = await post(client, issue_body())
+        assert first.status_code == 200
+        old = first.json()["data"]
+        value = json.loads(path.read_bytes())
+        context = value["contexts"][0]
+        if changed == "base_id":
+            context["area"]["base_id"] = "SYNTHETIC_OTHER_BASE"
+        elif changed == "season":
+            context["area"]["season"] = context["calendar"]["season"] = "2027-2028"
+        else:
+            old_org = context["organization_id"]
+            context["organization_id"] = "SYNTHETIC_OTHER_ORG"
+            auth.settings.local_auth_organization_ids_json = json.dumps(
+                [old_org, context["organization_id"]]
+            )
+        path.write_text(json.dumps(value))
+        for suffix in ("", "/daily"):
+            denied = await client.get(f"/api/v1/rolling-forecast-runs/{old['run_id']}{suffix}")
+            assert denied.status_code == 404, (changed, denied.text)
+        history = await client.get("/api/v1/rolling-forecast-runs")
+        assert history.status_code == 200
+        assert history.json()["data"]["items"] == []
+        comparison = await client.get(
+            "/api/v1/rolling-forecast-runs/compare",
+            params={"left_run_id": old["run_id"], "right_run_id": old["run_id"]},
+        )
+        assert comparison.status_code == 404
+        body = issue_body()
+        body.update(
+            base_id=context["area"]["base_id"],
+            target_season=context["area"]["season"],
+            rerun_of_run_id=old["run_id"],
+        )
+        reads = []
+
+        def observe(conn, cursor, statement, parameters, context, executemany):
+            if "actual_harvest_label_snapshot_winner" in statement:
+                reads.append(statement)
+
+        engine = factory.kw["bind"]
+        event.listen(engine.sync_engine, "before_cursor_execute", observe)
+        try:
+            assert (await post(client, body)).status_code == 404
+            assert reads == []
+        finally:
+            event.remove(engine.sync_engine, "before_cursor_execute", observe)
 
 
 @pytest.mark.asyncio
