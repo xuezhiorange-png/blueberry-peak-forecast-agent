@@ -33,8 +33,25 @@ async def review(
         source.label_cutoff_at > now() and source.provenance != "SYNTHETIC_TEST_FIXTURE"
     ):
         raise ValueError("LABELS_NOT_MATURE")
-    if source.quantity_basis != saved["result"]["feature_snapshot"]["quantity_basis"]:
-        raise ValueError("LABEL_PHYSICAL_BASIS_MISMATCH")
+    # Admit against the model's target, never against its observed feature units.
+    # No cross-source conversion authority is implemented or inferred here.
+    for model in saved["result"]["models"].values():
+        target = model.get("forecast_target_quantity_basis")
+        if (
+            not target
+            or target != source.quantity_basis
+            or model.get("model_training_target_quantity_basis") != target
+            or model.get("model_provenance") not in {"REAL_FROZEN_S6", "SYNTHETIC_TEST_FIXTURE"}
+            or (
+                model.get("model_provenance") == "SYNTHETIC_TEST_FIXTURE"
+                and source.provenance != "SYNTHETIC_TEST_FIXTURE"
+            )
+            or (
+                model.get("model_provenance") == "REAL_FROZEN_S6"
+                and target != "RECORDED_INBOUND_WEIGHT"
+            )
+        ):
+            raise ValueError("CROSS_SOURCE_TARGET_BASIS_UNVERIFIED")
     rows = await observations.load(
         db, context, source, end + timedelta(days=1), source.label_cutoff_at, start
     )
@@ -114,6 +131,18 @@ async def review(
         "run_id": run_id,
         "forecast_result_hash": saved["result_hash"],
         "label_snapshot_hash": source.snapshot_hash,
+        "feature_observation_quantity_basis": saved["result"]["feature_snapshot"]["quantity_basis"],
+        "model_training_target_quantity_basis": {
+            m: v["model_training_target_quantity_basis"]
+            for m, v in saved["result"]["models"].items()
+        },
+        "forecast_target_quantity_basis": {
+            m: v["forecast_target_quantity_basis"] for m, v in saved["result"]["models"].items()
+        },
+        "evaluation_label_quantity_basis": source.quantity_basis,
+        "model_provenance": {
+            m: v["model_provenance"] for m, v in saved["result"]["models"].items()
+        },
         "maturity_authority_hash": source.maturity_authority_hash,
         "groups": result,
         "actual_daily": [r.model_dump(mode="json") for r in rows],

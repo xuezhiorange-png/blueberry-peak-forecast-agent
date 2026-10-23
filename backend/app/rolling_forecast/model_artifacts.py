@@ -6,6 +6,7 @@ The path is server-registered, never accepted from an HTTP caller.
 
 import hashlib
 import json
+from dataclasses import dataclass
 from decimal import Decimal, DecimalException
 from pathlib import Path
 from typing import Literal
@@ -14,7 +15,7 @@ from pydantic import Field, ValidationError
 
 from backend.app.area_yield.v015_harvest_state import FEATURES
 from backend.app.area_yield.weather_aware_backtest import BASE_FEATURES
-from backend.app.rolling_forecast.schemas import Contract, Hash, Name
+from backend.app.rolling_forecast.schemas import Contract, Hash, Name, TargetQuantityBasis
 from backend.research.v019_origin_models import CONFIG, MODELS, PreparedPair, compile_pair
 from backend.research.v019_real_training_cli import unseal
 
@@ -34,9 +35,22 @@ class ModelReference(Contract):
     provenance: Literal["REAL_FROZEN_S6", "SYNTHETIC_TEST_FIXTURE"]
     execution_manifest_path: str | None = None
     execution_manifest_sha256: Hash | None = None
+    model_training_target_quantity_basis: TargetQuantityBasis | None = None
+
+
+@dataclass(frozen=True)
+class TargetBoundPair(PreparedPair):
+    """Metadata only; coefficients, standardization and predict remain S6's."""
+
+    model_training_target_quantity_basis: TargetQuantityBasis | None
+    model_provenance: str
 
 
 def load(reference: ModelReference) -> PreparedPair:
+    try:
+        reference = ModelReference.model_validate(reference.model_dump())
+    except ValidationError:
+        raise ModelArtifactError("MODEL_IDENTITY_MISMATCH") from None
     path = Path(reference.path)
     try:
         if not path.is_absolute() or any(p.is_symlink() for p in (path, *path.parents)):
@@ -55,6 +69,13 @@ def load(reference: ModelReference) -> PreparedPair:
         if document["code_identity"] != reference.source_code_identity:
             raise ValueError("MODEL_IDENTITY_MISMATCH")
         if reference.provenance == "REAL_FROZEN_S6":
+            # Frozen S6 trains on 2023–24/2024–25 RECORDED_INBOUND_WEIGHT
+            # (v019_origin_features). Runtime field observations cannot relabel it.
+            if reference.model_training_target_quantity_basis not in (
+                None,
+                "RECORDED_INBOUND_WEIGHT",
+            ):
+                raise ValueError("MODEL_IDENTITY_MISMATCH")
             if (
                 reference.execution_manifest_path is None
                 or reference.execution_manifest_sha256 is None
@@ -102,7 +123,16 @@ def load(reference: ModelReference) -> PreparedPair:
                 or any(Decimal(v) <= 0 for v in artifact.feature_scales)
             ):
                 raise ValueError("MODEL_IDENTITY_MISMATCH")
-        return pair
+        return TargetBoundPair(
+            pair.fit_sha256,
+            pair.evaluation_start,
+            pair.training_last_date,
+            pair.artifacts,
+            "RECORDED_INBOUND_WEIGHT"
+            if reference.provenance == "REAL_FROZEN_S6"
+            else reference.model_training_target_quantity_basis,
+            reference.provenance,
+        )
     except OSError:
         raise ModelArtifactError("MODEL_ARTIFACT_UNAVAILABLE") from None
     except (ValueError, KeyError, TypeError, ValidationError, DecimalException):

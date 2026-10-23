@@ -24,6 +24,12 @@ test("real login issue immutable saved curves two origins comparison and logout"
   const first = (await firstResponse.json()).data;
   const result = page.getByRole("region", { name: "滚动预测结果" });
   await expect(result).toContainText(first.result.models.M1.H15.forecast_total_kg);
+  await expect(result).toContainText("特征观测口径：FIELD_HARVEST_WEIGHT");
+  await expect(result).toContainText("训练目标口径：FIELD_HARVEST_WEIGHT");
+  await expect(result).toContainText("预测目标口径：FIELD_HARVEST_WEIGHT");
+  await expect(result).toContainText("SYNTHETIC_TEST_FIXTURE");
+  expect(first.result.models.M1.H7.forecast_total_kg).toBe("538.941049");
+  expect(first.result.models.M1.H15.forecast_total_kg).toBe("1031.362335");
   await expect(result.getByRole("table").nth(1).locator("tbody tr")).toHaveCount(15);
   await expect(result.getByRole("table").nth(1)).toContainText(
     first.result.models.M1.daily_forecast_kg[0].kg,
@@ -42,6 +48,8 @@ test("real login issue immutable saved curves two origins comparison and logout"
   const secondResponse = await response;
   expect(secondResponse.status()).toBe(200);
   const second = (await secondResponse.json()).data;
+  expect(second.result.models.M1.H7.forecast_total_kg).toBe("526.137595");
+  expect(second.result.models.M1.H15.forecast_total_kg).toBe("1002.702182");
   expect(second.input_hash).not.toBe(first.input_hash);
   await page.getByRole("button", { name: "查询研究预测" }).click();
   await page.getByLabel("比较起点").selectOption(String(first.run_id));
