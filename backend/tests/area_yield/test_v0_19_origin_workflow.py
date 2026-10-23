@@ -313,8 +313,9 @@ def test_old_zero_authority_only_transfers_with_exact_member_set():
 def test_candidate_counts_cannot_substitute_for_exact_member_payloads():
     with pytest.raises(ValueError, match="MEMBER_PAYLOAD"):
         sources.validate_members({"A": [], "B": [{"candidate_id": str(i)} for i in range(19032)]})
+
+
 def test_fixed_trace_pins_are_full_sha256():
     from backend.research import v019_origin_sources as sources
 
     assert all(len(h) == 64 and int(h, 16) >= 0 for h in sources.TRACE_PINS.values())
-
