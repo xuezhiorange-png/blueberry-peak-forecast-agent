@@ -645,8 +645,9 @@ def _report_files(
         "report.md": text.encode(),
         "report.html": (
             '<!doctype html><meta charset="utf-8"><title>S4 real training</title>'
-            "<style>body{font:14px system-ui;max-width:1300px;margin:30px auto}"
-            "table{border-collapse:collapse}td{border:1px solid #ddd;padding:5px}"
+            "<style>body{font:14px system-ui;max-width:1300px;margin:30px auto;padding:0 16px;"
+            "overflow-wrap:anywhere}table{border-collapse:collapse;width:100%;table-layout:fixed}"
+            "td{border:1px solid #ddd;padding:5px;vertical-align:top;overflow-wrap:anywhere}"
             "pre{white-space:pre-wrap;overflow-wrap:anywhere}</style>" + study.markdown_html(text)
         ).encode(),
     }
