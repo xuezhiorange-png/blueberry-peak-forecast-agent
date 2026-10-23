@@ -3,6 +3,7 @@ import { useForecast } from "../context/ForecastContext";
 import { useResource, type Resource } from "../context/useResource";
 import { read, quality } from "../api/client";
 import { DailyForecastChart, DailyForecastTable } from "../charts/Curves";
+import { RollingForecastPanel } from "../components/RollingForecastPanel";
 import {
   Panel,
   EmptyState,
@@ -184,6 +185,7 @@ export function ForecastPage() {
           )
         }
       </ResourceView>
+      <RollingForecastPanel />
       {verified && (
         <ResourceView resource={hierarchy}>
           {(v) => v.data && <HierarchyCompletenessPanel data={v.data} />}

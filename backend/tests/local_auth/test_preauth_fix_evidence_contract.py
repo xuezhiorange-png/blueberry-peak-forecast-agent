@@ -13,8 +13,12 @@ from backend.tests.historical_source import historical_bytes
 ROOT = Path(__file__).resolve().parents[3]
 BASE = "816d8299f007eab7da140fc5c7547d941c026f8f"
 PREAUTH_DELIVERY = "f151f0e6aca3577c5ee959a220c16e9756179649"
+EVOLVED_ROUND_SOURCES = {
+    "backend/app/main.py",
+}
 # These two authorized test adaptations do not rewrite their delivery evidence.
 ADAPTED_TEST_SOURCES = {
+    "backend/tests/business_access/test_contract.py",
     "backend/tests/mcp/test_v0_18_s3_contract.py",
     "backend/tests/local_auth/test_preauth_fix_evidence_contract.py",
     "backend/tests/revoke_read_race/test_evidence_contract.py",
@@ -109,7 +113,11 @@ def test_two_real_postgres_rounds_meet_the_original_invariant(name):
     run = load(FOLDER + "evidence.json")["repeat_runs"][name]
     proof = load(run["concurrent_proof"])
     for relative, expected in proof["source_sha256"].items():
-        checked(relative, expected)
+        checked(
+            relative,
+            expected,
+            commit=PREAUTH_DELIVERY if relative in EVOLVED_ROUND_SOURCES else None,
+        )
     assert proof["classification"] == "GREEN_NOT_REPRODUCED"
     assert proof["deterministic_barrier"]
     assert proof["request_b_status"] == proof["me_b_status"] == 200
@@ -156,6 +164,14 @@ def test_revoke_read_zero_work_and_complete_browser_results():
 
 
 def test_missing_git_object_or_wrong_expected_hash_fails():
+    proof = load(load(FOLDER + "evidence.json")["repeat_runs"]["round1"]["concurrent_proof"])
+    for relative in EVOLVED_ROUND_SOURCES:
+        expected = proof["source_sha256"][relative]
+        checked(relative, expected, commit=PREAUTH_DELIVERY)
+        with pytest.raises(AssertionError):
+            checked(relative, "0" * 64, commit=PREAUTH_DELIVERY)
+        with pytest.raises(AssertionError):
+            checked(relative, expected, commit="0" * 40)
     with pytest.raises(AssertionError):
         historical_bytes("backend/app/local_auth/service.py", "0" * 40)
     with pytest.raises(AssertionError):

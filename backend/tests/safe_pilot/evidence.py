@@ -28,6 +28,7 @@ EVIDENCE = ROOT / "docs/v0-18/evidence/s5-isolated-synthetic-safe-pilot-r1.json"
 R1_CHECKPOINT = "97eb4417344f5950927cd65cf77ea3fdfa6f7d44"
 R1_EVOLVING_SOURCES = frozenset(
     {
+        "backend/app/main.py",
         "backend/tests/safe_pilot/run.py",
         "backend/tests/safe_pilot/evidence.py",
         "backend/tests/forecast_intelligence/test_v0_18_s5_safe_pilot_contract.py",
