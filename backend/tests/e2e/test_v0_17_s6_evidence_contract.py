@@ -6,11 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from backend.tests.historical_source import source_bytes
+from backend.tests.historical_source import historical_bytes, source_bytes
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 ROOT = Path(__file__).resolve().parents[3]
 FILE = ROOT / "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json"
+HISTORICAL_PAGE = "frontend/src/dashboard/pages/ReadPages.tsx"
+HISTORICAL_PAGE_COMMIT = "320f2046e3105b1b55da9cb037892571110b584a"
 
 
 def load():
@@ -49,6 +51,12 @@ def test_all_pins_match_repository_bytes(group):
         "backend/tests/e2e/test_v0_17_s6_evidence_contract.py",
     }
     for path, expected in load()[group].items():
+        if group == "source_evidence_sha256" and path == HISTORICAL_PAGE:
+            # S7 evolves the current page; this receipt still verifies the exact
+            # V0.17 Git bytes. Never change its digest or fall back to HEAD.
+            raw = historical_bytes(path, HISTORICAL_PAGE_COMMIT, root=ROOT)
+            assert hashlib.sha256(raw).hexdigest() == expected, path
+            continue
         if group == "source_evidence_sha256" and path in second["historical_source_bindings"]:
             binding = second["historical_source_bindings"][path]
             prior = first["historical_source_bindings"].get(path)
@@ -68,6 +76,34 @@ def test_all_pins_match_repository_bytes(group):
             assert hash_file(ROOT / path) == binding["current_sha256"]
             continue
         assert hash_file(ROOT / path) == expected, path
+
+
+@pytest.mark.parametrize(
+    "commit",
+    ["0" * 40, "390e3c06d67916ec8c721f8be2516d0ad30b4adf"],
+)
+def test_historical_page_rejects_missing_or_wrong_commit(monkeypatch, commit):
+    monkeypatch.setattr(__name__ + ".HISTORICAL_PAGE_COMMIT", commit)
+    with pytest.raises(AssertionError):
+        test_all_pins_match_repository_bytes("source_evidence_sha256")
+
+
+def test_historical_page_rejects_corrupt_bytes(monkeypatch):
+    monkeypatch.setattr(__name__ + ".historical_bytes", lambda *args, **kwargs: b"corrupt")
+    with pytest.raises(AssertionError, match=HISTORICAL_PAGE):
+        test_all_pins_match_repository_bytes("source_evidence_sha256")
+
+
+def test_future_page_changes_do_not_rewrite_historical_receipt(monkeypatch):
+    original = source_bytes
+
+    def future_source(relative, *, root):
+        if relative == HISTORICAL_PAGE:
+            return b"future authorized page"
+        return original(relative, root=root)
+
+    monkeypatch.setattr(__name__ + ".source_bytes", future_source)
+    test_all_pins_match_repository_bytes("source_evidence_sha256")
 
 
 def test_original_seven_and_correction_chain_are_not_rewritten():
