@@ -67,11 +67,18 @@ async def save(
     if existing is not None:
         return await canonical(db, existing)
     if issue.rerun_of_run_id is not None:
-        parent = await db.get(RollingRun, issue.rerun_of_run_id)
-        if parent is None or (parent.principal_id, parent.context_reference) != (
-            principal,
-            context,
-        ):
+        parent = await db.scalar(
+            select(RollingRun.id).where(
+                RollingRun.id == issue.rerun_of_run_id,
+                RollingRun.principal_id == principal,
+                RollingRun.context_reference == context,
+                RollingRun.base_id == issue.base_id,
+                RollingRun.target_season == issue.target_season,
+                RollingRun.snapshot["input"]["organization_id"].as_string()
+                == input_snapshot["organization_id"],
+            )
+        )
+        if parent is None:
             raise ValueError("RERUN_SCOPE_MISMATCH")
     states = [v["status"] for v in result["models"].values()]
     run = RollingRun(

@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal, localcontext
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.local_auth.sessions import AuthError, Principal
@@ -25,8 +25,16 @@ def contexts(catalog: Catalog, principal: Principal, operation: str) -> list[Con
 
 def scope_filter(allowed: list[Context], principal: Principal) -> Any:
     # Authorization predicates are applied in SQL BEFORE ordering/limit/offset.
-    return (RollingRun.principal_id == principal.principal_id) & RollingRun.context_reference.in_(
-        [c.reference for c in allowed]
+    return (RollingRun.principal_id == principal.principal_id) & or_(
+        *(
+            and_(
+                RollingRun.context_reference == c.reference,
+                RollingRun.base_id == c.area.base_id,
+                RollingRun.target_season == c.calendar.season,
+                RollingRun.snapshot["input"]["organization_id"].as_string() == c.organization_id,
+            )
+            for c in allowed
+        )
     )
 
 
@@ -58,6 +66,15 @@ async def issue(
     if len(candidates) != 1:
         raise AuthError("FORBIDDEN")
     context = candidates[0]
+    if request.rerun_of_run_id is not None:
+        # A parent reference is an authorized business read too. Check it before
+        # model/observation reads, not after computing the proposed new forecast.
+        parent = await get(db, catalog, principal, request.rerun_of_run_id, "issue")
+        if parent["input"]["context_reference"] != context.reference or (
+            parent["base_id"],
+            parent["target_season"],
+        ) != (request.base_id, request.target_season):
+            raise AuthError("RUN_NOT_FOUND", 404)
     source = next(
         s for s in context.snapshots if s.reference == request.observation_snapshot_reference
     )
@@ -89,6 +106,7 @@ async def issue(
     input_snapshot = {
         "issue": request.model_dump(mode="json"),
         "context_reference": context.reference,
+        "organization_id": context.organization_id,
         "catalog_revision": catalog.revision,
         "context_hash": digest(context.model_dump(mode="json")),
         "observation_snapshot": source.model_dump(mode="json"),

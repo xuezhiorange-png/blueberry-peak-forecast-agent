@@ -189,6 +189,37 @@ Vite's existing API proxy also includes the finite rolling-run prefix, so the
 same dashboard client works in the usual local development composition. This
 does not widen the production ingress allowlist to legacy trial routes.
 
+### Pre-review context isolation correction (same PR)
+
+After CI `39966322029` started for initial HEAD
+`5df718bc7c23a81fef78085e03f02c793e969d0f`, an additional real PostgreSQL
+negative probe confirmed three RED cases: reusing a context reference while
+changing its Base, season or organization still returned an old run with HTTP
+200. This was a new S7 implementation defect, not a historical evidence gap.
+Original RED logs are retained in
+`/tmp/SYNTHETIC-s7-context-rebind-red-20261023` (three failures).
+
+The corrected SQL admission predicate binds principal + context + Base + season
+and persisted organization **before** pagination or result loading. Organization
+is part of the immutable input. A rerun's parent must pass the same scope check
+before model/observation reads, with a second bounded parent check in persistence.
+Missing old organization metadata fails closed; no old record is backfilled.
+Same-scope two-origin rerun remains legal. This does not add roles or change
+formal Saved Run grants. No numerical algorithm or example quantities changed.
+
+Post-correction local run
+`/tmp/SYNTHETIC-s7-context-rebind-green-20261023` has 36 backend passes and 30
+TLS browser passes (original S4 plus S7, desktop/mobile). The same three negative
+probes require 404/no history items, no unauthorized comparison, and no observation
+read during rejected rerun. The authorized rerun positive control also passes.
+The Owner explicitly authorized the necessary corrected-head CI in this same PR;
+the initial run remains in GitHub and is not reused as final acceptance.
+
+The two-process real-frozen-model/synthetic-input probe was repeated after the
+correction, without overwriting the original. New proof bytes SHA256:
+`baf2f29a236014c7b768494c176322cbfd9ffe4ed9558cb0e52eb8de84796597`.
+The runtime identity also includes persistence, review, ORM and API source files.
+
 With locked Python 3.12 dependencies, PostgreSQL 16 tools and Node on PATH:
 
 ```sh
