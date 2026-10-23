@@ -4,6 +4,13 @@ const hash = z.string().regex(/^[0-9a-f]{64}$/);
 const day = z.iso.date();
 const kg = z.string().regex(/^\d+\.\d{6}$/);
 const signed = z.string().regex(/^-?\d+(?:\.\d+)?$/);
+const quantityBasis = z.enum([
+  "FIELD_HARVEST_WEIGHT",
+  "MARKETABLE_FRUIT_WEIGHT",
+  "INBOUND_WEIGHT",
+  "INBOUND_NET_WEIGHT",
+  "RECORDED_INBOUND_WEIGHT",
+]);
 const peak = z.object({
   forecast_total_kg: kg,
   single_day_peak_date: day,
@@ -18,6 +25,9 @@ const model = z
     status: z.enum(["COMPUTED", "NOT_COMPUTABLE"]),
     model_id: z.string(),
     model_artifact_hash: hash,
+    model_training_target_quantity_basis: quantityBasis.nullish(),
+    forecast_target_quantity_basis: quantityBasis.nullish(),
+    model_provenance: z.enum(["REAL_FROZEN_S6", "SYNTHETIC_TEST_FIXTURE"]).nullish(),
     daily_forecast_kg: z.array(z.object({ date: day, kg })),
     H7: peak.nullable(),
     H15: peak.nullable(),
@@ -56,6 +66,8 @@ export const rollingRun = z
     }),
     result: z.object({
       models: z.object({ M0: model, M1: model }),
+      feature_observation_quantity_basis: quantityBasis.nullish(),
+      evaluation_label_quantity_basis: z.null().optional(),
       feature_snapshot: z.object({
         quantity_basis: z.string().nullable(),
         visibility: z.string(),
@@ -126,10 +138,10 @@ export const rollingComparison = z.object({
   right_quantity_basis: z.string().nullable(),
   models: z.record(
     z.enum(["M0", "M1"]),
-    z.object({
-      status: z.string(),
-      windows: z
-        .record(
+    z.discriminatedUnion("status", [
+      z.object({
+        status: z.literal("COMPARABLE"),
+        windows: z.record(
           z.enum(["H7", "H15"]),
           z.object({
             total_delta_kg: signed,
@@ -139,10 +151,16 @@ export const rollingComparison = z.object({
             rolling7_kg_delta: signed,
             meaning: z.literal("DIFFERENT_ORIGIN_WINDOW_TOTALS_NOT_SAME_DATE_REVISION"),
           }),
-        )
-        .optional(),
-      common_target_daily_delta_kg: z.array(z.object({ date: day, kg: signed })).optional(),
-    }),
+        ),
+        common_target_daily_delta_kg: z.array(z.object({ date: day, kg: signed })),
+      }),
+      z
+        .object({
+          status: z.enum(["NOT_COMPARABLE", "NOT_COMPUTABLE"]),
+          reasons: z.array(z.string()).min(1),
+        })
+        .strict(),
+    ]),
   ),
   production_model: z.literal(false),
 });

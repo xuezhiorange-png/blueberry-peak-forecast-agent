@@ -2,7 +2,7 @@
 
 from datetime import date
 from decimal import Decimal, localcontext
-from typing import Any
+from typing import Any, get_args
 
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +12,7 @@ from backend.app.rolling_forecast import engine, model_artifacts, observations, 
 from backend.app.rolling_forecast.identity import implementation_hash
 from backend.app.rolling_forecast.models import RollingRun
 from backend.app.rolling_forecast.policy import Catalog, Context
-from backend.app.rolling_forecast.schemas import Issue
+from backend.app.rolling_forecast.schemas import Issue, TargetQuantityBasis
 from backend.research.v019_synthetic_validation import digest
 
 
@@ -173,23 +173,46 @@ async def history(
 
 def compare(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
     lr, rr = left["result"], right["result"]
-    same = (left["base_id"], left["target_season"], lr["feature_snapshot"]["quantity_basis"]) == (
-        right["base_id"],
-        right["target_season"],
-        rr["feature_snapshot"]["quantity_basis"],
-    )
+    bases = get_args(TargetQuantityBasis)
+    common_reasons = []
+    if left["base_id"] != right["base_id"]:
+        common_reasons.append("BASE_MISMATCH")
+    if left["target_season"] != right["target_season"]:
+        common_reasons.append("SEASON_MISMATCH")
+    left_basis, right_basis = (r["feature_snapshot"]["quantity_basis"] for r in (lr, rr))
+    if left_basis not in bases or right_basis not in bases:
+        common_reasons.append("FEATURE_OBSERVATION_BASIS_UNVERIFIED")
+    elif left_basis != right_basis:
+        common_reasons.append("FEATURE_OBSERVATION_BASIS_MISMATCH")
     result: dict[str, Any] = {}
     with localcontext() as ctx:
         ctx.prec = 50
         for model in ("M0", "M1"):
             a, b = lr["models"][model], rr["models"][model]
-            status = (
-                "COMPARABLE"
-                if same and a["model_artifact_hash"] == b["model_artifact_hash"]
-                else "NOT_COMPARABLE"
-            )
             if a["status"] != "COMPUTED" or b["status"] != "COMPUTED":
-                result[model] = {"status": "NOT_COMPUTABLE"}
+                result[model] = {
+                    "status": "NOT_COMPUTABLE",
+                    "reasons": ["INCOMPLETE_MODEL_PREDICTIONS"],
+                }
+                continue
+            reasons = list(common_reasons)
+            if (a["model_artifact_hash"], a["model_id"]) != (
+                b["model_artifact_hash"],
+                b["model_id"],
+            ):
+                reasons.append("MODEL_IDENTITY_MISMATCH")
+            if a.get("model_provenance") != b.get("model_provenance"):
+                reasons.append("MODEL_PROVENANCE_MISMATCH")
+            targets = [v.get("forecast_target_quantity_basis") for v in (a, b)]
+            if any(t not in bases for t in targets) or any(
+                v.get("model_training_target_quantity_basis") != t
+                for v, t in zip((a, b), targets, strict=True)
+            ):
+                reasons.append("MODEL_TARGET_BASIS_UNVERIFIED")
+            elif targets[0] != targets[1]:
+                reasons.append("FORECAST_TARGET_BASIS_MISMATCH")
+            if reasons:
+                result[model] = {"status": "NOT_COMPARABLE", "reasons": reasons}
                 continue
             aa = {r["date"]: Decimal(r["kg"]) for r in a["daily_forecast_kg"]}
             bb = {r["date"]: Decimal(r["kg"]) for r in b["daily_forecast_kg"]}
@@ -218,7 +241,7 @@ def compare(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
                     "meaning": "DIFFERENT_ORIGIN_WINDOW_TOTALS_NOT_SAME_DATE_REVISION",
                 }
             result[model] = {
-                "status": status,
+                "status": "COMPARABLE",
                 "windows": windows,
                 "common_target_daily_delta_kg": [
                     {"date": d, "kg": format(bb[d] - aa[d], ".6f")}

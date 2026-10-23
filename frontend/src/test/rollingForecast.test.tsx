@@ -133,3 +133,69 @@ it("mismatched submission response is rejected rather than displayed", async () 
   await screen.findByText("响应输入不匹配，已拒绝展示。");
   expect(screen.queryByRole("region", { name: "滚动预测结果" })).toBeNull();
 });
+
+it("noncomparable responses never display supplied numeric deltas", async () => {
+  state.request.mockImplementation(async (path) => {
+    if (path.endsWith("/compare"))
+      return {
+        data: {
+          left_run: 1,
+          right_run: 2,
+          left_origin: "2026-11-05",
+          right_origin: "2026-11-06",
+          models: {
+            M1: {
+              status: "NOT_COMPARABLE",
+              reasons: ["BASE_MISMATCH"],
+              windows: { H7: { total_delta_kg: "999.000000" } },
+              common_target_daily_delta_kg: [{ date: "2026-11-07", kg: "888.000000" }],
+            },
+          },
+        },
+      };
+    return {
+      data: {
+        ...listing.data,
+        items: [1, 2].map((run_id) => ({
+          run_id,
+          base_id: "SYNTHETIC_BASE",
+          target_season: "2026-2027",
+          origin_date: "2026-11-05",
+          status: "COMPUTED",
+          result_hash: "a".repeat(64),
+        })),
+      },
+    };
+  });
+  render(<RollingForecastPanel />);
+  await prepare();
+  fireEvent.change(screen.getByLabelText("比较起点"), { target: { value: "1" } });
+  fireEvent.change(screen.getByLabelText("比较终点"), { target: { value: "2" } });
+  fireEvent.click(screen.getByRole("button", { name: "比较两个研究 Origin" }));
+  const region = await screen.findByRole("region", { name: "研究 Origin 对比" });
+  expect(region.textContent).not.toContain("999.000000");
+  expect(region.textContent).not.toContain("888.000000");
+  expect(within(region).queryByRole("table")).toBeNull();
+  expect(region.textContent).toContain("BASE_MISMATCH");
+});
+
+it("shows model target separately from feature observation basis", async () => {
+  state.request.mockImplementation(async (_p, _s, _signal, _params, body) => {
+    if (!body) return listing;
+    const value = payload(body);
+    for (const model of Object.values(value.data.result.models))
+      Object.assign(model, {
+        model_training_target_quantity_basis: "RECORDED_INBOUND_WEIGHT",
+        forecast_target_quantity_basis: "RECORDED_INBOUND_WEIGHT",
+        model_provenance: "REAL_FROZEN_S6",
+      });
+    return value;
+  });
+  render(<RollingForecastPanel />);
+  await prepare();
+  fireEvent.click(screen.getByRole("button", { name: "生成并保存研究预测" }));
+  const region = await screen.findByRole("region", { name: "滚动预测结果" });
+  expect(region.textContent).toContain("特征观测口径：FIELD_HARVEST_WEIGHT");
+  expect(region.textContent).toContain("训练目标口径：RECORDED_INBOUND_WEIGHT");
+  expect(region.textContent).toContain("预测目标口径：RECORDED_INBOUND_WEIGHT");
+});

@@ -461,8 +461,11 @@ function RollingForecastWorkspace() {
             记录 {run.run_id} · {run.base_id} · {run.origin_date}
           </h3>
           <p>
-            口径：{run.result.feature_snapshot.quantity_basis ?? "未证明"} ·{" "}
-            {run.result.feature_snapshot.visibility} · issued_at：未正式发行 · Strict PIT=false
+            特征观测口径：
+            {run.result.feature_observation_quantity_basis ??
+              run.result.feature_snapshot.quantity_basis ??
+              "未证明"}{" "}
+            · {run.result.feature_snapshot.visibility} · issued_at：未正式发行 · Strict PIT=false
             {" · 观测完整性："}
             {run.result.feature_snapshot.complete ? "完整" : "不完整"}
           </p>
@@ -487,6 +490,16 @@ function RollingForecastWorkspace() {
                 {name} · {model.model_id} · {model.status}
               </h4>
               <p style={{ overflowWrap: "anywhere" }}>冻结参数 {model.model_artifact_hash}</p>
+              <p>
+                训练目标口径：{model.model_training_target_quantity_basis ?? "未证明"} ·{" "}
+                预测目标口径：{model.forecast_target_quantity_basis ?? "未证明"} ·{" "}
+                评价标签口径：未评分 · 模型来源：{model.model_provenance ?? "未证明"}
+              </p>
+              {model.model_provenance === "REAL_FROZEN_S6" && (
+                <p>
+                  CROSS_SOURCE_TARGET_BASIS_UNVERIFIED：入库重量训练目标不等于已验证的田间采收量预测。
+                </p>
+              )}
               {model.status === "NOT_COMPUTABLE" ? (
                 <p role="status">不能计算：{model.blocker_reason?.join("；")}</p>
               ) : (
@@ -537,34 +550,39 @@ function RollingForecastWorkspace() {
               <h4>
                 {name} · {value.status}
               </h4>
-              {value.windows &&
-                Object.entries(value.windows).map(([w, v]) => (
-                  <p key={w}>
-                    {w} 不同窗口总量变化：{v.total_delta_kg} kg；单日峰移动{" "}
-                    {v.single_peak_date_delta_days} 日，峰量变化 {v.single_peak_kg_delta}{" "}
-                    kg；七日峰起点移动 {v.rolling7_start_delta_days} 日，累计变化{" "}
-                    {v.rolling7_kg_delta} kg。
-                  </p>
-                ))}
-              <div className="d-table-wrap">
-                <table>
-                  <caption>{name} 共同目标日期上的逐日变化</caption>
-                  <thead>
-                    <tr>
-                      <th>日期</th>
-                      <th>后者 − 前者 kg</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {value.common_target_daily_delta_kg?.map((r) => (
-                      <tr key={r.date}>
-                        <td>{r.date}</td>
-                        <td>{r.kg}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {value.status === "COMPARABLE" ? (
+                <>
+                  {Object.entries(value.windows).map(([w, v]) => (
+                    <p key={w}>
+                      {w} 不同窗口总量变化：{v.total_delta_kg} kg；单日峰移动{" "}
+                      {v.single_peak_date_delta_days} 日，峰量变化 {v.single_peak_kg_delta}{" "}
+                      kg；七日峰起点移动 {v.rolling7_start_delta_days} 日，累计变化{" "}
+                      {v.rolling7_kg_delta} kg。
+                    </p>
+                  ))}
+                  <div className="d-table-wrap">
+                    <table>
+                      <caption>{name} 共同目标日期上的逐日变化</caption>
+                      <thead>
+                        <tr>
+                          <th>日期</th>
+                          <th>后者 − 前者 kg</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {value.common_target_daily_delta_kg?.map((r) => (
+                          <tr key={r.date}>
+                            <td>{r.date}</td>
+                            <td>{r.kg}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <p>不能比较：{value.reasons.join("；")}</p>
+              )}
             </section>
           ))}
         </section>

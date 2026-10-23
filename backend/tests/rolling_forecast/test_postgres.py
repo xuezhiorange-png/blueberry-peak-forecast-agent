@@ -30,6 +30,101 @@ async def post(client, body):
 
 
 @pytest.mark.asyncio
+async def test_correct_daily_rows_with_self_consistent_wrong_summary_are_rejected(
+    pg_auth, tmp_path, monkeypatch
+):
+    from backend.app.rolling_forecast import engine
+    from backend.research.v019_synthetic_validation import digest
+
+    auth, factory, _, account, _ = pg_auth
+    _, path = await seed(factory, account.principal_id, tmp_path)
+    auth.settings.rolling_forecast_catalog_path = str(path)
+    app = create_app(auth.settings)
+    app.state.local_auth = auth
+    original = engine.forecast
+
+    def wrong_summary(*args, **kwargs):
+        value = original(*args, **kwargs)
+        value["models"]["M1"]["H7"]["forecast_total_kg"] = "1.000000"
+        value["result_hash"] = digest({k: v for k, v in value.items() if k != "result_hash"})
+        return value
+
+    monkeypatch.setattr(engine, "forecast", wrong_summary)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="https://synthetic.test"
+    ) as client:
+        assert (await login(client)).status_code == 200
+        response = await post(client, issue_body())
+        assert response.status_code == 409, response.text
+        assert response.json()["code"] == "ROLLING_PERSISTED_METRIC_MISMATCH"
+    async with factory() as db:
+        assert await db.scalar(select(func.count()).select_from(RollingRun)) == 0
+
+
+@pytest.mark.asyncio
+async def test_real_format_model_cannot_score_field_labels_from_feature_basis(
+    pg_auth, tmp_path, monkeypatch
+):
+    import hashlib
+    from pathlib import Path
+
+    auth, factory, _, account, _ = pg_auth
+    _, path = await seed(factory, account.principal_id, tmp_path)
+    value = json.loads(path.read_bytes())
+    model = value["contexts"][0]["models"][0]
+    # SYNTHETIC model bytes with a real-format provenance envelope, not a claim
+    # that this fixture contains real training parameters or actual harvest.
+    manifest = {
+        "task_id": "V0_19_S6_ORIGIN_AWARE_HARVEST_FORECAST_R1",
+        "phase": "predict",
+        "code_git_sha": model["source_code_sha"],
+        "code_identity": model["source_code_identity"],
+        "file_sha256": {Path(model["path"]).name: model["file_sha256"]},
+    }
+    raw = json.dumps(manifest).encode()
+    manifest_path = tmp_path.resolve() / "SYNTHETIC-execution.json"
+    manifest_path.write_bytes(raw)
+    model.update(
+        provenance="REAL_FROZEN_S6",
+        model_training_target_quantity_basis="RECORDED_INBOUND_WEIGHT",
+        execution_manifest_path=str(manifest_path),
+        execution_manifest_sha256=hashlib.sha256(raw).hexdigest(),
+    )
+    path.write_text(json.dumps(value))
+    auth.settings.rolling_forecast_catalog_path = str(path)
+    app = create_app(auth.settings)
+    app.state.local_auth = auth
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="https://synthetic.test"
+    ) as client:
+        assert (await login(client)).status_code == 200
+        response = await post(client, issue_body())
+        assert response.status_code == 200, response.text
+        saved = response.json()["data"]
+        assert saved["result"]["feature_observation_quantity_basis"] == "FIELD_HARVEST_WEIGHT"
+        assert (
+            saved["result"]["models"]["M1"]["forecast_target_quantity_basis"]
+            == "RECORDED_INBOUND_WEIGHT"
+        )
+        reads = []
+
+        async def forbidden(*args, **kwargs):
+            reads.append(True)
+            raise AssertionError("CROSS_SOURCE_LABEL_READ")
+
+        monkeypatch.setattr(observations, "load", forbidden)
+        csrf = (await client.get("/api/v1/auth/csrf")).json()["data"]["csrf_token"]
+        review = await client.post(
+            f"/api/v1/rolling-forecast-runs/{saved['run_id']}/review",
+            json={"label_snapshot_reference": "SYNTHETIC-SNAPSHOT-2"},
+            headers={"Origin": "https://synthetic.test", "X-CSRF-Token": csrf},
+        )
+        assert review.status_code == 422, review.text
+        assert review.json()["code"] == "CROSS_SOURCE_TARGET_BASIS_UNVERIFIED"
+        assert not reads
+
+
+@pytest.mark.asyncio
 async def test_real_issue_reload_compare_immutable_and_idempotent(
     pg_auth, tmp_path, record_property
 ):
@@ -51,6 +146,10 @@ async def test_real_issue_reload_compare_immutable_and_idempotent(
         b = await post(client, {**issue_body(1), "rerun_of_run_id": saved["run_id"]})
         assert b.status_code == 200, b.text
         newer = b.json()["data"]
+        assert saved["result"]["models"]["M1"]["H7"]["forecast_total_kg"] == "538.941049"
+        assert saved["result"]["models"]["M1"]["H15"]["forecast_total_kg"] == "1031.362335"
+        assert newer["result"]["models"]["M1"]["H7"]["forecast_total_kg"] == "526.137595"
+        assert newer["result"]["models"]["M1"]["H15"]["forecast_total_kg"] == "1002.702182"
         assert newer["run_id"] != saved["run_id"]
         assert newer["rerun_of_run_id"] == saved["run_id"]
         detail = await client.get(f"/api/v1/rolling-forecast-runs/{saved['run_id']}")
@@ -66,6 +165,9 @@ async def test_real_issue_reload_compare_immutable_and_idempotent(
         assert comparison.status_code == 200, comparison.text
         models = comparison.json()["data"]["models"]
         assert len(models["M1"]["common_target_daily_delta_kg"]) == 14
+        assert {r["kg"] for r in models["M1"]["common_target_daily_delta_kg"]} == {"0.021275"}
+        assert models["M1"]["windows"]["H7"]["total_delta_kg"] == "-12.803454"
+        assert models["M1"]["windows"]["H15"]["total_delta_kg"] == "-28.660153"
         assert models["M1"]["windows"]["H7"]["meaning"].startswith("DIFFERENT_ORIGIN")
         assert (await client.get("/api/v1/trial")).status_code == 403
         token = (await client.get("/api/v1/auth/csrf")).json()["data"]["csrf_token"]
@@ -76,6 +178,11 @@ async def test_real_issue_reload_compare_immutable_and_idempotent(
         )
         assert review.status_code == 200, review.text
         assessment = review.json()["data"]
+        assert assessment["evaluation_label_quantity_basis"] == "FIELD_HARVEST_WEIGHT"
+        assert (
+            saved["result"]["models"]["M1"]["forecast_target_quantity_basis"]
+            == "FIELD_HARVEST_WEIGHT"
+        )
         assert len(assessment["actual_daily"]) == 15
         assert assessment["actual_daily"][0]["business_date"] == "2026-11-06"
         assert assessment["actual_daily"][-1]["business_date"] == "2026-11-20"

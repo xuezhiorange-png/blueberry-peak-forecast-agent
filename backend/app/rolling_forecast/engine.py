@@ -186,6 +186,13 @@ def forecast(
                 "status": "COMPUTED" if daily else "NOT_COMPUTABLE",
                 "model_id": artifact.model_id,
                 "model_artifact_hash": artifact.artifact_hash,
+                "model_training_target_quantity_basis": getattr(
+                    pair, "model_training_target_quantity_basis", None
+                ),
+                "forecast_target_quantity_basis": getattr(
+                    pair, "model_training_target_quantity_basis", None
+                ),
+                "model_provenance": getattr(pair, "model_provenance", None),
                 "daily_forecast_kg": daily,
                 "H7": summary(daily[:7]) if daily else None,
                 "H15": summary(daily) if daily else None,
@@ -194,6 +201,8 @@ def forecast(
     body = {
         "models": models,
         "feature_snapshot": feature,
+        "feature_observation_quantity_basis": feature["quantity_basis"],
+        "evaluation_label_quantity_basis": None,
         "area_authority": area.model_dump(mode="json"),
         "calendar_authority": calendar.model_dump(mode="json"),
         "fit_hash": pair.fit_sha256,

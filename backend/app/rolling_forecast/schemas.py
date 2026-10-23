@@ -9,6 +9,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 Hash = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 Name = Annotated[str, Field(min_length=1, max_length=200)]
 Mode = Literal["RESEARCH_SHADOW", "RETROSPECTIVE_DATE_BOUND"]
+TargetQuantityBasis = Literal[
+    "FIELD_HARVEST_WEIGHT",
+    "MARKETABLE_FRUIT_WEIGHT",
+    "INBOUND_WEIGHT",
+    "INBOUND_NET_WEIGHT",
+    "RECORDED_INBOUND_WEIGHT",
+]
 
 
 class Contract(BaseModel):

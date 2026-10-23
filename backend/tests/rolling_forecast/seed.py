@@ -184,6 +184,7 @@ async def seed(factory, principal_id: str, directory: Path):
                             "source_code_identity": "a" * 64,
                             "source_code_sha": "0" * 40,
                             "provenance": "SYNTHETIC_TEST_FIXTURE",
+                            "model_training_target_quantity_basis": "FIELD_HARVEST_WEIGHT",
                         }
                     ],
                 }

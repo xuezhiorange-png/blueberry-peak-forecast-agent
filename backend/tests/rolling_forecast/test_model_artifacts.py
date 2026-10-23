@@ -23,6 +23,7 @@ def reference(tmp_path):
         source_code_identity="a" * 64,
         source_code_sha="0" * 40,
         provenance="SYNTHETIC_TEST_FIXTURE",
+        model_training_target_quantity_basis="FIELD_HARVEST_WEIGHT",
     )
     return ref, data
 
@@ -65,7 +66,12 @@ def test_missing_corrupt_and_relative_model_never_fallback(tmp_path):
 
 def test_real_provenance_requires_exact_independent_execution_manifest(tmp_path):
     ref, _ = reference(tmp_path)
-    real = ref.model_copy(update={"provenance": "REAL_FROZEN_S6"})
+    real = ref.model_copy(
+        update={
+            "provenance": "REAL_FROZEN_S6",
+            "model_training_target_quantity_basis": "RECORDED_INBOUND_WEIGHT",
+        }
+    )
     with pytest.raises(models.ModelArtifactError, match="IDENTITY"):
         models.load(real)
     path = tmp_path.resolve() / "execution.json"
@@ -84,7 +90,21 @@ def test_real_provenance_requires_exact_independent_execution_manifest(tmp_path)
             "execution_manifest_sha256": hashlib.sha256(raw).hexdigest(),
         }
     )
-    assert models.load(real) == models.load(ref)
+    assert models.load(real).artifacts == models.load(ref).artifacts
+    assert models.load(real).fit_sha256 == models.load(ref).fit_sha256
+    assert models.load(real).evaluation_start == models.load(ref).evaluation_start
+    assert models.load(real).training_last_date == models.load(ref).training_last_date
+    assert models.load(real).model_training_target_quantity_basis == "RECORDED_INBOUND_WEIGHT"
+    assert (
+        models.load(
+            real.model_copy(update={"model_training_target_quantity_basis": None})
+        ).model_training_target_quantity_basis
+        == "RECORDED_INBOUND_WEIGHT"
+    )
+    with pytest.raises(models.ModelArtifactError, match="IDENTITY"):
+        models.load(
+            real.model_copy(update={"model_training_target_quantity_basis": "FIELD_HARVEST_WEIGHT"})
+        )
     manifest["code_git_sha"] = "f" * 40
     raw = json.dumps(manifest).encode()
     path.write_bytes(raw)
