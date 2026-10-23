@@ -150,6 +150,7 @@ from backend.app.pit.prospective_models import (
     ProspectiveValidationRun,
     WeatherIncrementalValueAssessment,
 )
+from backend.app.rolling_forecast.models import RollingDaily, RollingRun
 
 __all__ = [
     "ActualHarvestCommitManifestModel",
@@ -276,6 +277,8 @@ from backend.app.models.hierarchical_forecast import (
 )
 
 __all__ += [
+    "RollingRun",
+    "RollingDaily",
     "AuthAccount",
     "AuthAuditEvent",
     "AuthResourceGrant",

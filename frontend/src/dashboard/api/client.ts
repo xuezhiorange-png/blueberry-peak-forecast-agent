@@ -81,6 +81,12 @@ const paths = new Set([
   ...Object.keys(readSchemas).map((k) => `/api/v1/forecast-intelligence/${k}`),
   ...Object.keys(decisionSchemas).map((k) => `/api/v1/decision-support/${k}`),
 ]);
+function permittedPath(path: string) {
+  return (
+    paths.has(path) ||
+    /^\/api\/v1\/rolling-forecast-runs(?:\/compare|\/[1-9][0-9]*(?:\/daily)?)?$/.test(path)
+  );
+}
 // The CSRF endpoint rotates the synchronizer token. Serialize token acquisition
 // AND the associated write so concurrent simulation/login writes cannot race it.
 let writes: Promise<unknown> = Promise.resolve();
@@ -91,7 +97,7 @@ export async function request<T>(
   params?: Record<string, string | number>,
   body?: unknown,
 ): Promise<T> {
-  if (!paths.has(path)) throw new DashboardError(422, "PATH_NOT_ALLOWED");
+  if (!permittedPath(path)) throw new DashboardError(422, "PATH_NOT_ALLOWED");
   if (body !== undefined && new TextEncoder().encode(JSON.stringify(body)).length > 131072)
     throw new DashboardError(413, "REQUEST_BODY_TOO_LARGE");
   const boundary = requestBoundary(signal);
@@ -122,12 +128,13 @@ export async function request<T>(
     if (boundary.valid() && error instanceof DashboardError) {
       if (error.status === 401 && path !== "/api/v1/auth/login") invalidateSecurity("session");
       else if (
-        error.status === 409 ||
-        (error.status === 403 &&
-          (path === "/api/v1/business-access/selection" ||
-            (path.startsWith("/api/v1/forecast-intelligence/") && !path.endsWith("/quality")) ||
-            path.endsWith("simulate-capacity") ||
-            path.endsWith("compare-capacity-scenarios")))
+        !path.startsWith("/api/v1/rolling-forecast-runs") &&
+        (error.status === 409 ||
+          (error.status === 403 &&
+            (path === "/api/v1/business-access/selection" ||
+              (path.startsWith("/api/v1/forecast-intelligence/") && !path.endsWith("/quality")) ||
+              path.endsWith("simulate-capacity") ||
+              path.endsWith("compare-capacity-scenarios"))))
       )
         invalidateSecurity("access");
     }
@@ -144,7 +151,7 @@ async function wire<T>(
   body?: unknown,
   csrf?: string,
 ): Promise<T> {
-  if (!paths.has(path)) throw new DashboardError(422, "PATH_NOT_ALLOWED");
+  if (!permittedPath(path)) throw new DashboardError(422, "PATH_NOT_ALLOWED");
   const encoded = body === undefined ? undefined : JSON.stringify(body);
   if (encoded !== undefined && new TextEncoder().encode(encoded).length > 131072)
     throw new DashboardError(413, "REQUEST_BODY_TOO_LARGE");
