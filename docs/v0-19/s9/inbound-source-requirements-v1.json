@@ -1,0 +1,108 @@
+{
+  "schema_version": "INBOUND_SOURCE_REQUIREMENTS_V1",
+  "purpose": "PREPARATION_NOT_AUTHORIZATION",
+  "real_source_read_authorized": false,
+  "real_source_enrolled": false,
+  "items": [
+    {
+      "category": "SOURCE_IDENTITY",
+      "title": "来源身份",
+      "required_fields": "source_system, accountable_owner, source_version, season",
+      "accountable_owner": null,
+      "declared_details": null,
+      "evidence_reference": null,
+      "evidence_sha256": null,
+      "claim_status": "NOT_PROVIDED"
+    },
+    {
+      "category": "PHYSICAL_BASIS",
+      "title": "业务口径",
+      "required_fields": "event, weight_field, raw/gross/net, unit, equivalence_evidence",
+      "accountable_owner": null,
+      "declared_details": null,
+      "evidence_reference": null,
+      "evidence_sha256": null,
+      "claim_status": "NOT_PROVIDED"
+    },
+    {
+      "category": "BUSINESS_DATE",
+      "title": "日期口径",
+      "required_fields": "business_date, timezone, cross_day_rule",
+      "accountable_owner": null,
+      "declared_details": null,
+      "evidence_reference": null,
+      "evidence_sha256": null,
+      "claim_status": "NOT_PROVIDED"
+    },
+    {
+      "category": "BASE_MEMBERSHIP",
+      "title": "基地映射",
+      "required_fields": "base_id, season/farm/subfarm/variety_keys, mapping_version",
+      "accountable_owner": null,
+      "declared_details": null,
+      "evidence_reference": null,
+      "evidence_sha256": null,
+      "claim_status": "NOT_PROVIDED"
+    },
+    {
+      "category": "GRADE_POLICY",
+      "title": "品级规则",
+      "required_fields": "accepted_grades, excluded_grades, rule_version, evidence",
+      "accountable_owner": null,
+      "declared_details": null,
+      "evidence_reference": null,
+      "evidence_sha256": null,
+      "claim_status": "NOT_PROVIDED"
+    },
+    {
+      "category": "REVISION_WINNERS",
+      "title": "修订规则",
+      "required_fields": "logical_id, revision_id, winner, void/conflict_rule",
+      "accountable_owner": null,
+      "declared_details": null,
+      "evidence_reference": null,
+      "evidence_sha256": null,
+      "claim_status": "NOT_PROVIDED"
+    },
+    {
+      "category": "TIME_AUTHORITY",
+      "title": "时间证明",
+      "required_fields": "source_recorded_at, server_ingested_at, visible_at, proof",
+      "accountable_owner": null,
+      "declared_details": null,
+      "evidence_reference": null,
+      "evidence_sha256": null,
+      "claim_status": "NOT_PROVIDED"
+    },
+    {
+      "category": "COMPLETENESS",
+      "title": "完整性",
+      "required_fields": "daily_member_coverage, confirmed_zero, missing/partial, known_at",
+      "accountable_owner": null,
+      "declared_details": null,
+      "evidence_reference": null,
+      "evidence_sha256": null,
+      "claim_status": "NOT_PROVIDED"
+    },
+    {
+      "category": "MODEL_TARGET",
+      "title": "模型关联",
+      "required_fields": "frozen_fit_sha256, training_target_basis, equivalence_evidence",
+      "accountable_owner": null,
+      "declared_details": null,
+      "evidence_reference": null,
+      "evidence_sha256": null,
+      "claim_status": "NOT_PROVIDED"
+    },
+    {
+      "category": "LABEL_AUTHORITY",
+      "title": "独立标签",
+      "required_fields": "label_source_identity, dates, maturity, separate_permission",
+      "accountable_owner": null,
+      "declared_details": null,
+      "evidence_reference": null,
+      "evidence_sha256": null,
+      "claim_status": "NOT_PROVIDED"
+    }
+  ]
+}

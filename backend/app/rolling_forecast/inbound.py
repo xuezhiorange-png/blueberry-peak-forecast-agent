@@ -6,6 +6,9 @@ source custodian; this adapter neither guesses mappings nor resolves revisions.
 """
 
 import hashlib
+import re
+from collections.abc import Iterator
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal, localcontext
 from pathlib import Path
@@ -110,19 +113,36 @@ class InboundObservation(Observation):
     cutoff: datetime
 
 
-def require_target(source: InboundSnapshot, pair: PreparedPair) -> None:
-    """An enum name alone is not source-to-training-target equivalence evidence."""
+def require_target_metadata(
+    source: InboundSnapshot, target: str | None, fit_hash: str, provenance: str | None
+) -> None:
+    """Metadata admission only. Does not load/verify a model file or grant access."""
     if (
-        getattr(pair, "model_training_target_quantity_basis", None) != source.quantity_basis
+        target != source.quantity_basis
         or source.target_binding is None
-        or source.target_binding.fit_sha256 != pair.fit_sha256
+        or source.target_binding.fit_sha256 != fit_hash
     ):
         raise ValueError("SOURCE_BASIS_UNVERIFIED")
-    if (
-        getattr(pair, "model_provenance", None) == "SYNTHETIC_TEST_FIXTURE"
-        and source.provenance != "SYNTHETIC_TEST_FIXTURE"
-    ):
+    if provenance == "SYNTHETIC_TEST_FIXTURE" and source.provenance != "SYNTHETIC_TEST_FIXTURE":
         raise ValueError("SOURCE_PROVENANCE_MISMATCH")
+
+
+def require_target(source: InboundSnapshot, pair: PreparedPair) -> None:
+    """An enum name alone is not source-to-training-target equivalence evidence."""
+    require_target_metadata(
+        source,
+        getattr(pair, "model_training_target_quantity_basis", None),
+        pair.fit_sha256,
+        getattr(pair, "model_provenance", None),
+    )
+
+
+def member_coverage(source: InboundSnapshot, item: DayReference) -> tuple[set[str], set[str]]:
+    expected = {digest(m.model_dump(mode="json")) for m in source.members}
+    covered = [digest(m.model_dump(mode="json")) for m in item.member_coverage]
+    if len(set(covered)) != len(covered) or not set(covered) <= expected:
+        raise ValueError("SOURCE_MEMBER_COVERAGE_CONFLICT")
+    return expected, set(covered)
 
 
 def read(path: Path, sha: str, limit: int) -> bytes:
@@ -139,13 +159,7 @@ def read(path: Path, sha: str, limit: int) -> bytes:
     return raw
 
 
-def load(
-    context: Context,
-    source: InboundSnapshot,
-    origin: date,
-    cutoff: datetime,
-    start: date | None = None,
-) -> list[Observation]:
+def _guard_source(context: Context, source: InboundSnapshot) -> None:
     if context.calendar.season == "2026-2027" and source.provenance != "SYNTHETIC_TEST_FIXTURE":
         raise ValueError("CURRENT_SEASON_REAL_READ_NOT_AUTHORIZED")
     if (
@@ -153,6 +167,10 @@ def load(
         and not source.source_system.upper().startswith("SYNTHETIC")
     ):
         raise ValueError("SOURCE_PROVENANCE_MISMATCH")
+
+
+def read_index(context: Context, source: InboundSnapshot) -> Index:
+    """Quantity-free identity validation, also usable for offline metadata review."""
     path = Path(source.manifest_path)
     index = Index.model_validate_json(read(path, source.manifest_sha256, 2 * 1024 * 1024))
     if digest(index.model_dump(mode="json")) != source.snapshot_hash or (
@@ -161,100 +179,213 @@ def load(
         index.source_system,
     ) != (context.area.base_id, context.calendar.season, source.source_system):
         raise ValueError("OBSERVATION_SNAPSHOT_IDENTITY_MISMATCH")
-    if (
-        digest(index.physical_definition.model_dump(mode="json")) != source.physical_definition_hash
-        or not index.physical_definition.verified()
-    ):
+    if digest(index.physical_definition.model_dump(mode="json")) != source.physical_definition_hash:
+        raise ValueError("SOURCE_BASIS_UNVERIFIED")
+    return index
+
+
+class DuplicateSourceRecord(ValueError):
+    def __init__(self, days: tuple[date, ...]):
+        super().__init__("DUPLICATE_SOURCE_RECORD")
+        self.days = days
+
+
+@dataclass(frozen=True)
+class DayInspection:
+    """Internal diagnostic: quantities/exceptions are never serialized into S9 reports."""
+
+    business_date: date
+    observation: Observation | None
+    reasons: tuple[str, ...]
+    record_count: int | None
+    excluded_record_count: int | None
+    error: ValueError | OSError | None = None
+    conflict_dates: tuple[date, ...] = ()
+    payload_read: bool = False
+
+
+def _one_day(
+    context: Context,
+    source: InboundSnapshot,
+    index: Index,
+    item: DayReference | None,
+    target: date,
+    cutoff: datetime,
+    logical_ids: dict[str, date],
+    revision_ids: dict[str, date],
+) -> DayInspection:
+    members = {digest(m.model_dump(mode="json")) for m in source.members}
+    rows: tuple[Record, ...] = ()
+    complete = False
+    known_at = None
+    coverage: tuple[Member, ...] = ()
+    reasons: set[str] = set()
+    if item is not None:
+        coverage = item.member_coverage
+        _, covered = member_coverage(source, item)
+        payload = Day.model_validate_json(
+            read(Path(source.manifest_path).parent / item.file, item.sha256, 16 * 1024 * 1024)
+        )
+        if (payload.base_id, payload.season, payload.business_date, payload.source_system) != (
+            context.area.base_id,
+            context.calendar.season,
+            target,
+            source.source_system,
+        ):
+            raise ValueError("SOURCE_DAY_IDENTITY_MISMATCH")
+        rows = payload.records
+        known_at = item.known_at
+        complete = (
+            item.completeness_status == "COMPLETE"
+            and set(covered) == members
+            and target in source.complete_dates
+            and known_at is not None
+            and known_at <= cutoff
+            and source.completeness_known_at <= cutoff
+        )
+        if set(covered) != members:
+            reasons.add("PARTIAL_MEMBER_COVERAGE")
+        if item.completeness_status != "COMPLETE":
+            reasons.add("SOURCE_COMPLETENESS_" + item.completeness_status)
+        if target not in source.complete_dates:
+            reasons.add("NO_COMPLETENESS_AUTHORITY_FOR_DAY")
+        if known_at is None:
+            reasons.add("DAY_TIME_AUTHORITY_MISSING")
+        elif known_at > cutoff:
+            reasons.add("LATE_COMPLETENESS_AUTHORITY")
+    else:
+        reasons.add("MISSING_DAY_INDEX")
+    if source.completeness_known_at > cutoff:
+        reasons.add("SOURCE_COMPLETENESS_AFTER_CUTOFF")
+    total = Decimal(0)
+    timestamps: list[datetime] = []
+    excluded = 0
+    with localcontext() as decimal_context:
+        decimal_context.prec = 50
+        for record in rows:
+            if record.logical_id in logical_ids or record.revision_id in revision_ids:
+                other = logical_ids.get(
+                    record.logical_id, revision_ids.get(record.revision_id, target)
+                )
+                raise DuplicateSourceRecord(tuple(sorted({other, target})))
+            logical_ids[record.logical_id] = target
+            revision_ids[record.revision_id] = target
+            if digest(record.member.model_dump(mode="json")) not in members:
+                raise ValueError("SOURCE_MEMBER_MISMATCH")
+            if record.grade not in (*index.accepted_grades, *index.excluded_grades):
+                raise ValueError("SOURCE_GRADE_UNVERIFIED")
+            times = (record.source_recorded_at, record.server_ingested_at)
+            if record.available_at_authority != "TRUSTED_SOURCE_TIMESTAMP":
+                reasons.add("SOURCE_TIME_UNVERIFIED")
+            if any(t is None for t in times):
+                reasons.add("SOURCE_TIMESTAMP_MISSING")
+            if any(t is not None and t > cutoff for t in times):
+                reasons.add("LATE_SOURCE_RECORD")
+            if record.available_at_authority != "TRUSTED_SOURCE_TIMESTAMP" or any(
+                t is None or t > cutoff for t in times
+            ):
+                complete = False
+            timestamps.extend(t for t in times if t is not None)
+            if record.grade in index.accepted_grades:
+                total += record.quantity_kg
+            else:
+                excluded += 1
+    zero = target in source.confirmed_zero_dates
+    if zero and total != 0:
+        raise ValueError("AUTHORIZED_ZERO_CONFLICT")
+    if not rows and not zero:
+        reasons.add("NO_RECORD_WITHOUT_ZERO_AUTHORITY")
+    complete = complete and (bool(rows) or zero)
+    latest = max([*timestamps, known_at] if known_at else timestamps, default=None)
+    observation = InboundObservation(
+        base_id=context.area.base_id,
+        season=context.calendar.season,
+        business_date=target,
+        quantity_kg=total if complete else None,
+        record_state=("CONFIRMED_ZERO" if zero else "VALID_OBSERVED") if complete else "UNKNOWN",
+        quantity_basis=source.quantity_basis,
+        source_system=source.source_system,
+        source_identity=f"{source.reference}:{target}",
+        source_hash=item.sha256 if item else source.snapshot_hash,
+        source_recorded_at=latest,
+        server_ingested_at=latest,
+        available_at_authority="TRUSTED_SOURCE_TIMESTAMP" if complete else "MISSING",
+        observation_completeness="COMPLETE" if complete else "INCOMPLETE",
+        source_snapshot_hash=source.snapshot_hash,
+        member_coverage=coverage,
+        completeness_status="COMPLETE" if complete else "INCOMPLETE",
+        known_at_or_available_at=latest,
+        cutoff=cutoff,
+    )
+    return DayInspection(
+        target,
+        observation,
+        tuple(sorted(reasons)),
+        len(rows),
+        excluded,
+        payload_read=item is not None,
+    )
+
+
+def inspect_days(
+    context: Context,
+    source: InboundSnapshot,
+    origin: date,
+    cutoff: datetime,
+    start: date | None = None,
+) -> Iterator[DayInspection]:
+    """One shared parser. Runtime fails fast; offline S9 can retain all bad dates."""
+    _guard_source(context, source)
+    index = read_index(context, source)
+    if not index.physical_definition.verified():
         raise ValueError("SOURCE_BASIS_UNVERIFIED")
     first = context.calendar.start if start is None else start
     if not context.calendar.start <= first < origin <= context.calendar.end + timedelta(days=1):
         raise ValueError("SOURCE_DATE_SCOPE_MISMATCH")
-    members = {digest(m.model_dump(mode="json")) for m in source.members}
     days = {d.business_date: d for d in index.days}
-    result: list[Observation] = []
-    logical_ids: set[str] = set()
-    revision_ids: set[str] = set()
+    logical_ids: dict[str, date] = {}
+    revision_ids: dict[str, date] = {}
     for n in range((origin - first).days):
         target = first + timedelta(days=n)
         item = days.get(target)
-        rows: tuple[Record, ...] = ()
-        complete = False
-        known_at = None
-        coverage: tuple[Member, ...] = ()
-        if item is not None:
-            coverage = item.member_coverage
-            covered = [digest(m.model_dump(mode="json")) for m in coverage]
-            if len(set(covered)) != len(covered) or not set(covered) <= members:
-                raise ValueError("SOURCE_MEMBER_COVERAGE_CONFLICT")
-            # Crucially, no payload outside [first, origin) is opened.
-            payload = Day.model_validate_json(
-                read(path.parent / item.file, item.sha256, 16 * 1024 * 1024)
+        try:
+            yield _one_day(context, source, index, item, target, cutoff, logical_ids, revision_ids)
+        except (ValueError, OSError) as exc:
+            text = str(exc)
+            code = (
+                text
+                if re.fullmatch(r"[A-Z][A-Z0-9_]{0,99}", text)
+                else "SOURCE_RECORD_SCHEMA_INVALID"
             )
-            if (payload.base_id, payload.season, payload.business_date, payload.source_system) != (
-                context.area.base_id,
-                context.calendar.season,
+            yield DayInspection(
                 target,
-                source.source_system,
-            ):
-                raise ValueError("SOURCE_DAY_IDENTITY_MISMATCH")
-            rows = payload.records
-            known_at = item.known_at
-            complete = (
-                item.completeness_status == "COMPLETE"
-                and set(covered) == members
-                and target in source.complete_dates
-                and known_at is not None
-                and known_at <= cutoff
-                and source.completeness_known_at <= cutoff
+                None,
+                (code,),
+                None,
+                None,
+                error=exc,
+                conflict_dates=getattr(exc, "days", (target,)),
+                payload_read=item is not None
+                and code
+                not in {
+                    "SOURCE_PATH_UNSAFE",
+                    "SOURCE_OBJECT_UNAVAILABLE",
+                    "SOURCE_MEMBER_COVERAGE_CONFLICT",
+                },
             )
-        total = Decimal(0)
-        timestamps: list[datetime] = []
-        with localcontext() as decimal_context:
-            decimal_context.prec = 50
-            for record in rows:
-                if record.logical_id in logical_ids or record.revision_id in revision_ids:
-                    raise ValueError("DUPLICATE_SOURCE_RECORD")
-                logical_ids.add(record.logical_id)
-                revision_ids.add(record.revision_id)
-                if digest(record.member.model_dump(mode="json")) not in members:
-                    raise ValueError("SOURCE_MEMBER_MISMATCH")
-                if record.grade not in (*index.accepted_grades, *index.excluded_grades):
-                    raise ValueError("SOURCE_GRADE_UNVERIFIED")
-                times = (record.source_recorded_at, record.server_ingested_at)
-                if record.available_at_authority != "TRUSTED_SOURCE_TIMESTAMP" or any(
-                    t is None or t > cutoff for t in times
-                ):
-                    complete = False
-                timestamps.extend(t for t in times if t is not None)
-                if record.grade in index.accepted_grades:
-                    total += record.quantity_kg
-        zero = target in source.confirmed_zero_dates
-        if zero and total != 0:
-            raise ValueError("AUTHORIZED_ZERO_CONFLICT")
-        complete = complete and (bool(rows) or zero)
-        latest = max([*timestamps, known_at] if known_at else timestamps, default=None)
-        result.append(
-            InboundObservation(
-                base_id=context.area.base_id,
-                season=context.calendar.season,
-                business_date=target,
-                quantity_kg=total if complete else None,
-                record_state=("CONFIRMED_ZERO" if zero else "VALID_OBSERVED")
-                if complete
-                else "UNKNOWN",
-                quantity_basis=source.quantity_basis,
-                source_system=source.source_system,
-                source_identity=f"{source.reference}:{target}",
-                source_hash=item.sha256 if item else source.snapshot_hash,
-                source_recorded_at=latest,
-                server_ingested_at=latest,
-                available_at_authority="TRUSTED_SOURCE_TIMESTAMP" if complete else "MISSING",
-                observation_completeness="COMPLETE" if complete else "INCOMPLETE",
-                source_snapshot_hash=source.snapshot_hash,
-                member_coverage=coverage,
-                completeness_status="COMPLETE" if complete else "INCOMPLETE",
-                known_at_or_available_at=latest,
-                cutoff=cutoff,
-            )
-        )
+
+
+def load(
+    context: Context,
+    source: InboundSnapshot,
+    origin: date,
+    cutoff: datetime,
+    start: date | None = None,
+) -> list[Observation]:
+    result: list[Observation] = []
+    for checked in inspect_days(context, source, origin, cutoff, start):
+        if checked.error is not None:
+            raise checked.error
+        assert checked.observation is not None
+        result.append(checked.observation)
     return result
