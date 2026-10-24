@@ -10,6 +10,8 @@ from sqlalchemy import select
 from starlette.staticfiles import StaticFiles
 
 from backend.app.local_auth.models import AuthAccount
+from backend.app.rolling_forecast.policy import Catalog
+from backend.tests.rolling_forecast.inbound_fixture import fixture
 from backend.tests.rolling_forecast.seed import seed
 from frontend.e2e.support import business_pg
 
@@ -24,7 +26,16 @@ async def lifespan(outer):
                 account = await db.scalar(
                     select(AuthAccount).where(AuthAccount.username_normalized == "synthetic-user")
                 )
-            _, policy = await seed(auth.factory, account.principal_id, Path(directory))
+            old, policy = await seed(auth.factory, account.principal_id, Path(directory))
+            inbound = fixture(Path(directory) / "inbound", account.principal_id)
+            combined = Catalog.model_validate(
+                {
+                    **old.model_dump(mode="json"),
+                    "contexts": [*old.contexts, *inbound.contexts],
+                    "capabilities": [*old.capabilities, *inbound.capabilities],
+                }
+            )
+            policy.write_text(combined.model_dump_json())
             auth.settings.rolling_forecast_catalog_path = str(policy)
             yield
 

@@ -8,10 +8,10 @@ from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.local_auth.sessions import AuthError, Principal
-from backend.app.rolling_forecast import engine, model_artifacts, observations, persistence
+from backend.app.rolling_forecast import engine, inbound, model_artifacts, observations, persistence
 from backend.app.rolling_forecast.identity import implementation_hash
 from backend.app.rolling_forecast.models import RollingRun
-from backend.app.rolling_forecast.policy import Catalog, Context
+from backend.app.rolling_forecast.policy import Catalog, Context, InboundSnapshot
 from backend.app.rolling_forecast.schemas import Issue, TargetQuantityBasis
 from backend.research.v019_synthetic_validation import digest
 
@@ -91,6 +91,8 @@ async def issue(
         request.execution_mode,
     )
     pair = model_artifacts.load(model)
+    if isinstance(source, InboundSnapshot):
+        inbound.require_target(source, pair)
     rows = await observations.load(
         db, context, source, request.origin_date, request.origin_cutoff_at
     )
@@ -109,7 +111,7 @@ async def issue(
         "organization_id": context.organization_id,
         "catalog_revision": catalog.revision,
         "context_hash": digest(context.model_dump(mode="json")),
-        "observation_snapshot": source.model_dump(mode="json"),
+        "observation_snapshot": source.model_dump(mode="json", exclude={"manifest_path"}),
         "model_source": model.model_dump(mode="json", exclude={"path", "execution_manifest_path"}),
         "feature_hash": result["feature_snapshot"]["feature_hash"],
         "algorithm_version": "ROLLING_SHADOW_V1_S6_FROZEN_RIDGE",

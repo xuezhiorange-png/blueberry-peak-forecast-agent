@@ -199,3 +199,134 @@ it("shows model target separately from feature observation basis", async () => {
   expect(region.textContent).toContain("训练目标口径：RECORDED_INBOUND_WEIGHT");
   expect(region.textContent).toContain("预测目标口径：RECORDED_INBOUND_WEIGHT");
 });
+
+it.each(["input", "cancel", "revocation"])(
+  "late label preflight cannot revive review after %s",
+  async (action) => {
+    let finish!: (value: unknown) => void;
+    state.request.mockImplementation(async (path, _s, _signal, _params, body) => {
+      if (path.endsWith("/review"))
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      return body ? payload(body) : listing;
+    });
+    render(<RollingForecastPanel />);
+    await prepare();
+    fireEvent.click(screen.getByRole("button", { name: "生成并保存研究预测" }));
+    await screen.findByRole("region", { name: "滚动预测结果" });
+    fireEvent.click(screen.getByRole("button", { name: "检查标签可评价状态" }));
+    await waitFor(() => expect(finish).toBeDefined());
+    if (action === "input")
+      fireEvent.change(screen.getByLabelText("Origin 日期"), { target: { value: "2026-11-06" } });
+    if (action === "cancel") fireEvent.click(screen.getByRole("button", { name: "取消研究请求" }));
+    if (action === "revocation") act(() => invalidateSecurity("access"));
+    await act(async () =>
+      finish({
+        data: {
+          run_id: 1,
+          forecast_result_hash: "b".repeat(64),
+          options: [
+            {
+              reference: "STALE-LABEL",
+              snapshot_hash: "d".repeat(64),
+              quantity_basis: "FIELD_HARVEST_WEIGHT",
+              status: "PREFLIGHT_ELIGIBLE",
+              mature_through: "2026-11-30",
+              reasons: [],
+            },
+          ],
+        },
+      }),
+    );
+    expect(screen.queryByLabelText("评价标签快照")).toBeNull();
+  },
+);
+
+it("NOT_SCORABLE label metadata never enables numerical review", async () => {
+  state.request.mockImplementation(async (path, _s, _signal, _params, body) => {
+    if (path.endsWith("/review"))
+      return {
+        data: {
+          run_id: 1,
+          forecast_result_hash: "b".repeat(64),
+          options: [
+            {
+              reference: "WRONG-BASIS",
+              snapshot_hash: "d".repeat(64),
+              quantity_basis: "RECORDED_INBOUND_WEIGHT",
+              status: "NOT_SCORABLE",
+              mature_through: "2026-11-30",
+              reasons: ["CROSS_SOURCE_TARGET_BASIS_UNVERIFIED"],
+            },
+          ],
+        },
+      };
+    return body ? payload(body) : listing;
+  });
+  render(<RollingForecastPanel />);
+  await prepare();
+  fireEvent.click(screen.getByRole("button", { name: "生成并保存研究预测" }));
+  await screen.findByRole("region", { name: "滚动预测结果" });
+  fireEvent.click(screen.getByRole("button", { name: "检查标签可评价状态" }));
+  await screen.findByText(/NOT_SCORABLE.*CROSS_SOURCE_TARGET_BASIS_UNVERIFIED/);
+  expect(screen.getByRole("button", { name: "独立评价已保存预测" }).hasAttribute("disabled")).toBe(
+    true,
+  );
+});
+
+it.each(["wrong_hash", "input_change"])(
+  "independent score cannot attach after %s",
+  async (scenario) => {
+    let finish!: (value: unknown) => void;
+    state.request.mockImplementation(async (path, _s, _signal, _params, body) => {
+      if (path.endsWith("/review")) {
+        if (body)
+          return new Promise((resolve) => {
+            finish = resolve;
+          });
+        return {
+          data: {
+            run_id: 1,
+            forecast_result_hash: "b".repeat(64),
+            options: [
+              {
+                reference: "LABEL",
+                snapshot_hash: "d".repeat(64),
+                quantity_basis: "FIELD_HARVEST_WEIGHT",
+                status: "PREFLIGHT_ELIGIBLE",
+                mature_through: "2026-11-30",
+                reasons: [],
+              },
+            ],
+          },
+        };
+      }
+      return body ? payload(body) : listing;
+    });
+    render(<RollingForecastPanel />);
+    await prepare();
+    fireEvent.click(screen.getByRole("button", { name: "生成并保存研究预测" }));
+    await screen.findByRole("region", { name: "滚动预测结果" });
+    fireEvent.click(screen.getByRole("button", { name: "检查标签可评价状态" }));
+    await screen.findByLabelText("评价标签快照");
+    fireEvent.click(screen.getByRole("button", { name: "独立评价已保存预测" }));
+    await waitFor(() => expect(finish).toBeDefined());
+    if (scenario === "input_change")
+      fireEvent.change(screen.getByLabelText("Origin 日期"), { target: { value: "2026-11-06" } });
+    await act(async () =>
+      finish({
+        data: {
+          run_id: 1,
+          forecast_result_hash: "b".repeat(64),
+          label_snapshot_hash: scenario === "wrong_hash" ? "e".repeat(64) : "d".repeat(64),
+          evaluation_label_quantity_basis: "FIELD_HARVEST_WEIGHT",
+          groups: {},
+          review_hash: "f".repeat(64),
+        },
+      }),
+    );
+    expect(screen.queryByText(/评价封存/)).toBeNull();
+    if (scenario === "wrong_hash") await screen.findByText("评价响应来源不匹配，已拒绝展示。");
+  },
+);

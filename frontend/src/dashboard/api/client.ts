@@ -84,7 +84,9 @@ const paths = new Set([
 function permittedPath(path: string) {
   return (
     paths.has(path) ||
-    /^\/api\/v1\/rolling-forecast-runs(?:\/compare|\/[1-9][0-9]*(?:\/daily)?)?$/.test(path)
+    /^\/api\/v1\/rolling-forecast-runs(?:\/compare|\/[1-9][0-9]*(?:\/(?:daily|review))?)?$/.test(
+      path,
+    )
   );
 }
 // The CSRF endpoint rotates the synchronizer token. Serialize token acquisition

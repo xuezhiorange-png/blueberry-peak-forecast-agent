@@ -15,7 +15,7 @@ from backend.app.api.local_auth import service
 from backend.app.local_auth.authorization import read_admission
 from backend.app.local_auth.sessions import AuthError, Principal, error
 from backend.app.rolling_forecast import application
-from backend.app.rolling_forecast.evaluation import review
+from backend.app.rolling_forecast.evaluation import options, review
 from backend.app.rolling_forecast.model_artifacts import ModelArtifactError
 from backend.app.rolling_forecast.policy import Catalog, load_catalog
 from backend.app.rolling_forecast.schemas import Contract, Issue
@@ -136,6 +136,10 @@ async def handle(request: Request, operation: str, run_id: int | None = None) ->
             elif operation == "evaluate":
                 assert isinstance(body, Review) and run_id is not None
                 data = await review(db, policy, principal, run_id, body.label_snapshot_reference)
+            elif operation == "review_options":
+                if params or run_id is None:
+                    raise AuthError("INVALID_REQUEST", 422)
+                data = await options(db, policy, principal, run_id)
             elif operation == "compare":
                 pair = Comparison.model_validate(params)
                 left = await application.get(db, policy, principal, pair.left_run_id, "compare")
@@ -162,7 +166,15 @@ async def handle(request: Request, operation: str, run_id: int | None = None) ->
                         )
                     }
             return ReleasedResponse(
-                data, request, principal, policy, "read" if operation == "daily" else operation
+                data,
+                request,
+                principal,
+                policy,
+                "evaluate"
+                if operation == "review_options"
+                else "read"
+                if operation == "daily"
+                else operation,
             )
     except AuthError as exc:
         return error(exc)
@@ -204,3 +216,8 @@ async def daily(request: Request, run_id: int) -> JSONResponse:
 @router.post("/{run_id:int}/review")
 async def evaluate(request: Request, run_id: int) -> JSONResponse:
     return await handle(request, "evaluate", run_id)
+
+
+@router.get("/{run_id:int}/review")
+async def review_options(request: Request, run_id: int) -> JSONResponse:
+    return await handle(request, "review_options", run_id)
