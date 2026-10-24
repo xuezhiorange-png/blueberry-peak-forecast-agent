@@ -1,6 +1,8 @@
 """Independent-review regressions; SYNTHETIC fixtures and no real labels."""
 
 from copy import deepcopy
+from datetime import timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -69,6 +71,74 @@ def test_incomplete_models_remain_not_computable(saved):
     assert result["M0"]["status"] == "COMPARABLE"
     assert result["M1"]["status"] == "NOT_COMPUTABLE"
     assert "windows" not in result["M1"]
+
+
+def comparison_runs(tmp_path, day_offset):
+    calendar, area, origin, cutoff, rows = inputs()
+    pair = model_artifacts.load(reference(tmp_path)[0])
+    runs = []
+    for run_id, shift in enumerate((0, day_offset), 1):
+        current_origin = origin + timedelta(days=shift)
+        result = engine.forecast(
+            calendar,
+            area,
+            current_origin,
+            cutoff + timedelta(days=shift),
+            rows,
+            pair,
+            "RESEARCH_SHADOW",
+        )
+        assert all(v["status"] == "COMPUTED" for v in result["models"].values())
+        runs.append(
+            {
+                "run_id": run_id,
+                "base_id": area.base_id,
+                "target_season": calendar.season,
+                "origin_date": str(current_origin),
+                "result_hash": result["result_hash"],
+                "result": result,
+            }
+        )
+    return runs
+
+
+def test_disjoint_target_dates_are_not_comparable(tmp_path):
+    left, right = comparison_runs(tmp_path, 15)
+    for model in ("M0", "M1"):
+        a, b = (v["result"]["models"][model] for v in (left, right))
+        assert len(a["daily_forecast_kg"]) == len(b["daily_forecast_kg"]) == 15
+        assert not (
+            {r["date"] for r in a["daily_forecast_kg"]}
+            & {r["date"] for r in b["daily_forecast_kg"]}
+        )
+    result = application.compare(left, right)
+    for value in result["models"].values():
+        assert value == {"status": "NOT_COMPARABLE", "reasons": ["NO_COMMON_TARGET_DATES"]}
+        assert "windows" not in value and "common_target_daily_delta_kg" not in value
+    assert application.compare(left, right) == result
+
+
+def test_overlapping_target_dates_keep_comparison_arithmetic(tmp_path):
+    left, right = comparison_runs(tmp_path, 1)
+    result = application.compare(left, right)
+    for model, compared in result["models"].items():
+        a, b = (v["result"]["models"][model] for v in (left, right))
+        aa, bb = ({r["date"]: Decimal(r["kg"]) for r in v["daily_forecast_kg"]} for v in (a, b))
+        common = sorted(aa.keys() & bb.keys())
+        assert len(common) == 14
+        assert compared["status"] == "COMPARABLE"
+        assert compared["common_target_daily_delta_kg"] == [
+            {"date": d, "kg": format(bb[d] - aa[d], ".6f")} for d in common
+        ]
+        for window in ("H7", "H15"):
+            av, bv = a[window], b[window]
+            assert compared["windows"][window]["total_delta_kg"] == format(
+                Decimal(bv["forecast_total_kg"]) - Decimal(av["forecast_total_kg"]), ".6f"
+            )
+            assert compared["windows"][window]["meaning"] == (
+                "DIFFERENT_ORIGIN_WINDOW_TOTALS_NOT_SAME_DATE_REVISION"
+            )
+    assert application.compare(left, right) == result
 
 
 def test_real_model_target_does_not_follow_observation_basis(tmp_path):

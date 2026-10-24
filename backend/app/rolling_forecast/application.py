@@ -216,6 +216,13 @@ def compare(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
                 continue
             aa = {r["date"]: Decimal(r["kg"]) for r in a["daily_forecast_kg"]}
             bb = {r["date"]: Decimal(r["kg"]) for r in b["daily_forecast_kg"]}
+            common_dates = aa.keys() & bb.keys()
+            if not common_dates:
+                result[model] = {
+                    "status": "NOT_COMPARABLE",
+                    "reasons": ["NO_COMMON_TARGET_DATES"],
+                }
+                continue
             windows = {}
             for window in ("H7", "H15"):
                 av, bv = a[window], b[window]
@@ -244,8 +251,7 @@ def compare(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
                 "status": "COMPARABLE",
                 "windows": windows,
                 "common_target_daily_delta_kg": [
-                    {"date": d, "kg": format(bb[d] - aa[d], ".6f")}
-                    for d in sorted(aa.keys() & bb.keys())
+                    {"date": d, "kg": format(bb[d] - aa[d], ".6f")} for d in sorted(common_dates)
                 ],
             }
     body = {
