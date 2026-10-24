@@ -50,7 +50,9 @@ async def probe(scope: Any, receive: Receive, send: Send) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--app", required=True, choices=["business_pg", "acceptance_s6_pg", "rolling_pg", "probe"]
+        "--app",
+        required=True,
+        choices=["business_pg", "acceptance_s6_pg", "rolling_pg", "pre_data_pg", "probe"],
     )
     parser.add_argument("--nonce", required=True)
     parser.add_argument("--cert", required=True)

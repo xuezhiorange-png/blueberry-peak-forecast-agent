@@ -3,6 +3,8 @@ import { StrictMode } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { RollingForecastPanel } from "../dashboard/components/RollingForecastPanel";
 import { invalidateSecurity } from "../dashboard/api/security";
+import { DashboardError } from "../dashboard/api/client";
+import type { RollingRun } from "../dashboard/schemas/rolling";
 
 const state = vi.hoisted(() => ({ principal: "SYNTHETIC-A", request: vi.fn() }));
 vi.mock("../dashboard/context/SessionContext", () => ({
@@ -72,6 +74,22 @@ async function prepare() {
 afterEach(() => {
   state.request.mockReset();
   state.principal = "SYNTHETIC-A";
+});
+
+it("a denied export clears externally supplied saved quantities and the parent context", async () => {
+  const saved = payload({
+    origin_date: "2026-11-05",
+    observation_snapshot_reference: "OBS",
+    area_authority_reference: "AREA",
+    frozen_model_artifact_reference: "FIT",
+  }).data as unknown as RollingRun;
+  const denied = vi.fn();
+  state.request.mockRejectedValue(new DashboardError(403, "FORBIDDEN"));
+  render(<RollingForecastPanel readOnly suppliedRun={saved} onAccessDenied={denied} />);
+  expect(screen.getByRole("region", { name: "滚动预测结果" })).not.toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "导出业务报告 HTML" }));
+  await waitFor(() => expect(screen.queryByRole("region", { name: "滚动预测结果" })).toBeNull());
+  expect(denied).toHaveBeenCalledOnce();
 });
 
 it("StrictMode retains server quantities and invalidates results on input revision", async () => {
