@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from backend.tests.historical_source import source_bytes
+from backend.tests.historical_source import historical_bytes, source_bytes
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 ROOT = Path(__file__).resolve().parents[3]
@@ -21,6 +21,9 @@ def raw(path: str) -> bytes:
     assert not relative.is_absolute()
     assert ".." not in relative.parts
     assert relative.parts[0] in {"backend", "docs", "frontend"}
+    if str(relative) == "frontend/src/dashboard/pages/ReadPages.tsx":
+        # S7 evolves the live page; this is the original roadmap's source snapshot.
+        return historical_bytes(str(relative), BASE_SHA, root=ROOT)
     return source_bytes(str(relative), root=ROOT)
 
 

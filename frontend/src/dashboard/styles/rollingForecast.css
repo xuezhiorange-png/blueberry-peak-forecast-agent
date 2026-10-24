@@ -1,0 +1,33 @@
+.d-rolling-shadow fieldset {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 12px;
+  margin-block: 16px;
+}
+.d-rolling-shadow label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.d-rolling-shadow select,
+.d-rolling-shadow input {
+  max-width: 100%;
+}
+.d-rolling-shadow .d-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-block: 12px;
+}
+.d-rolling-shadow table {
+  min-width: 340px;
+}
+.d-rolling-shadow th,
+.d-rolling-shadow td {
+  white-space: nowrap;
+}
+.d-rolling-shadow section {
+  margin-block: 16px;
+}
+.d-rolling-shadow figure {
+  margin: 0;
+}

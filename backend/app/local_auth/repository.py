@@ -1,5 +1,7 @@
 """Controlled ingress is an explicit allowlist, not a legacy auth fallback."""
 
+import re
+
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from backend.app.local_auth.sessions import AuthError, error
@@ -33,6 +35,10 @@ class ControlledIngress:
             path in READS
             or path in DECISIONS
             or path in BUSINESS_ACCESS
+            or re.fullmatch(
+                r"/api/v1/rolling-forecast-runs(?:/compare|/[1-9][0-9]*(?:/daily|/review)?)?", path
+            )
+            is not None
             or path == "/health/live"
             or path
             in {

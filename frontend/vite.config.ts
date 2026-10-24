@@ -11,6 +11,7 @@ export default defineConfig({
     proxy: {
       "/api/v1/auth": { target: trialApiProxyTarget, changeOrigin: false },
       "/api/v1/business-access": { target: trialApiProxyTarget, changeOrigin: false },
+      "/api/v1/rolling-forecast-runs": { target: trialApiProxyTarget, changeOrigin: false },
       "/api/v1/trial": {
         target: trialApiProxyTarget,
         changeOrigin: false,

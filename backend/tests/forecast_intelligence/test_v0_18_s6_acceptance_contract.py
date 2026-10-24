@@ -13,6 +13,7 @@ EVIDENCE = ROOT / "docs/v0-18/evidence/s6-business-and-security-acceptance-r1.js
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 S6_DELIVERY = "2b890d8e68a47ca506e7cf6b04bd187472138b2d"
 EVOLVING_S6_SOURCES = {
+    "backend/app/main.py",
     "frontend/e2e/dashboard-business-flow.spec.ts",
     "frontend/e2e/dashboard-s6-acceptance.spec.ts",
     "backend/tests/forecast_intelligence/test_v0_18_s6_acceptance_contract.py",

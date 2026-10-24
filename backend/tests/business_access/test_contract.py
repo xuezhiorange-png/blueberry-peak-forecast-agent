@@ -13,6 +13,9 @@ BASE = "9b894b66a018c78de11bf01de4cc1daa3408db40"
 EVIDENCE = ROOT / "docs/v0-18/evidence/s2-authorized-saved-run-discovery-r1.json"
 MERGED_S2 = "3410dd4426618a7a4b29c08cbf58aaef20196939"
 S3_REVISED_TEST_SOURCES = {
+    "backend/app/core/config.py",
+    "backend/app/local_auth/repository.py",
+    "backend/app/main.py",
     "backend/tests/local_auth/test_simple_admin_decision_contract.py",
     "backend/app/api/business_access.py",
     "backend/tests/local_auth/test_runtime_evidence_contract.py",
