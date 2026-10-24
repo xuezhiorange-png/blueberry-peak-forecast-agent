@@ -155,12 +155,21 @@ def inspect_source(
         report["blockers"].append("EXPLICIT_INBOUND_RESOURCE_REQUIRED")
         return _finish(report)
     source, model = sources[0], models[0]
+    declared_target = model.model_training_target_quantity_basis
+    if model.provenance == "REAL_FROZEN_S6" and declared_target is None:
+        # S8 binds this family to recorded inbound weight after artifact
+        # validation. Metadata can identify that contract without opening the
+        # artifact; it must not claim validation or override an explicit basis.
+        declared_target = "RECORDED_INBOUND_WEIGHT"
+        report["checks"]["model_target_declaration"] = (
+            "REAL_FROZEN_S6_FAMILY_CONTRACT_ONLY_NOT_FILE_VERIFIED"
+        )
     report.update(
         source_reference=public_name(source.reference),
         source_system=public_name(source.source_system),
         data_class=source.provenance,
         context_reference=public_name(context.reference),
-        model_training_target_quantity_basis=model.model_training_target_quantity_basis,
+        model_training_target_quantity_basis=declared_target,
         feature_date_start=str(context.calendar.start),
         business_timezone=context.calendar.timezone,
         feature_date_end=str(origin - timedelta(days=1)),
@@ -199,9 +208,7 @@ def inspect_source(
     ):
         return _finish(report)
     try:
-        inbound.require_target_metadata(
-            source, model.model_training_target_quantity_basis, model.fit_sha256, model.provenance
-        )
+        inbound.require_target_metadata(source, declared_target, model.fit_sha256, model.provenance)
         checks["registered_fit_binding"] = "PASS_METADATA_ONLY"
     except ValueError as exc:
         checks["registered_fit_binding"] = error_code(exc)
