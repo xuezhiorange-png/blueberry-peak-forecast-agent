@@ -84,7 +84,7 @@ const paths = new Set([
 function permittedPath(path: string) {
   return (
     paths.has(path) ||
-    /^\/api\/v1\/rolling-forecast-runs(?:\/compare|\/[1-9][0-9]*(?:\/(?:daily|review))?)?$/.test(
+    /^\/api\/v1\/rolling-forecast-runs(?:\/spreadsheet-demo(?:\/(?:verify|issue))?|\/compare|\/[1-9][0-9]*(?:\/(?:daily|review|report))?)?$/.test(
       path,
     )
   );

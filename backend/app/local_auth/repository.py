@@ -36,7 +36,8 @@ class ControlledIngress:
             or path in DECISIONS
             or path in BUSINESS_ACCESS
             or re.fullmatch(
-                r"/api/v1/rolling-forecast-runs(?:/compare|/[1-9][0-9]*(?:/daily|/review)?)?", path
+                r"/api/v1/rolling-forecast-runs(?:/spreadsheet-demo(?:/verify|/issue)?|/compare|/[1-9][0-9]*(?:/daily|/review|/report)?)?",
+                path,
             )
             is not None
             or path == "/health/live"
