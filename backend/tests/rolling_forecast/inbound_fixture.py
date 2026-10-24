@@ -17,15 +17,20 @@ def write(path: Path, value):
     return hashlib.sha256(raw).hexdigest()
 
 
-def fixture(directory: Path, principal_id="SYNTHETIC-user", mutate=None):
+def fixture(
+    directory: Path, principal_id="SYNTHETIC-user", mutate=None, frozen_model_reference=None
+):
     from backend.app.rolling_forecast.inbound import Index
     from backend.app.rolling_forecast.policy import InboundSnapshot
 
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
-    model, _ = reference(directory)
-    model = model.model_copy(
-        update={"model_training_target_quantity_basis": "RECORDED_INBOUND_WEIGHT"}
-    )
+    if frozen_model_reference is None:
+        model, _ = reference(directory)
+        model = model.model_copy(
+            update={"model_training_target_quantity_basis": "RECORDED_INBOUND_WEIGHT"}
+        )
+    else:
+        model = frozen_model_reference
     member = dict(
         season_business_key="SYNTHETIC-season",
         farm_business_key="SYNTHETIC-farm",
