@@ -351,7 +351,7 @@ function Workspace() {
         saved.data.run_id !== issued.data.run_id ||
         saved.data.origin_date !== origin ||
         saved.data.input.issue.observation_snapshot_reference !==
-          `SYNTHETIC-WORKBOOK-${asset!.binding_hash.slice(0, 40)}`
+          `SYNTHETIC-WORKBOOK-${asset!.binding_hash}`
       )
         throw Error("SAVED_RUN_IDENTITY_MISMATCH");
       let compared: Comparison | null = null;
