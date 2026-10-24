@@ -109,7 +109,7 @@ def create_demo(root: Path, principal_id: str | None = None) -> tuple[Catalog, P
         )
         value = context.model_dump(mode="json")
         value["reference"] = "SYNTHETIC-PRE-DATA-" + scenario
-        value["snapshots"][0]["reference"] = "SYNTHETIC-WORKBOOK-" + binding[:40]
+        value["snapshots"][0]["reference"] = "SYNTHETIC-WORKBOOK-" + binding
         contexts.append(value)
         for cap in catalog.capabilities:
             capabilities.append({**cap.model_dump(mode="json"), "contexts": [value["reference"]]})
