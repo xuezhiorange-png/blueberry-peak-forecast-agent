@@ -21,7 +21,7 @@ from backend.app.actual_harvest_labels.models import ActualHarvestLabelSnapshotM
 from backend.app.actual_harvest_labels.models import ActualHarvestLabelSnapshotWinnerModel as Winner
 from backend.app.actual_harvest_labels.persistence import winner_row_hash_for
 from backend.app.actual_harvest_labels.service import _compute_canonical_record_hash_for_record
-from backend.app.rolling_forecast.policy import Context, Snapshot
+from backend.app.rolling_forecast.policy import Context, InboundSnapshot, Snapshot
 from backend.app.rolling_forecast.schemas import Observation
 from backend.research.v019_synthetic_validation import digest
 
@@ -29,11 +29,15 @@ from backend.research.v019_synthetic_validation import digest
 async def load(
     db: AsyncSession,
     context: Context,
-    source: Snapshot,
+    source: Snapshot | InboundSnapshot,
     origin: date,
     cutoff: datetime,
     start: date | None = None,
 ) -> list[Observation]:
+    if isinstance(source, InboundSnapshot):
+        from backend.app.rolling_forecast import inbound
+
+        return inbound.load(context, source, origin, cutoff, start)
     first = context.calendar.start if start is None else start
     header = await db.get(Header, source.snapshot_id)
     if (

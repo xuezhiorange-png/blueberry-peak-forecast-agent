@@ -24,7 +24,7 @@ class Member(Contract):
     variety_business_key: Name
 
 
-class Snapshot(Contract):
+class SourceSnapshot(Contract):
     reference: Name
     snapshot_id: int = Field(gt=0)
     snapshot_hash: Hash
@@ -37,7 +37,6 @@ class Snapshot(Contract):
     completeness_known_at: datetime
     complete_dates: tuple[date, ...]
     confirmed_zero_dates: tuple[date, ...] = ()
-    quantity_basis: Literal["FIELD_HARVEST_WEIGHT"] = "FIELD_HARVEST_WEIGHT"
 
     @model_validator(mode="after")
     def unique_members(self) -> Self:
@@ -50,15 +49,51 @@ class Snapshot(Contract):
         return self
 
 
+class Snapshot(SourceSnapshot):
+    quantity_basis: Literal["FIELD_HARVEST_WEIGHT"] = "FIELD_HARVEST_WEIGHT"
+
+
+class TargetBinding(Contract):
+    """Operator-registered source/fit evidence, not a conversion or execution grant."""
+
+    fit_sha256: Hash
+    authority_hash: Hash
+    scope: Literal["SYNTHETIC_CONTRACT_ONLY", "SOURCE_AUTHORITY"]
+
+
+class InboundSnapshot(SourceSnapshot):
+    source_kind: Literal["CONTROLLED_RECORDED_INBOUND_V1"]
+    manifest_path: Name
+    manifest_sha256: Hash
+    quantity_basis: Literal["RECORDED_INBOUND_WEIGHT"] = "RECORDED_INBOUND_WEIGHT"
+    physical_definition_hash: Hash
+    target_binding: TargetBinding | None = None
+
+    @model_validator(mode="after")
+    def provenance_scope(self) -> Self:
+        if self.target_binding and (
+            (self.provenance == "SYNTHETIC_TEST_FIXTURE")
+            != (self.target_binding.scope == "SYNTHETIC_CONTRACT_ONLY")
+        ):
+            raise ValueError("SOURCE_PROVENANCE_MISMATCH")
+        return self
+
+
+class MatureInboundSnapshot(InboundSnapshot):
+    mature_through: date
+    label_cutoff_at: datetime
+    maturity_authority_hash: Hash
+
+
 class Context(Contract):
     reference: Name
     organization_id: Name
     area: Area
     calendar: Calendar
     models: tuple[ModelReference, ...] = Field(min_length=1)
-    snapshots: tuple[Snapshot, ...] = Field(min_length=1)
+    snapshots: tuple[Snapshot | InboundSnapshot, ...] = Field(min_length=1)
     modes: tuple[Literal["RESEARCH_SHADOW", "RETROSPECTIVE_DATE_BOUND"], ...]
-    review_snapshots: tuple["MatureSnapshot", ...] = ()
+    review_snapshots: tuple["MatureSnapshot | MatureInboundSnapshot", ...] = ()
 
     @model_validator(mode="after")
     def consistent(self) -> Self:

@@ -102,6 +102,57 @@ export const rollingRun = z
       }
   });
 export type RollingRun = z.infer<typeof rollingRun>;
+export const rollingReviewOptions = z.object({
+  run_id: z.number().int().positive(),
+  forecast_result_hash: hash,
+  options: z.array(
+    z.object({
+      reference: z.string(),
+      snapshot_hash: hash,
+      quantity_basis: quantityBasis,
+      mature_through: day,
+      status: z.enum(["NOT_SCORABLE", "PREFLIGHT_ELIGIBLE"]),
+      reasons: z.array(z.string()),
+    }),
+  ),
+});
+const fraction = z.object({ numerator: signed, denominator: signed, value: signed.nullable() });
+const errorMetric = z.object({
+  baseline: fraction,
+  candidate: fraction,
+  common_count: z.number().int(),
+  candidate_count: z.number().int(),
+  sample_coverage: signed.nullable(),
+  not_computable_count: z.number().int(),
+  reasons: z.record(z.string(), z.number()),
+});
+const reviewGroup = z.object({
+  status: z.enum(["SCORED", "NOT_SCORABLE"]),
+  reasons: z.array(z.string()),
+  metrics: z.object({
+    DAILY_WAPE: errorMetric,
+    DAILY_MAE: errorMetric,
+    SINGLE_DAY_PEAK_DATE_MAE: errorMetric,
+    SINGLE_DAY_PEAK_QUANTITY_MAE: errorMetric,
+    ROLLING_7DAY_PEAK_START_MAE: errorMetric,
+    ROLLING_7DAY_PEAK_QUANTITY_MAE: errorMetric,
+  }),
+  base_outcomes: z.object({
+    base_id: z.string(),
+    outcome: z.enum(["IMPROVED", "DEGRADED", "TIED", "NOT_COMPUTABLE"]),
+  }),
+});
+export const rollingReview = z.object({
+  status: z.enum(["SCORED", "PARTIALLY_SCORABLE", "NOT_SCORABLE"]),
+  run_id: z.number().int().positive(),
+  forecast_result_hash: hash,
+  label_snapshot_hash: hash,
+  evaluation_label_quantity_basis: quantityBasis,
+  groups: z.object({ H7_PREFIX: reviewGroup, H15_LOCAL: reviewGroup }),
+  review_hash: hash,
+  strict_pit: z.literal(false),
+  production_accuracy_validated: z.literal(false),
+});
 export const rollingHistory = z.object({
   items: z.array(
     z.object({
