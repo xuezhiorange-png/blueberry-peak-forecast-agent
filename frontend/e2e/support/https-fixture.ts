@@ -18,7 +18,7 @@ type Playwright = PlaywrightWorkerArgs["playwright"];
 // change to any test body/global timeout. All stage deadlines remain finite.
 export const HTTPS_WORKER_TIMEOUT = 240_000;
 const SETUP_TOTAL = 150_000;
-type App = "business_pg" | "acceptance_s6_pg" | "rolling_pg" | "probe";
+type App = "business_pg" | "acceptance_s6_pg" | "rolling_pg" | "pre_data_pg" | "probe";
 type Receipt = Record<string, unknown> & {
   phase: string;
   pid: number;
@@ -379,7 +379,7 @@ export async function withOwnedHttps<T>(
             expect(cleanupReceipt).toBeDefined();
             if (options.app !== "probe") {
               expect(cleanupReceipt!.postgres).toBe("ABSENT_VERIFIED");
-              if (options.app === "business_pg" || options.app === "rolling_pg") {
+              if (["business_pg", "rolling_pg", "pre_data_pg"].includes(options.app)) {
                 expect(logs).toContain("Application shutdown complete.");
               } else {
                 // Nested MCP config deliberately uses warning-level Uvicorn

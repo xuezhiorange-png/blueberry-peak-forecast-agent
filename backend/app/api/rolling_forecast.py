@@ -3,7 +3,7 @@
 import asyncio
 import json
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -15,6 +15,7 @@ from backend.app.api.local_auth import service
 from backend.app.local_auth.authorization import read_admission
 from backend.app.local_auth.sessions import AuthError, Principal, error
 from backend.app.rolling_forecast import application
+from backend.app.rolling_forecast.business_report import export_report
 from backend.app.rolling_forecast.evaluation import options, review
 from backend.app.rolling_forecast.model_artifacts import ModelArtifactError
 from backend.app.rolling_forecast.policy import Catalog, load_catalog
@@ -40,6 +41,11 @@ class Review(Contract):
     label_snapshot_reference: str = Field(min_length=1, max_length=200)
 
 
+class ReportFilters(Contract):
+    format: Literal["html", "csv"]
+    comparison_run_id: int | None = Field(default=None, gt=0)
+
+
 def catalog(request: Request) -> Catalog:
     auth = service(request)
     try:
@@ -61,6 +67,7 @@ class ReleasedResponse(JSONResponse):
         principal: Principal,
         policy: Catalog,
         operation: str,
+        additional_operations: tuple[str, ...] = (),
     ):
         super().__init__(
             {"schema_version": "ROLLING_SHADOW_V1", "status": "READY", "data": data},
@@ -72,6 +79,7 @@ class ReleasedResponse(JSONResponse):
             policy,
             operation,
         )
+        self.additional_operations = additional_operations
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         started = False
@@ -89,6 +97,8 @@ class ReleasedResponse(JSONResponse):
                 if current.fingerprint != self.policy.fingerprint:
                     raise AuthError("AUTHORITY_MISMATCH", 409)
                 application.contexts(current, self.principal, self.operation)
+                for operation in self.additional_operations:
+                    application.contexts(current, self.principal, operation)
                 # Recheck time-based session validity immediately before bytes.
                 await auth.load(db, self.request, shared_lock=True)
                 await super().__call__(scope, receive, release)
@@ -127,6 +137,7 @@ async def handle(request: Request, operation: str, run_id: int | None = None) ->
                 else Review.model_validate_json(bytes(payload))
             )
         policy = catalog(request)
+        extra_operations: tuple[str, ...] = ()
         async with auth.factory() as db, read_admission(auth, db, request, principal):
             # A fresh account/session lock precedes model, observation and saved
             # quantity reads. ADMIN has no implicit capability here either.
@@ -145,6 +156,20 @@ async def handle(request: Request, operation: str, run_id: int | None = None) ->
                 left = await application.get(db, policy, principal, pair.left_run_id, "compare")
                 right = await application.get(db, policy, principal, pair.right_run_id, "compare")
                 data = application.compare(left, right)
+            elif operation == "report":
+                if run_id is None:
+                    raise AuthError("INVALID_REQUEST", 422)
+                report_filters = ReportFilters.model_validate(params)
+                saved = await application.get(db, policy, principal, run_id)
+                comparison = None
+                if report_filters.comparison_run_id is not None:
+                    left = await application.get(db, policy, principal, run_id, "compare")
+                    right = await application.get(
+                        db, policy, principal, report_filters.comparison_run_id, "compare"
+                    )
+                    comparison = application.compare(left, right)
+                    extra_operations = ("compare",)
+                data = export_report(saved, report_filters.format, comparison)
             elif operation == "read" and run_id is None:
                 filters = Filters.model_validate(params)
                 data = await application.history(db, policy, principal, filters.model_dump())
@@ -173,8 +198,9 @@ async def handle(request: Request, operation: str, run_id: int | None = None) ->
                 "evaluate"
                 if operation == "review_options"
                 else "read"
-                if operation == "daily"
+                if operation in {"daily", "report"}
                 else operation,
+                extra_operations,
             )
     except AuthError as exc:
         return error(exc)
@@ -211,6 +237,11 @@ async def detail(request: Request, run_id: int) -> JSONResponse:
 @router.get("/{run_id:int}/daily")
 async def daily(request: Request, run_id: int) -> JSONResponse:
     return await handle(request, "daily", run_id)
+
+
+@router.get("/{run_id:int}/report")
+async def business_report(request: Request, run_id: int) -> JSONResponse:
+    return await handle(request, "report", run_id)
 
 
 @router.post("/{run_id:int}/review")

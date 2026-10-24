@@ -1,0 +1,117 @@
+.d-spreadsheet {
+  min-width: 0;
+}
+.d-sheet-steps {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  padding: 16px 32px;
+  background: var(--d-surface-alt, #edf3f1);
+  border-radius: 8px;
+  font-weight: 600;
+}
+.d-sheet-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: 16px 0;
+}
+.d-sheet-controls label,
+.d-sheet-mapping label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.d-sheet-mapping {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+.d-sheet-mapping select {
+  width: 100%;
+  min-width: 0;
+}
+.d-sheet-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.d-sheet-stats div {
+  border: 1px solid var(--d-border, #ccd6d3);
+  border-radius: 6px;
+  padding: 12px;
+}
+.d-sheet-stats dt {
+  font-size: 13px;
+  color: var(--d-muted, #586c67);
+}
+.d-sheet-stats dd {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.d-sheet-notice {
+  padding: 12px 16px;
+  border-left: 4px solid #a87117;
+  background: #fff8e7;
+  color: #5e481b;
+}
+.d-spreadsheet .d-table-wrap {
+  max-height: 400px;
+  overflow: auto;
+  margin: 16px 0;
+}
+.d-spreadsheet td {
+  max-width: 240px;
+  overflow-wrap: anywhere;
+}
+.d-spreadsheet th,
+.d-spreadsheet td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #dce5e1;
+}
+.d-sheet-preview-table {
+  min-width: 1200px;
+  border-collapse: collapse;
+}
+.d-sheet-preview-table th,
+.d-sheet-preview-table td {
+  white-space: nowrap;
+  max-width: none;
+}
+.d-spreadsheet input[type="file"] {
+  max-width: 100%;
+}
+.d-spreadsheet button {
+  min-height: 40px;
+}
+@media (max-width: 700px) {
+  .d-sheet-mapping,
+  .d-sheet-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .d-sheet-controls {
+    align-items: stretch;
+  }
+  .d-sheet-controls label {
+    flex: 1 1 150px;
+  }
+  .d-sheet-steps {
+    gap: 12px 26px;
+    font-size: 14px;
+  }
+  .d-spreadsheet .d-table-wrap {
+    max-height: 330px;
+  }
+}
+@media (max-width: 400px) {
+  .d-sheet-mapping,
+  .d-sheet-stats {
+    grid-template-columns: 1fr;
+  }
+}
