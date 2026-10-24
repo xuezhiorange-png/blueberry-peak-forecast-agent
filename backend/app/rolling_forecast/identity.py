@@ -13,6 +13,7 @@ FILES = (
     "backend/app/rolling_forecast/schemas.py",
     "backend/app/rolling_forecast/model_artifacts.py",
     "backend/app/rolling_forecast/observations.py",
+    "backend/app/rolling_forecast/inbound.py",
     "backend/app/rolling_forecast/application.py",
     "backend/app/rolling_forecast/persistence.py",
     "backend/app/rolling_forecast/evaluation.py",
