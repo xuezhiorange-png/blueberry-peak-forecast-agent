@@ -36,6 +36,7 @@ def test_canonical_s3_evidence_and_source_hashes():
                 ".github/workflows/ci.yml",
                 "backend/app/local_auth/authorization.py",
                 "backend/app/local_auth/service.py",
+                "backend/app/main.py",
             }
             source = (
                 historical_bytes(relative, data["base_main_sha"])

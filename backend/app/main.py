@@ -70,12 +70,16 @@ def create_app(settings: AppSettings | None = None) -> FastAPI:
     from backend.app.api.business_access import router as business_access_router
     from backend.app.api.local_auth import router as auth_router
     from backend.app.api.local_auth_admin import router as admin_router
+    from backend.app.api.rolling_forecast import router as rolling_router
     from backend.app.local_auth.repository import ControlledIngress
     from backend.app.local_auth.service import AuthService
 
     app.state.local_auth = AuthService(db_session.AsyncSessionMaker, app_settings)
     app.include_router(auth_router, prefix="/api/v1/auth", tags=["local-auth"])
     app.include_router(admin_router, prefix="/api/v1/admin", tags=["local-auth-admin"])
+    app.include_router(
+        rolling_router, prefix="/api/v1/rolling-forecast-runs", tags=["rolling-shadow"]
+    )
     app.include_router(
         business_access_router, prefix="/api/v1/business-access", tags=["business-access"]
     )

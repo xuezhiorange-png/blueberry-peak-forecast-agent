@@ -26,6 +26,7 @@ class AppSettings(BaseSettings):
     local_auth_simple_admin_catalog_json: SecretStr = Field(default=SecretStr(""))
     local_auth_organization_ids_json: str = ""
     business_access_signing_key: SecretStr = Field(default=SecretStr(""))
+    rolling_forecast_catalog_path: str = ""
 
     postgres_host: str = "localhost"
     postgres_port: int = 5432
