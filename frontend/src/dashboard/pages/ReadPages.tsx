@@ -4,6 +4,7 @@ import { useResource, type Resource } from "../context/useResource";
 import { read, quality } from "../api/client";
 import { DailyForecastChart, DailyForecastTable } from "../charts/Curves";
 import { RollingForecastPanel } from "../components/RollingForecastPanel";
+import { SpreadsheetPreparation } from "../spreadsheet/SpreadsheetPreparation";
 import {
   Panel,
   EmptyState,
@@ -149,6 +150,7 @@ export function OverviewPage() {
 export function ForecastPage() {
   const { verified } = useForecast();
   const [horizon, setHorizon] = useState(15);
+  const [spreadsheet, setSpreadsheet] = useState(false);
   const curve = useResource(verified?.key ?? null, (s) => read("curve", verified!.query, s));
   const hierarchy = useResource(verified?.key ?? null, (s) =>
     read("hierarchy", verified!.query, s),
@@ -156,37 +158,46 @@ export function ForecastPage() {
   return (
     <>
       <Heading title="预测" description="核对日期、每日数量与保存预测的完整性。" />
-      <ResourceView resource={curve}>
-        {(v) =>
-          v.data && (
-            <>
-              <Panel
-                title="保存预测日曲线"
-                note={`可用 ${v.data.available_day_count} 日 · ${v.data.data_completeness}`}
-              >
-                <div className="d-tabs" aria-label="日期显示窗口">
-                  {[1, 3, 7, 15].map((h) => (
-                    <button key={h} aria-pressed={h === horizon} onClick={() => setHorizon(h)}>
-                      H{h}
-                    </button>
-                  ))}
-                </div>
-                <p className="d-help">
-                  H{horizon} = D1..D{horizon} 前缀，不是单日；只截取已有日期，不计算新的累计指标。
-                </p>
-                <DailyForecastChart rows={v.data.daily_rows.filter((r) => r.lead_day <= horizon)} />
-                <AuthorityDetails value={v} />
-              </Panel>
-              <BoundsPanel />
-              <Panel title="每日预测明细">
-                <DailyForecastTable rows={v.data.daily_rows.filter((r) => r.lead_day <= horizon)} />
-              </Panel>
-            </>
-          )
-        }
-      </ResourceView>
-      <RollingForecastPanel />
-      {verified && (
+      <button aria-pressed={spreadsheet} onClick={() => setSpreadsheet(!spreadsheet)}>
+        {spreadsheet ? "返回滚动预测" : "电子表格准备"}
+      </button>
+      {!spreadsheet && (
+        <ResourceView resource={curve}>
+          {(v) =>
+            v.data && (
+              <>
+                <Panel
+                  title="保存预测日曲线"
+                  note={`可用 ${v.data.available_day_count} 日 · ${v.data.data_completeness}`}
+                >
+                  <div className="d-tabs" aria-label="日期显示窗口">
+                    {[1, 3, 7, 15].map((h) => (
+                      <button key={h} aria-pressed={h === horizon} onClick={() => setHorizon(h)}>
+                        H{h}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="d-help">
+                    H{horizon} = D1..D{horizon} 前缀，不是单日；只截取已有日期，不计算新的累计指标。
+                  </p>
+                  <DailyForecastChart
+                    rows={v.data.daily_rows.filter((r) => r.lead_day <= horizon)}
+                  />
+                  <AuthorityDetails value={v} />
+                </Panel>
+                <BoundsPanel />
+                <Panel title="每日预测明细">
+                  <DailyForecastTable
+                    rows={v.data.daily_rows.filter((r) => r.lead_day <= horizon)}
+                  />
+                </Panel>
+              </>
+            )
+          }
+        </ResourceView>
+      )}
+      {spreadsheet ? <SpreadsheetPreparation /> : <RollingForecastPanel />}
+      {!spreadsheet && verified && (
         <ResourceView resource={hierarchy}>
           {(v) => v.data && <HierarchyCompletenessPanel data={v.data} />}
         </ResourceView>
