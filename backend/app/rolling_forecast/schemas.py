@@ -71,9 +71,7 @@ class Observation(Contract):
     record_state: Literal[
         "VALID_OBSERVED", "CONFIRMED_ZERO", "UNKNOWN", "PARTIAL", "MISSING", "CONFLICTING"
     ]
-    quantity_basis: Literal[
-        "FIELD_HARVEST_WEIGHT", "MARKETABLE_FRUIT_WEIGHT", "INBOUND_WEIGHT", "INBOUND_NET_WEIGHT"
-    ]
+    quantity_basis: TargetQuantityBasis
     source_system: Name
     source_identity: Name
     source_hash: Hash

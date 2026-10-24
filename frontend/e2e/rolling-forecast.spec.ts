@@ -77,3 +77,47 @@ test("admin has no default research data permission", async ({ page, https }) =>
   expect((await response).status()).toBe(403);
   await expect(page.getByRole("region", { name: "滚动预测结果" })).not.toBeVisible();
 });
+
+test("target-aligned inbound source forecasts and separately authorized synthetic review", async ({
+  page,
+  https,
+}, info) => {
+  await page.goto(https + "/dashboard/forecast");
+  await page.getByLabel("用户名", { exact: true }).fill("synthetic-user");
+  await page.getByLabel("密码", { exact: true }).fill("SYNTHETIC-password-123");
+  await page.getByRole("button", { name: "登录", exact: true }).click();
+  await page.getByRole("button", { name: "查询研究预测" }).click();
+  await page.getByRole("combobox", { name: "研究基地", exact: true }).selectOption("1");
+  await page.getByLabel("Origin 日期").fill("2026-11-05");
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith("/rolling-forecast-runs") && r.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "生成并保存研究预测" }).click();
+  const issued = await response;
+  expect(issued.status()).toBe(200);
+  const run = (await issued.json()).data;
+  expect(run.result.models.M1.H7.forecast_total_kg).toBe("538.941049");
+  const result = page.getByRole("region", { name: "滚动预测结果" });
+  await expect(result).toContainText("特征观测口径：RECORDED_INBOUND_WEIGHT");
+  await expect(result).toContainText("观测完整性：完整");
+  await expect(result).toContainText("预测目标口径：RECORDED_INBOUND_WEIGHT");
+  await page.getByRole("button", { name: "检查标签可评价状态" }).click();
+  await expect(result).toContainText("PREFLIGHT_ELIGIBLE");
+  const reviewResponse = page.waitForResponse(
+    (r) => r.url().endsWith(`/${run.run_id}/review`) && r.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "独立评价已保存预测" }).click();
+  const scored = await reviewResponse;
+  expect(scored.status()).toBe(200);
+  const review = (await scored.json()).data;
+  await expect(
+    result.getByRole("table", { name: "H15_LOCAL 同样本评价（服务器计算值）" }),
+  ).toContainText(review.groups.H15_LOCAL.metrics.DAILY_WAPE.candidate.value);
+  await expect(result).toContainText("生产精度未验证");
+  await page.screenshot({
+    path: info.outputPath("SYNTHETIC-s8-inbound-review.png"),
+    fullPage: true,
+  });
+  await page.getByLabel("Origin 日期").fill("2026-11-06");
+  await expect(result).not.toBeVisible();
+});

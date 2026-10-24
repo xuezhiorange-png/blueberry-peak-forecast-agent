@@ -8,10 +8,81 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.local_auth.sessions import AuthError, Principal, now
 from backend.app.rolling_forecast import application, observations
-from backend.app.rolling_forecast.policy import Catalog
+from backend.app.rolling_forecast.policy import (
+    Catalog,
+    InboundSnapshot,
+    MatureInboundSnapshot,
+    MatureSnapshot,
+)
 from backend.research import v019_research_evaluation as arithmetic
 from backend.research.v019_origin_evaluation import curve, errors
 from backend.research.v019_synthetic_validation import digest
+
+
+def admission(saved: dict[str, Any], source: MatureSnapshot | MatureInboundSnapshot) -> list[str]:
+    """Metadata-only preflight; never opens labels or grants evaluate permission."""
+    end = date.fromisoformat(saved["origin_date"]) + timedelta(days=15)
+    reasons = []
+    if source.mature_through < end or (
+        source.label_cutoff_at > now() and source.provenance != "SYNTHETIC_TEST_FIXTURE"
+    ):
+        reasons.append("LABELS_NOT_MATURE")
+    for model in saved["result"]["models"].values():
+        target = model.get("forecast_target_quantity_basis")
+        if (
+            not target
+            or target != source.quantity_basis
+            or model.get("model_training_target_quantity_basis") != target
+            or model.get("model_provenance") not in {"REAL_FROZEN_S6", "SYNTHETIC_TEST_FIXTURE"}
+            or (
+                model.get("model_provenance") == "SYNTHETIC_TEST_FIXTURE"
+                and source.provenance != "SYNTHETIC_TEST_FIXTURE"
+            )
+            or (
+                model.get("model_provenance") == "REAL_FROZEN_S6"
+                and target != "RECORDED_INBOUND_WEIGHT"
+            )
+        ):
+            reasons.append("CROSS_SOURCE_TARGET_BASIS_UNVERIFIED")
+    if isinstance(source, InboundSnapshot):
+        binding = source.target_binding
+        if binding is None or binding.fit_sha256 != saved["result"]["fit_hash"]:
+            reasons.append("CROSS_SOURCE_TARGET_BASIS_UNVERIFIED")
+        observed = saved["input"].get("observation_snapshot", {})
+        if observed.get("source_kind") == source.source_kind and (
+            digest(observed.get("members"))
+            != digest([m.model_dump(mode="json") for m in source.members])
+            or observed.get("mapping_registry_hash") != source.mapping_registry_hash
+            or observed.get("physical_definition_hash") != source.physical_definition_hash
+        ):
+            reasons.append("LABEL_MEMBER_OR_BASIS_AUTHORITY_MISMATCH")
+    return sorted(set(reasons))
+
+
+async def options(
+    db: AsyncSession, catalog: Catalog, principal: Principal, run_id: int
+) -> dict[str, Any]:
+    saved = await application.get(db, catalog, principal, run_id, "evaluate")
+    context = next(
+        c
+        for c in application.contexts(catalog, principal, "evaluate")
+        if c.reference == saved["input"]["context_reference"]
+    )
+    return {
+        "run_id": run_id,
+        "forecast_result_hash": saved["result_hash"],
+        "options": [
+            {
+                "reference": s.reference,
+                "snapshot_hash": s.snapshot_hash,
+                "quantity_basis": s.quantity_basis,
+                "mature_through": str(s.mature_through),
+                "status": "NOT_SCORABLE" if admission(saved, s) else "PREFLIGHT_ELIGIBLE",
+                "reasons": admission(saved, s),
+            }
+            for s in context.review_snapshots
+        ],
+    }
 
 
 async def review(
@@ -29,29 +100,11 @@ async def review(
     source = sources[0]
     start = date.fromisoformat(saved["origin_date"]) + timedelta(days=1)
     end = start + timedelta(days=14)
-    if source.mature_through < end or (
-        source.label_cutoff_at > now() and source.provenance != "SYNTHETIC_TEST_FIXTURE"
-    ):
-        raise ValueError("LABELS_NOT_MATURE")
     # Admit against the model's target, never against its observed feature units.
     # No cross-source conversion authority is implemented or inferred here.
-    for model in saved["result"]["models"].values():
-        target = model.get("forecast_target_quantity_basis")
-        if (
-            not target
-            or target != source.quantity_basis
-            or model.get("model_training_target_quantity_basis") != target
-            or model.get("model_provenance") not in {"REAL_FROZEN_S6", "SYNTHETIC_TEST_FIXTURE"}
-            or (
-                model.get("model_provenance") == "SYNTHETIC_TEST_FIXTURE"
-                and source.provenance != "SYNTHETIC_TEST_FIXTURE"
-            )
-            or (
-                model.get("model_provenance") == "REAL_FROZEN_S6"
-                and target != "RECORDED_INBOUND_WEIGHT"
-            )
-        ):
-            raise ValueError("CROSS_SOURCE_TARGET_BASIS_UNVERIFIED")
+    reasons = admission(saved, source)
+    if reasons:
+        raise ValueError(reasons[0])
     rows = await observations.load(
         db, context, source, end + timedelta(days=1), source.label_cutoff_at, start
     )
@@ -110,6 +163,8 @@ async def review(
                 total > 0,
             )
             result[window] = arithmetic._finish(accumulator)
+            result[window]["status"] = "NOT_SCORABLE" if reason else "SCORED"
+            result[window]["reasons"] = [reason] if reason else []
             result[window]["BIAS"] = bias or {
                 m: {"status": "NOT_COMPUTABLE", "reason": reason} for m in ("M0", "M1")
             }
@@ -128,6 +183,11 @@ async def review(
                 },
             }
     body = {
+        "status": "SCORED"
+        if all(g["status"] == "SCORED" for g in result.values())
+        else "NOT_SCORABLE"
+        if all(g["status"] == "NOT_SCORABLE" for g in result.values())
+        else "PARTIALLY_SCORABLE",
         "run_id": run_id,
         "forecast_result_hash": saved["result_hash"],
         "label_snapshot_hash": source.snapshot_hash,

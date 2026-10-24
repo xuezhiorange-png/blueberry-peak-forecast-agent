@@ -10,6 +10,8 @@ import {
   rollingEnvelope,
   rollingHistory,
   rollingRun,
+  rollingReview,
+  rollingReviewOptions,
   type RollingRun,
 } from "../schemas/rolling";
 
@@ -53,6 +55,11 @@ function RollingForecastWorkspace() {
   const [history, setHistory] = useState<History | null>(null);
   const [run, setRun] = useState<RollingRun | null>(null);
   const [comparison, setComparison] = useState<Comparison | null>(null);
+  const [reviewOptions, setReviewOptions] = useState<z.infer<typeof rollingReviewOptions> | null>(
+    null,
+  );
+  const [review, setReview] = useState<z.infer<typeof rollingReview> | null>(null);
+  const [labelIndex, setLabelIndex] = useState(0);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [resourceIndex, setResourceIndex] = useState(0);
@@ -77,6 +84,8 @@ function RollingForecastWorkspace() {
     cancel();
     setRun(null);
     setComparison(null);
+    setReviewOptions(null);
+    setReview(null);
     setMessage("");
   }
   useEffect(() => {
@@ -86,6 +95,8 @@ function RollingForecastWorkspace() {
       setHistory(null);
       setRun(null);
       setComparison(null);
+      setReviewOptions(null);
+      setReview(null);
       setLeft("");
       setRight("");
       setOrigin("");
@@ -116,6 +127,8 @@ function RollingForecastWorkspace() {
           setHistory(null);
           setRun(null);
           setComparison(null);
+          setReviewOptions(null);
+          setReview(null);
           setLeft("");
           setRight("");
         }
@@ -215,6 +228,50 @@ function RollingForecastWorkspace() {
           return;
         }
         setComparison(v.data);
+      },
+    );
+  }
+  function checkLabels() {
+    if (!run) return;
+    const selected = run;
+    setReview(null);
+    setReviewOptions(null);
+    void act(
+      (s) => request(`${PATH}/${selected.run_id}/review`, rollingEnvelope(rollingReviewOptions), s),
+      (v) => {
+        if (
+          v.data.run_id !== selected.run_id ||
+          v.data.forecast_result_hash !== selected.result_hash
+        ) {
+          setMessage("评价记录身份不匹配，已拒绝展示。");
+          return;
+        }
+        setReviewOptions(v.data);
+        setLabelIndex(0);
+      },
+    );
+  }
+  function evaluate() {
+    const label = reviewOptions?.options[labelIndex];
+    if (!run || !label || label.status !== "PREFLIGHT_ELIGIBLE") return;
+    const selected = run;
+    setReview(null);
+    void act(
+      (s) =>
+        request(`${PATH}/${selected.run_id}/review`, rollingEnvelope(rollingReview), s, undefined, {
+          label_snapshot_reference: label.reference,
+        }),
+      (v) => {
+        if (
+          v.data.run_id !== selected.run_id ||
+          v.data.forecast_result_hash !== selected.result_hash ||
+          v.data.label_snapshot_hash !== label.snapshot_hash ||
+          v.data.evaluation_label_quantity_basis !== label.quantity_basis
+        ) {
+          setMessage("评价响应来源不匹配，已拒绝展示。");
+          return;
+        }
+        setReview(v.data);
       },
     );
   }
@@ -492,14 +549,17 @@ function RollingForecastWorkspace() {
               <p style={{ overflowWrap: "anywhere" }}>冻结参数 {model.model_artifact_hash}</p>
               <p>
                 训练目标口径：{model.model_training_target_quantity_basis ?? "未证明"} ·{" "}
-                预测目标口径：{model.forecast_target_quantity_basis ?? "未证明"} ·{" "}
-                评价标签口径：未评分 · 模型来源：{model.model_provenance ?? "未证明"}
+                预测目标口径：{model.forecast_target_quantity_basis ?? "未证明"} · 评价标签口径：
+                {review?.evaluation_label_quantity_basis ?? "未评分"} · 模型来源：
+                {model.model_provenance ?? "未证明"}
               </p>
-              {model.model_provenance === "REAL_FROZEN_S6" && (
-                <p>
-                  CROSS_SOURCE_TARGET_BASIS_UNVERIFIED：入库重量训练目标不等于已验证的田间采收量预测。
-                </p>
-              )}
+              {model.model_provenance === "REAL_FROZEN_S6" &&
+                run.result.feature_observation_quantity_basis !==
+                  model.forecast_target_quantity_basis && (
+                  <p>
+                    CROSS_SOURCE_TARGET_BASIS_UNVERIFIED：入库重量训练目标不等于已验证的田间采收量预测。
+                  </p>
+                )}
               {model.status === "NOT_COMPUTABLE" ? (
                 <p role="status">不能计算：{model.blocker_reason?.join("；")}</p>
               ) : (
@@ -537,6 +597,101 @@ function RollingForecastWorkspace() {
               )}
             </section>
           ))}
+          <section aria-label="独立标签评价">
+            <h4>独立标签评价 · 不是生产精度验证</h4>
+            <p>
+              标签须有单独评价权限、同目标重量口径及成熟证明；元数据合格不等于标签完整。合成评分仅验证计算链路。
+            </p>
+            <button disabled={busy} onClick={checkLabels}>
+              检查标签可评价状态
+            </button>
+            {reviewOptions &&
+              (reviewOptions.options.length ? (
+                <>
+                  <label>
+                    评价标签快照{" "}
+                    <select
+                      value={labelIndex}
+                      onChange={(e) => {
+                        cancel();
+                        setReview(null);
+                        setLabelIndex(Number(e.target.value));
+                      }}
+                    >
+                      {reviewOptions.options.map((o, i) => (
+                        <option key={o.reference} value={i}>
+                          {o.reference} · {o.quantity_basis}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p>
+                    {reviewOptions.options[labelIndex].status} ·{" "}
+                    {reviewOptions.options[labelIndex].reasons.join("；")} · 成熟至{" "}
+                    {reviewOptions.options[labelIndex].mature_through}
+                  </p>
+                  <button
+                    disabled={
+                      busy || reviewOptions.options[labelIndex].status !== "PREFLIGHT_ELIGIBLE"
+                    }
+                    onClick={evaluate}
+                  >
+                    独立评价已保存预测
+                  </button>
+                </>
+              ) : (
+                <p>NOT_SCORABLE：无已登记且获授权的标签快照。</p>
+              ))}
+            {review && (
+              <>
+                <p>
+                  标签口径：{review.evaluation_label_quantity_basis} · STRICT_PIT=false ·
+                  生产精度未验证
+                </p>
+                {Object.entries(review.groups).map(([window, group]) => (
+                  <section key={window}>
+                    <h5>
+                      {window} · {group.status} · {group.base_outcomes.outcome}
+                    </h5>
+                    {group.reasons.length > 0 && <p>{group.reasons.join("；")}</p>}
+                    <div className="d-table-wrap">
+                      <table>
+                        <caption>{window} 同样本评价（服务器计算值）</caption>
+                        <thead>
+                          <tr>
+                            <th>指标</th>
+                            <th>M0 分子 / 分母 = 值</th>
+                            <th>M1 分子 / 分母 = 值</th>
+                            <th>共同样本 / 覆盖 / 不可计算</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(group.metrics).map(([metric, m]) => (
+                            <tr key={metric}>
+                              <td>{metric}</td>
+                              <td>
+                                {m.baseline.numerator} / {m.baseline.denominator} ={" "}
+                                {m.baseline.value ?? "NOT_COMPUTABLE"}
+                              </td>
+                              <td>
+                                {m.candidate.numerator} / {m.candidate.denominator} ={" "}
+                                {m.candidate.value ?? "NOT_COMPUTABLE"}
+                              </td>
+                              <td>
+                                {m.common_count}/{m.candidate_count} · {m.sample_coverage ?? "未知"}{" "}
+                                · {m.not_computable_count} {Object.keys(m.reasons).join("；")}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                ))}
+                <p className="d-hash">评价封存 {review.review_hash}</p>
+              </>
+            )}
+          </section>
         </section>
       )}
       {comparison && (
