@@ -6,10 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from backend.tests.historical_source import source_bytes
+from backend.tests.historical_source import historical_bytes, source_bytes
 
 ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE = ROOT / "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json"
+S1_BASELINE = "52b5a80f89c59130917b29c9097d63076eab4acb"
 DESIGN_DOCS = (
     "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md",
     "docs/v0-18/s1/resource-grant-authority-review-r1.md",
@@ -45,6 +46,14 @@ def evidence() -> dict:
     return json.loads(EVIDENCE.read_text(encoding="utf-8"))
 
 
+def preflight_source(path: Path) -> bytes:
+    # This is the S1 preflight's package identity, not a freeze on future
+    # authorized parser dependencies. Keep its original expected digest.
+    if path.as_posix() == "frontend/package.json":
+        return historical_bytes(path.as_posix(), S1_BASELINE, root=ROOT)
+    return source_bytes(path, root=ROOT)
+
+
 def test_machine_evidence_is_canonical_and_all_bound_sources_match(evidence: dict) -> None:
     raw = EVIDENCE.read_bytes()
     canonical = (json.dumps(evidence, sort_keys=True, ensure_ascii=False, indent=2) + "\n").encode()
@@ -59,7 +68,32 @@ def test_machine_evidence_is_canonical_and_all_bound_sources_match(evidence: dic
         assert not path.is_absolute()
         assert ".." not in path.parts
         assert len(expected_hash) == 64
-        assert hashlib.sha256(source_bytes(path, root=ROOT)).hexdigest() == expected_hash
+        assert hashlib.sha256(preflight_source(path)).hexdigest() == expected_hash
+
+
+def test_preflight_package_identity_survives_future_authorized_dependencies(evidence, monkeypatch):
+    original = Path.read_bytes
+
+    def future_bytes(path):
+        if path == ROOT / "frontend/package.json":
+            return b'{"future-authorized-runtime-dependency":true}'
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", future_bytes)
+    test_machine_evidence_is_canonical_and_all_bound_sources_match(evidence)
+
+
+def test_preflight_package_still_rejects_wrong_historical_bytes(evidence, monkeypatch):
+    original = historical_bytes
+
+    def wrong_bytes(path, commit, *, root):
+        assert path == "frontend/package.json" and commit == S1_BASELINE
+        return b"not the frozen preflight package"
+
+    monkeypatch.setitem(globals(), "historical_bytes", wrong_bytes)
+    with pytest.raises(AssertionError):
+        test_machine_evidence_is_canonical_and_all_bound_sources_match(evidence)
+    monkeypatch.setitem(globals(), "historical_bytes", original)
 
 
 def test_live_baseline_and_s0_formal_receipt_are_frozen(evidence: dict) -> None:
