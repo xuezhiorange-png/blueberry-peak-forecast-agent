@@ -93,6 +93,24 @@ const eventCodes = new Set(vocabulary.event_types.map((e) => e.code));
 const stages = new Set(vocabulary.phenology_stages);
 const systems = new Set(vocabulary.production_systems);
 const fields = new Set(V0_20_FIELDS.map(([k]) => k));
+// Explicitly unknown method text is not proof of an operation. Keep raw text in exports.
+const methodKnown = (v: string | null) =>
+  v !== null &&
+  !new Set([
+    "",
+    "UNKNOWN",
+    "UNSPECIFIED",
+    "N/A",
+    "NA",
+    "NULL",
+    "NONE",
+    "-",
+    "未知",
+    "不明",
+    "不详",
+    "未提供",
+    "待确认",
+  ]).has(v.trim().toUpperCase());
 const stateMap: Record<string, V020State> = {
   计划: "PLANNED",
   实际: "OBSERVED",
@@ -466,7 +484,7 @@ function createRecord(
         intensity_denominator: value("intensity_denominator") || null,
         end_date: dateV020(value("end_date")),
       };
-      if (/促早|催早|^FORCING$/i.test(raw) && !r.event.method) {
+      if (/促早|催早|^FORCING$/i.test(raw) && !methodKnown(r.event.method)) {
         r.event.canonical_type = null;
         issue(
           r,

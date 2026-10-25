@@ -264,3 +264,21 @@ it("V0_20 applies the existing registry's production-system eligibility without 
   ]);
   expect(q.data.summary.issue_counts.EVENT_SYSTEM_CONFLICT).toBeUndefined();
 });
+it.each(["", "UNKNOWN", "未知", "不详"])(
+  "V0_20 forcing method %s does not establish a heating mapping",
+  async (method) => {
+    const a = synthetic.wide.assets.xlsx;
+    const b = await parsePreview(bytes(a.base64), "xlsx", true);
+    const plan = (a.plans as V020SheetPlan[]).find((p) => p.kind === "EVENT")!;
+    const slot = plan.slots.find((s) => s.declared_type === "HEATING_START")!;
+    b.sheets[plan.sheet].rows[plan.header][slot.column].text = "促早日期";
+    b.sheets[plan.sheet].rows[plan.header + 1][plan.columns.method!].text = method;
+    const p = await prepareV020(b, [plan]);
+    const r = p.data.records.find(
+      (r) => r.source_row === plan.header + 2 && r.slot?.id === slot.id,
+    )!;
+    expect(r.event!.canonical_type).toBeNull();
+    expect(r.event!.method).toBe(method || null);
+    expect(r.issues.some((i) => i.code === "FORCING_METHOD_UNRESOLVED")).toBe(true);
+  },
+);

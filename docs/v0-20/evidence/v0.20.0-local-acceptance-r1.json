@@ -18,7 +18,7 @@
     "frontend_typecheck": "PASS",
     "frontend_unit": {
       "failed": 0,
-      "passed": 200
+      "passed": 204
     },
     "historical_contracts": {
       "failed": 0,
@@ -30,6 +30,13 @@
       "passed": 335
     },
     "mypy": "PASS",
+    "post_method_fix_https_browser": {
+      "actual_owned_https_asgi_pg": true,
+      "both_projects": true,
+      "failed": 0,
+      "passed": 10,
+      "unused_vite_warmup": false
+    },
     "python_format": "PASS",
     "ruff": "PASS"
   },
@@ -38,9 +45,11 @@
     "format-python-final.log": "caed8734a634d1fdf779025d0d2ab0ac3f44422fbe5ebe0d148b269593a65b3e",
     "historical-contracts.log": "696e76217876437a5c639c01a96d5e455157d5a6150e1e9a6de61c96b5e8795b",
     "import-regression.log": "a2c0336c11664a42a90e6b096c5ecb2b41080a16901a27a9f80252a059e0663f",
+    "method-browser.log": "fb1416952514a656463af01d4d263a9dcfb8157ceeed1063c5280091f0e978f2",
     "mypy.log": "d53bee255e9e35667b2d129ab30b3ab146bcd8d80a9f6bb6e317c2dbb1dc3950",
     "ruff-final.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
     "unit-final.log": "ec89d873b8328f1d89ac101bc57a923f0b5c172395b3b4dc531a2af0682de849",
+    "unit-method.log": "b220359f1f278522d36042c6975ba597364cdc328e6d76b0d02b61cb9965e4c8",
     "unit-release.log": "1ff761ca40176bd94e4ce213ae733405f775bd0a70d3bab056092e205cfaa24a"
   },
   "normalized_example": {
@@ -87,8 +96,10 @@
   "original_failure_preserved": {
     "boundary_red": "Revision cycle and per-source phase-order regression",
     "browser_first": "Two manual-mapping locator failures: scope ambiguous season control to agronomic region; no business assertion removed",
+    "focused_local_warmup": "Extra focused run timed out waiting for unused Vite endpoint; Electron was listening there at diagnosis. No unrelated process stopped. Same HTTPS tests passed with a temporary HTTPS-only local runner configuration; repository/CI config unchanged.",
     "normalization_red": "Test-first source/schema implementation",
     "system_red": "Natural-deciduous heating is rejected per fixed V0.9 registry; no new agronomic effect inferred",
+    "unknown_method_red": "UNKNOWN/未知/不详 do not establish forcing method; original text retained",
     "user_text_red": "Prototype-like input must remain unknown text"
   },
   "restrictions": {
