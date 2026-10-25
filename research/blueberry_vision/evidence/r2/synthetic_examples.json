@@ -1,0 +1,41 @@
+{
+  "SYNTHETIC": true,
+  "dataset_manifest_hash": "29100d7f845c9bbd16b1c09e5cda703e53cf8fffead963752141247991dec2e5",
+  "example_selection_note": "Initial helper used heavy_occlusion; corrected to the actual high_occlusion scene key before checkpoint.",
+  "examples": [
+    {
+      "asset_sha256": "cb119671f8791df3348252bff0d32f04883238056e1c10253ca2daf3ea3dce36",
+      "example_path": "research/blueberry_vision/examples/r2/raw/sparse.png",
+      "image_id": "synthetic-r2-20261013-validation-0000",
+      "scene": "sparse"
+    },
+    {
+      "asset_sha256": "6043c8a62ca370c90a4796a39753eea1d2f441e19cbca2ff208ff644afba29aa",
+      "example_path": "research/blueberry_vision/examples/r2/raw/dense.png",
+      "image_id": "synthetic-r2-20261013-validation-0001",
+      "scene": "dense"
+    },
+    {
+      "asset_sha256": "1562687ee584eef93d136e5994787a7d1ef010048bf40197181790c9efe1db8a",
+      "example_path": "research/blueberry_vision/examples/r2/raw/high_occlusion.png",
+      "image_id": "synthetic-r2-20261013-validation-0004",
+      "scene": "high_occlusion"
+    },
+    {
+      "asset_sha256": "34e812250034f6e7e5a26738b97af99bc43f5af0b8d404ca38a0beec68f170da",
+      "example_path": "research/blueberry_vision/examples/r2/raw/empty.png",
+      "image_id": "synthetic-r2-20261013-validation-0011",
+      "scene": "empty"
+    },
+    {
+      "asset_sha256": "9cb172315b509cbe31b08391495f102056d1b4a9da3216f17f57966e28be1002",
+      "example_path": "research/blueberry_vision/examples/r2/raw/pressure.png",
+      "image_id": "synthetic-r2-20261013-validation-0013",
+      "scene": "pressure"
+    }
+  ],
+  "generation_config_hash": "5bc2b4dbe5146d465a6f28bfc87408a62ccfbd1224e481167bcb2824c401a96a",
+  "generation_smoke": "PASS_56_ASSETS",
+  "image_count": 56,
+  "source_split": "validation"
+}

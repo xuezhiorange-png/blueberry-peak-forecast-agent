@@ -1,0 +1,50 @@
+{
+  "status": "PASS",
+  "examples": [
+    {
+      "scene": "sparse",
+      "image_id": "synthetic-r2-20261013-test-0000",
+      "path": "examples/r2/review/overlays/image-0000-model-0.png",
+      "count_error": 0,
+      "SYNTHETIC": true
+    },
+    {
+      "scene": "dense",
+      "image_id": "synthetic-r2-20261013-test-0001",
+      "path": "examples/r2/review/overlays/image-0001-model-0.png",
+      "count_error": -27,
+      "SYNTHETIC": true
+    },
+    {
+      "scene": "partial_occlusion",
+      "image_id": "synthetic-r2-20261013-test-0003",
+      "path": "examples/r2/review/overlays/image-0003-model-0.png",
+      "count_error": 0,
+      "SYNTHETIC": true
+    },
+    {
+      "scene": "high_occlusion",
+      "image_id": "synthetic-r2-20261013-test-0004",
+      "path": "examples/r2/review/overlays/image-0004-model-0.png",
+      "count_error": -9,
+      "SYNTHETIC": true
+    },
+    {
+      "scene": "empty",
+      "image_id": "synthetic-r2-20261013-test-0011",
+      "path": "examples/r2/review/overlays/image-0011-model-0.png",
+      "count_error": 0,
+      "SYNTHETIC": true
+    },
+    {
+      "scene": "pressure",
+      "image_id": "synthetic-r2-20261013-test-0013",
+      "path": "examples/r2/review/overlays/image-0013-model-0.png",
+      "count_error": 0,
+      "SYNTHETIC": true
+    }
+  ],
+  "all_errors_directory": "examples/r2/review/errors_collection",
+  "html_path": "examples/r2/review/report.html",
+  "warning": "SYNTHETIC DEMONSTRATION \u2014 NOT REAL BLUEBERRY ACCURACY"
+}

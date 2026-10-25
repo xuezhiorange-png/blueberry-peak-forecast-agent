@@ -1,0 +1,297 @@
+{
+  "dataset_manifest_hash": "29100d7f845c9bbd16b1c09e5cda703e53cf8fffead963752141247991dec2e5",
+  "images": [
+    {
+      "image_id": "synthetic-r2-20261013-train-0000",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0001",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0002",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0003",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0004",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0005",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0006",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0007",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0008",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0009",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0010",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0011",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0012",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-train-0013",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0000",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0001",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0002",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0003",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0004",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0005",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0006",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0007",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0008",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0009",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0010",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0011",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0012",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-validation-0013",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0000",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0001",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0002",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0003",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0004",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0005",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0006",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0007",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0008",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0009",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0010",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0011",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0012",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-test-0013",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0000",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0001",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0002",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0003",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0004",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0005",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0006",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0007",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0008",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0009",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0010",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0011",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0012",
+      "reason_code": null,
+      "status": "VALID"
+    },
+    {
+      "image_id": "synthetic-r2-20261013-out_of_domain-0013",
+      "reason_code": null,
+      "status": "VALID"
+    }
+  ],
+  "split_hash": "29d06869258ae57870fa80fce9a54d6577598149292a6ed3cd1b856c2c7b50cb",
+  "summary": {
+    "SYNTHETIC": true,
+    "actual_asset_bytes_verified": true,
+    "authorization_authenticity_verified": false,
+    "failed_count": 0,
+    "normalized_rgb_exact_duplicate_analysis_performed": true,
+    "validated_count": 56,
+    "visual_near_duplicate_analysis_performed": false
+  },
+  "valid": true,
+  "validation_hash": "a80f1d41c3dbd911feee5db216c06464bdf3b59ddbed3a02b804c8f032f20cec"
+}

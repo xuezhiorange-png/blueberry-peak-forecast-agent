@@ -1,0 +1,66 @@
+{
+  "status": "PASS_EXPECTED_REJECTION",
+  "command": [
+    "/tmp/blueberry-vision-r2-venv/bin/python",
+    "-m",
+    "research.blueberry_vision.validate_manifest",
+    "research/blueberry_vision/fixtures/synthetic_manifest.json",
+    "--mode",
+    "experiment",
+    "--json"
+  ],
+  "exit_code": 2,
+  "report": {
+    "errors": [
+      {
+        "code": "EXPERIMENT_LABEL_APPROVAL_REQUIRED",
+        "path": "/observations/0/label_definition_version"
+      },
+      {
+        "code": "EXPERIMENT_LABEL_APPROVAL_REQUIRED",
+        "path": "/observations/1/label_definition_version"
+      },
+      {
+        "code": "EXPERIMENT_LABEL_APPROVAL_REQUIRED",
+        "path": "/observations/2/label_definition_version"
+      },
+      {
+        "code": "EXPERIMENT_LABEL_APPROVAL_REQUIRED",
+        "path": "/observations/3/label_definition_version"
+      },
+      {
+        "code": "SYNTHETIC_NOT_EXPERIMENT_DATA",
+        "path": "/SYNTHETIC"
+      },
+      {
+        "code": "EXPERIMENT_REAL_OBSERVATIONS_REQUIRED",
+        "path": "/observations"
+      },
+      {
+        "code": "EXPERIMENT_IMAGE_ASSETS_REQUIRED",
+        "path": "/image_files_present"
+      }
+    ],
+    "mode": "experiment",
+    "summary": {
+      "algorithm_metrics_computed": false,
+      "authorization_authenticity_verified": false,
+      "image_assets_verified": false,
+      "image_files_present": false,
+      "missing_count_records": 1,
+      "near_duplicate_image_analysis_performed": false,
+      "prediction_records": 0,
+      "real_observation_records": 0,
+      "record_count": 5,
+      "splits": {
+        "out_of_domain": 1,
+        "test": 1,
+        "train": 1,
+        "unassigned": 1,
+        "validation": 1
+      },
+      "synthetic_records": 5
+    },
+    "valid": false
+  }
+}

@@ -1,0 +1,488 @@
+{
+  "claims": {
+    "algorithm_accuracy_established": false,
+    "next_action": "STOP_FOR_INDEPENDENT_REVIEW_AND_SEPARATE_AUTHORIZATION",
+    "successful_future_research_gate_authorizes_production": false,
+    "vision_improves_yield_forecast_established": false,
+    "vision_model_development_completed": false,
+    "without_real_annotation_and_independent_test": "ENGINEERING_PREPARATION_ONLY"
+  },
+  "current_execution": {
+    "current_season_actual_read": false,
+    "data_collection_started": false,
+    "merge_authorized": false,
+    "model_training_started": false,
+    "model_weights_downloaded": false,
+    "pr_created": false,
+    "production_forecast_changed": false,
+    "ready_authorized": false,
+    "real_image_data_read": false,
+    "real_metric_evaluation_started": false,
+    "tag_release_deploy_authorized": false
+  },
+  "data_eligibility": {
+    "annotation_after_origin": "MAY_BE_FUTURE_AUTHORIZED_REFERENCE_NEVER_BACKDATED_FEATURE",
+    "availability_fields": [
+      "observed_at",
+      "asset_available_at",
+      "annotation_available_at",
+      "available_at"
+    ],
+    "base_resolution": "CANONICAL_AUTHORITY_ONLY_NEVER_NAME_GUESSING",
+    "candidate_assets_are_independent_samples": false,
+    "current_2026_2027_actual": "EXCLUDED_FROM_THIS_TASK",
+    "exposed_oot": "EXPOSED_COMPARISON_ONLY_WITH_NEW_AUTHORIZATION_NEVER_NEW_BLIND_TEST",
+    "feature_cutoff_rule": "ALL_FEATURE_SOURCE_AVAILABLE_AT_LE_FORECAST_ORIGIN_CUTOFF",
+    "ground_truth": "AUTHORIZED_REAL_OBSERVATION_WITH_APPROVED_LABEL_DEFINITION_AND_REVIEWED_ANNOTATION",
+    "historical_strict_pit_claim_without_proof": false,
+    "legitimate_zero": "REVIEWED_FULL_TASK_SCOPE_REAL_OBSERVATION_WITH_CONFIRMED_NO_VISIBLE_FRUIT",
+    "missing_or_unreviewed_is_zero": false,
+    "model_prediction_as_ground_truth_allowed": false,
+    "observed_at_proves_available_at": false,
+    "synthetic_as_real_experiment_allowed": false,
+    "training_cutoff_rule": "TRAIN_FEATURES_LABELS_AND_FIT_ARTIFACTS_MUST_MATCH_AUTHORIZED_TRAINING_CUTOFF",
+    "unresolved_identity": "QUARANTINE_FOR_BASE_BOUND_EXPERIMENTS"
+  },
+  "engineering_interfaces": {
+    "asset_bytes_or_near_duplicate_analysis_implemented": false,
+    "contract_command": "python -m research.blueberry_vision.validate_manifest <manifest-path> --mode contract --json",
+    "future_experiment_contract_command": "python -m research.blueberry_vision.validate_manifest <authorized-real-manifest-path> --mode experiment --json",
+    "manifest_schema_path": "research/blueberry_vision/schemas/vision_manifest.schema.json",
+    "manifest_version": "blueberry-vision-manifest/1.0.0",
+    "metric_evaluator_implemented": false,
+    "observation_schema_path": "research/blueberry_vision/schemas/vision_observation.schema.json",
+    "observation_schema_version": "blueberry-vision-observation/1.0.0",
+    "polygon_contract_is_full_instance_segmentation_support": false,
+    "synthetic_contract_pass_means": "ENGINEERING_CONTRACT_ONLY_NO_ALGORITHM_ACCURACY",
+    "synthetic_experiment_mode": "REJECT",
+    "synthetic_fixture_path": "research/blueberry_vision/fixtures/synthetic_manifest.json",
+    "test_escrow_implemented": false,
+    "training_runner_implemented": false,
+    "validator_is_complete_experiment_runner": false
+  },
+  "first_experiment_recommendation": {
+    "architecture": "OWNER_PENDING_AFTER_DATA_AND_LABEL_REVIEW",
+    "candidate_label_status": "PENDING_BUSINESS_CONFIRMATION",
+    "count_to_kg_conversion_allowed": false,
+    "human_consistency_baseline": "FIRST_INDEPENDENT_COUNT_VS_ADJUDICATED_REFERENCE",
+    "reference": "BLIND_MANUALLY_ANNOTATED_AND_INDEPENDENTLY_REVIEWED_VISIBLE_FRUIT_GROUND_TRUTH",
+    "status": "CONDITIONAL_RECOMMENDATION_NOT_MODEL_SELECTION",
+    "synthetic_class_to_business_grade_mapping_allowed": false,
+    "task": "SINGLE_IMAGE_VISIBLE_BLUEBERRY_DETECTION_AND_COUNTING"
+  },
+  "formal_product_version": false,
+  "mandatory_artifacts": [
+    "OWNER_AUTHORIZATION_AND_PREREGISTRATION",
+    "SCHEMA_LABEL_ANNOTATION_VERSIONS_AND_HASHES",
+    "RAW_ASSET_AND_SOURCE_MANIFEST_HASHES",
+    "NEAR_DUPLICATE_REVIEW_GROUP_AND_SPLIT_HASHES",
+    "IDENTITY_AUTHORITY_AND_CUTOFF_AVAILABILITY_EVIDENCE",
+    "BASELINE_SNAPSHOT_RUN_SOURCE_INPUT_RESULT_MODEL_HASHES_WHEN_APPLICABLE",
+    "REFERENCE_ANNOTATION_OR_WEIGHING_SOURCE_HASHES",
+    "CODE_SHA_DEPENDENCY_OR_IMAGE_LOCK_SEEDS_AND_CONFIG_HASHES",
+    "TRAIN_ONLY_FIT_ARTIFACT_AND_EVERY_WEIGHT_MODEL_HASH",
+    "ALL_ATTEMPT_AND_FAILURE_LOGS",
+    "VALIDATION_MODEL_THRESHOLD_SELECTION_LOG",
+    "TEST_PREDICTION_SEAL_REFERENCE_AND_EVALUATOR_HASHES",
+    "TEST_ACCESS_AND_EXPOSURE_LOG",
+    "PER_RECORD_ERRORS_STRATA_COVERAGE_AND_RESOURCE_REPORTS",
+    "NEGATIVE_RESULTS_UNDEFINED_METRICS_AND_OWNER_GATE_DECISION"
+  ],
+  "metrics": {
+    "A_DETECTION": {
+      "ap_recall_interpolation_points": 101,
+      "ap_score_floor": "REGISTER_SEPARATELY_FROM_OPERATIONAL_CONFIDENCE_LOCK_BEFORE_TEST_NO_TEST_ADAPTIVE_FILTERING",
+      "ap_uses_confidence_ranked_pr_curve_not_one_operating_point": true,
+      "bbox_map": [
+        "COCO_MAP_IOU_0.50",
+        "COCO_MAP_IOU_0.50_TO_0.95_STEP_0.05"
+      ],
+      "classes_without_gt": "NULL_AP_LIST_NONCOMPUTABLE_CLASS_NOT_ZERO",
+      "dense_crowd_reporting": "REPORT_GT_OVER_100_AND_TRUNCATION_OPTIONAL_HIGHER_MAXDETS_PRE_REGISTERED_SEPARATELY_NAMED",
+      "evaluator_requirement": "FROZEN_IMPLEMENTATION_VERSION_CONFIG_AND_HASH",
+      "operation_point_iou": 0.5,
+      "operation_point_matching": "SAME_IMAGE_SAME_APPROVED_CLASS_CONFIDENCE_DESCENDING_ONE_TO_ONE_IOU_MATCH_TO_UNMATCHED_GT_WITH_FROZEN_IGNORE_CROWD_RULES",
+      "precision": "TP/(TP+FP)",
+      "recall": "TP/(TP+FN)",
+      "standard_coco_max_dets": 100,
+      "thresholds": "CONFIDENCE_NMS_AND_ALL_POSTPROCESSING_SELECTED_ON_VALIDATION_THEN_LOCKED",
+      "zero_precision_denominator": "NULL_WITH_PREDICTION_COUNT",
+      "zero_recall_denominator": "NULL_WITH_EMPTY_IMAGE_FALSE_POSITIVES_REPORTED"
+    },
+    "B_INSTANCE_SEGMENTATION": {
+      "additional_outputs": [
+        "VISIBLE_COUNT_MAE_BIAS",
+        "PAIRED_OCCLUSION_DENSITY_ERRORS",
+        "MASK_ANNOTATION_HOURS",
+        "DISAGREEMENT",
+        "RESOURCE_COST",
+        "UNDEFINABLE_BOUNDARY_RATE"
+      ],
+      "comparison": "SAME_MATCHED_HOLDOUT_IMAGES_APPROVED_LABEL_SCOPE_AND_FAILURE_DENOMINATORS_AS_DETECTION",
+      "fully_occluded_fruit_inferred_as_truth": false,
+      "implementation_status": "NOT_IMPLEMENTED_REQUIRES_SEPARATE_ADAPTER_AUTHORIZATION",
+      "mask_map": [
+        "COCO_MASK_MAP_IOU_0.50",
+        "COCO_MASK_MAP_IOU_0.50_TO_0.95_STEP_0.05"
+      ],
+      "matching": "MASK_IOU_SAME_IMAGE_CLASS_ONE_TO_ONE_FROZEN_IGNORE_CROWD_RULES",
+      "standard_coco_max_dets": 100
+    },
+    "C_MATURITY": {
+      "abstain_definition": "MODEL_REJECTS_CLASS_ASSIGNMENT",
+      "class_without_support": "NULL_RECALL_NOT_ZERO",
+      "confusion_matrix_columns": "PREDICTED_CLASSES_PLUS_UNKNOWN_PLUS_ABSTAIN",
+      "confusion_matrix_rows": "APPROVED_REFERENCE_CLASSES_PLUS_UNKNOWN",
+      "label_definition_status": "OWNER_PENDING",
+      "macro_recall": "ONLY_COMPUTABLE_PREDEFINED_CLASSES_WITH_INCLUDED_AND_EXCLUDED_CLASS_LIST",
+      "per_class_recall": "TP/(TP+FN)_ABSTAIN_AND_UNKNOWN_PREDICTIONS_COUNT_AS_FN_FOR_KNOWN_REFERENCE",
+      "pixel_segmentation": "REQUIRES_PRE_REGISTERED_IOU_DICE_PIXEL_IGNORE_AND_INSTANCE_ATTRIBUTION_RULES",
+      "required_outputs": [
+        "CLASS_SUPPORT",
+        "UNKNOWN_RATE",
+        "ABSTAIN_RATE",
+        "VARIETY_LIGHT_DEVICE_MATRICES",
+        "GT_CROP_CLASSIFICATION",
+        "END_TO_END_DETECTION_AND_CLASSIFICATION_WITH_MISSED_OBJECT_FAILURES"
+      ],
+      "synthetic_color_classes_are_business_maturity_grades": false,
+      "unknown_definition": "REFERENCE_CANNOT_BE_CONFIDENTLY_ASSIGNED"
+    },
+    "D_FORECAST_INCREMENTAL_VALUE": {
+      "AREA_COMPARATOR": "AUTHORIZED_READ_ONLY_SAVED_AREA_DRIVEN_FORECAST_SNAPSHOT",
+      "VISION_CANDIDATE": "FUTURE_INDEPENDENT_RESEARCH_VISION_ASSISTED_CANDIDATE_NOT_PRODUCTION_REPLACEMENT",
+      "baseline_preserved": true,
+      "bias_unit": "kg",
+      "comparison_role_identity": "LOCAL_RESEARCH_ROLES_NEVER_REUSE_FROZEN_V0.15_M1_MODEL_IDENTITY",
+      "harvest_state_changed": false,
+      "mae_unit": "kg",
+      "matched_dimensions": [
+        "CANONICAL_BASE",
+        "SEASON",
+        "FORECAST_ORIGIN_CUTOFF",
+        "D1_TO_DH_TARGET_DATES",
+        "SCOPE",
+        "KG_UNIT"
+      ],
+      "paired_delta": "error_VISION_CANDIDATE-error_AREA_COMPARATOR_ON_IDENTICAL_REFERENCE_ROWSET",
+      "reference": "AUTHORIZED_INDEPENDENT_WEIGHING_WITH_MEASUREMENT_SCOPE_CALIBRATION_TIME_SOURCE_AND_AVAILABLE_AT_EVIDENCE",
+      "required_outputs": [
+        "DAILY_ERROR",
+        "SAME_ORIGIN_WINDOW_CUMULATIVE_ERROR",
+        "BASE_DATE_VARIETY_STRATA",
+        "COMMON_ROWSET_COVERAGE",
+        "AREA_COMPARATOR_AVAILABLE_VISION_CANDIDATE_MISSING_ROWS",
+        "MEASUREMENT_UNCERTAINTY"
+      ],
+      "sealed_predictions_before_reference_release": true,
+      "source_hash_alone_establishes_strict_pit_or_measured_weight": false,
+      "wape": "sum(abs(prediction-actual))/sum(actual)",
+      "wape_zero_denominator": "NULL_NO_ZERO_TOTAL_ROW_REMOVAL_TO_CREATE_IMPROVEMENT",
+      "weight_mapping": "ONLY_AUTHORIZED_TRAIN_FIT_WITH_SAMPLE_COVERAGE_FREQUENCY_AND_CALIBRATION_VALIDATION_SELECTS_TEST_NEVER_FITS",
+      "without_independent_kg_or_matching_baseline": "NOT_EVALUABLE_NO_INCREMENTAL_VALUE_CLAIM"
+    },
+    "VISIBLE_COUNTING": {
+      "across_view_counts_are_whole_plant_count": false,
+      "bias": "sum(predicted_count-reference_count)/n",
+      "bias_sign": "POSITIVE_IS_OVERCOUNT",
+      "failed_inference_or_missing_annotation": "EXPLICIT_FAILURE_OR_MISSING_COVERAGE_NOT_ZERO_PREDICTION_OR_REFERENCE",
+      "fruit_count_is_kg": false,
+      "mae": "sum(abs(predicted_count-reference_count))/n",
+      "n_zero": "NOT_EVALUABLE_NULL",
+      "prediction": "COUNT_FROM_VALIDATION_LOCKED_BOX_OR_INSTANCE_POLICY_ON_SAME_IMAGE_SCOPE",
+      "reference": "REVIEWED_VISIBLE_FRUIT_COUNT_PER_IMAGE",
+      "required_errors": [
+        "SIGNED_ERROR",
+        "ABSOLUTE_ERROR",
+        "OCCLUSION_DENSITY_SMALL_OBJECT_STRATA",
+        "EMPTY_IMAGE_FALSE_POSITIVES",
+        "UNCOUNTABLE_RATE"
+      ],
+      "unit": "visible_fruit_per_image"
+    },
+    "uncertainty": {
+      "groups": [
+        "CAPTURE_SESSION",
+        "BASE",
+        "DATE_OR_LONGITUDINAL_SAMPLING_UNIT_AS_APPROPRIATE"
+      ],
+      "image_iid_bootstrap_for_correlated_samples_allowed": false,
+      "method": "PRE_REGISTER_PAIRED_GROUP_BOOTSTRAP_OR_OTHER_INDEPENDENT_GROUP_METHOD",
+      "research_interval_is_production_accuracy_guarantee": false,
+      "seed_and_resample_count": "PRE_REGISTER_BEFORE_TEST"
+    }
+  },
+  "owner_pending_decisions": [
+    "USE_CASE_AND_OBSERVATION_UNIT",
+    "VISIBLE_FRUIT_DEFINITION_MINIMUM_SIZE_PARTIAL_OCCLUSION_AND_IGNORE_RULES",
+    "CONFIRMED_MATURITY_LABEL_DEFINITION_WITH_UNKNOWN",
+    "DATA_SOURCE_LICENSE_PURPOSE_ACCESS_RETENTION_AUTHORITY",
+    "CANONICAL_BASE_SEASON_VARIETY_SAMPLING_UNIT_AUTHORITY",
+    "TRAINING_WEIGHT_DOWNLOAD_AND_REAL_EVALUATION_AUTHORIZATION",
+    "PRIMARY_METRIC_AND_PASS_THRESHOLDS",
+    "MINIMUM_INDEPENDENT_GROUPS_AND_STRATUM_SUPPORT_OR_INTERVAL_PRECISION",
+    "ALLOWABLE_UNKNOWN_ABSTENTION_INFERENCE_FAILURE_AND_COVERAGE",
+    "MAXIMUM_BIAS_AND_WORST_STRATUM_REGRESSION",
+    "ANNOTATION_COMPUTE_STORAGE_BUDGET_AND_TARGET_DEVICE_LATENCY",
+    "YIELD_TARGET_SCOPE_UNIT_TIME_AND_INDEPENDENT_WEIGHING_AUTHORITY"
+  ],
+  "protected_boundaries": [
+    "V0.14_V0.15_V0.16_FROZEN_MODELS_AND_EVIDENCE",
+    "V0.17_V0.18_FROZEN_BUSINESS_CONTRACTS",
+    "HARVEST_STATE_MATHEMATICS",
+    "PRODUCTION_API_MCP_DASHBOARD",
+    "SAVED_PRODUCTION_FORECAST_RUNS",
+    "RAW_HISTORICAL_DATABASE_DATA",
+    "CURRENT_2026_2027_SEASON_ACTUAL",
+    "OTHER_TASK_BRANCHES_AND_UNCOMMITTED_FILES"
+  ],
+  "protocol_version": "blueberry-vision-experiment-protocol/1.0.0",
+  "resources": {
+    "acceptance_thresholds": "OWNER_PENDING_NOT_INVENTED",
+    "annotation": [
+      "BOX_HOURS",
+      "MASK_HOURS",
+      "MATURITY_REVIEW_HOURS",
+      "SAMPLING_AND_WEIGHING_HOURS",
+      "DISAGREEMENT_AND_REJECTION_RATES"
+    ],
+    "inference": [
+      "PRE_REGISTERED_DEVICE",
+      "WARMUP",
+      "BATCH_SIZE",
+      "RESOLUTION",
+      "PRE_POSTPROCESSING_INCLUSION",
+      "P50_P95_LATENCY",
+      "IMAGES_PER_SECOND",
+      "MEMORY",
+      "FAILURE_RATE",
+      "REPEATED_MEASUREMENT_PROTOCOL"
+    ],
+    "status": "PLANNED_NOT_MEASURED",
+    "training": [
+      "GPU_CPU_MODEL",
+      "PEAK_VRAM_RAM",
+      "IMAGE_SIZE",
+      "BATCH_SIZE",
+      "EPOCHS_STEPS",
+      "PARAMETER_COUNT",
+      "ALL_SEARCH_TRIALS",
+      "TOTAL_GPU_CPU_HOURS",
+      "STORAGE_BYTES",
+      "COST_AUTHORITY"
+    ]
+  },
+  "source_dependencies": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "ff6eb1c2cc45607138da6a619512fbbdfad8e541016b6b67bd1b65c1daf51b60"
+    },
+    {
+      "path": "docs/research/blueberry-vision-foundation-preparation-r0.md",
+      "sha256": "589a026ddf0acdd6d4ef525661d8be145deac7aaa4d5fd8d5ab992695bffb145"
+    },
+    {
+      "path": "docs/v0-15/v0.15.0-closeout.md",
+      "sha256": "ea6426434bc9eb271b8e39f8313b0032ca28449c068c33782d4f2110527a20a7"
+    },
+    {
+      "path": "docs/v0-17/v0.17.0-version-plan-and-product-scope-freeze.md",
+      "sha256": "f7510aaaa9f16b86e78f07ef1837891a93faa7363262777abbdb71f7b412b9d3"
+    },
+    {
+      "path": "docs/v0-18/v0.18.0-business-usability-scope-freeze.md",
+      "sha256": "d621c76041c16fb2bfd03f99946777edfc66a34d05cc2ffb321dcc0ca28dbf78"
+    }
+  ],
+  "split_policy": {
+    "all_attributes_retained_for_strata": true,
+    "all_holdouts_sealed_before_any_test_results": true,
+    "connected_group_edges": [
+      "SAME_ASSET_SHA256",
+      "SAME_NEAR_DUPLICATE_GROUP_AFTER_ASSET_REVIEW",
+      "SAME_CAPTURE_SESSION",
+      "SAME_LONGITUDINAL_SAMPLING_UNIT",
+      "SAME_SOURCE_VIDEO_OR_REPHOTOGRAPHED_VIEW_RELATION"
+    ],
+    "cross_cutoff_group_policy": "QUARANTINE_OR_ASSIGN_WHOLE_GROUP_NEVER_BREAK_IT",
+    "development_rule": "TRAIN_FITS_PARAMETERS_VALIDATION_SELECTS_STRATEGY_TEST_IS_USED_ONCE",
+    "future_forecast_checks": [
+      "CROSS_SEASON",
+      "ROLLING_TIME",
+      "BASE_LEAVEOUT_WITHIN_AUTHORIZED_DEVELOPMENT_DATA"
+    ],
+    "group_atomic_across_splits": true,
+    "holdouts": [
+      {
+        "concrete_dates": "PRE_REGISTER_AFTER_AUTHORIZED_INVENTORY",
+        "design": "EARLIER_TRAIN_LATER_VALIDATION_LATEST_TEST_ON_DISJOINT_SAMPLING_UNIT_GROUPS",
+        "id": "T_TEMPORAL",
+        "minimum_support": "OWNER_PENDING"
+      },
+      {
+        "concrete_base_ids": "PRE_REGISTER_WITH_AUTHORITY_AFTER_AUTHORIZED_INVENTORY",
+        "design": "AT_LEAST_ONE_CANONICAL_BASE_NEVER_PRESENT_IN_TRAIN_OR_VALIDATION",
+        "id": "B_BASE",
+        "minimum_support": "OWNER_PENDING"
+      },
+      {
+        "concrete_categories": "PRE_REGISTER_AFTER_AUTHORIZED_INVENTORY",
+        "design": "PRE_REGISTER_VARIETY_DEVICE_OR_VIEW_CATEGORIES_NEVER_PRESENT_IN_TRAIN_OR_VALIDATION",
+        "id": "O_OUT_OF_SUPPORT",
+        "minimum_support": "OWNER_PENDING"
+      }
+    ],
+    "mutually_exclusive_primary_assignment": "B_THEN_O_THEN_T_EACH_RECORD_COUNTED_ONCE_IN_OVERALL_METRICS",
+    "post_test_changes": "NEW_AUTHORIZATION_NEW_EXPERIMENT_NEW_UNEXPOSED_TEST_REQUIRED",
+    "post_test_label_fix_reanalysis_status": "EXPOSED_REANALYSIS_NOT_BLIND_TEST",
+    "primary_adjacent_frame_or_date_random_split_allowed": false,
+    "splits": [
+      "TRAIN",
+      "VALIDATION",
+      "SEALED_TEST"
+    ],
+    "test_tuning_or_repeated_adaptive_reuse_allowed": false
+  },
+  "status": "PLANNED_NOT_RUN",
+  "stop_rules": [
+    "MISSING_PERMISSION_SOURCE_OR_RETENTION_AUTHORITY",
+    "UNRESOLVED_REQUIRED_CANONICAL_IDENTITY",
+    "UNAPPROVED_OR_UNRELIABLE_LABELS",
+    "DUPLICATE_GROUP_CROSS_SPLIT_OR_UNREVIEWED_ASSETS",
+    "INVALID_TIME_CHAIN_OR_FEATURE_AFTER_CUTOFF",
+    "TEST_EXPOSED_OR_USED_FOR_TUNING",
+    "PREDICTION_OR_SYNTHETIC_PRESENTED_AS_REAL_GROUND_TRUTH",
+    "RESOURCE_BUDGET_EXCEEDED",
+    "INSUFFICIENT_INDEPENDENT_TEST_OR_STRATUM_SUPPORT",
+    "NO_INDEPENDENT_KG_OR_MATCHED_BASELINE_FOR_ROUTE_D",
+    "MISSING_REPRODUCIBILITY_ARTIFACTS"
+  ],
+  "stratification": {
+    "denominators": [
+      "CANDIDATE_RECORDS",
+      "REVIEWED_RECORDS",
+      "COMPUTABLE_RECORDS",
+      "FAILURES",
+      "INDEPENDENT_GROUPS"
+    ],
+    "dimensions": [
+      "CAPTURE_DATE",
+      "CANONICAL_BASE",
+      "VARIETY",
+      "OCCLUSION",
+      "LIGHTING",
+      "DEVICE",
+      "CAMERA_ANGLE",
+      "IN_OR_OUT_OF_TRAINING_SUPPORT"
+    ],
+    "empty_or_missing_reference": "NOT_EVALUABLE_WITH_NULL_METRIC",
+    "minimum_per_stratum_support": "OWNER_PENDING",
+    "missing_strata_or_unknown_values": "REPORT_EXPLICITLY_NEVER_SILENTLY_DROP"
+  },
+  "task_id": "BLUEBERRY_VISION_FOUNDATION_ENGINEERING_PREPARATION_R1",
+  "workflow": [
+    {
+      "action": "FREEZE_USE_CASE_LABELS_SCOPE_LICENSE_BUDGET_METRICS_THRESHOLDS_AND_TEST_CUSTODIAN",
+      "failure": "BLOCKED_AUTHORITY",
+      "outputs": [
+        "authorization_record",
+        "preregistration",
+        "permission_authority_refs"
+      ],
+      "step": "E0_AUTHORIZATION_PREREGISTRATION"
+    },
+    {
+      "action": "REGISTER_ASSET_HASH_AVAILABILITY_SESSION_UNIT_DATE_BASE_VARIETY_CAMERA_VIEW_COVERAGE_AND_DUPLICATE_RELATIONS",
+      "failure": "BLOCKED_DATA",
+      "outputs": [
+        "asset_source_manifest",
+        "availability_evidence",
+        "missing_rejected_asset_log"
+      ],
+      "step": "E1_AUTHORIZED_COLLECTION"
+    },
+    {
+      "action": "APPLY_APPROVED_LABELS_WITH_BLIND_SECOND_REVIEW_ADJUDICATION_UNKNOWN_IGNORE_AND_COUNT_CHECK",
+      "failure": "BLOCKED_LABELS",
+      "outputs": [
+        "label_definition_hash",
+        "annotation_version_hash",
+        "annotation_qa",
+        "human_consistency_report"
+      ],
+      "step": "E2_ANNOTATION_AND_INDEPENDENT_REVIEW"
+    },
+    {
+      "action": "CHECK_ASSET_BYTES_NEAR_DUPLICATES_AND_CONNECTED_GROUPS_FREEZE_TEST_SCOPE_BEFORE_RESULTS",
+      "failure": "LEAKAGE_OR_NOT_EVALUABLE",
+      "outputs": [
+        "duplicate_review",
+        "group_hash",
+        "split_hash",
+        "scope_source_hashes",
+        "test_escrow",
+        "exposure_log"
+      ],
+      "step": "E3_GROUP_DEDUP_SPLIT_AND_SEAL"
+    },
+    {
+      "action": "RUN_EXPERIMENT_MODE_CLI_ARCHIVE_RAW_OUTPUT_AND_EXIT_CODE_ALSO_REVIEW_ASSET_AND_ESCROW_GATES",
+      "failure": "BLOCKED_CONTRACT",
+      "outputs": [
+        "validator_output_hash",
+        "validator_exit_code",
+        "manual_readiness_check"
+      ],
+      "step": "E4_OFFLINE_CONTRACT_VALIDATION"
+    },
+    {
+      "action": "AUTHORIZED_TRAINING_WITH_PRE_REGISTERED_CODE_ENV_SEED_CONFIG_BUDGET_AND_TRAIN_ONLY_PREPROCESSING",
+      "failure": "BLOCKED_TRAIN_OR_BUDGET",
+      "outputs": [
+        "code_sha",
+        "dependency_lock",
+        "training_config_hash",
+        "train_only_fit_artifact_hash",
+        "weight_model_hash",
+        "all_run_logs",
+        "resource_log"
+      ],
+      "step": "E5_TRAIN_ONLY_FIT"
+    },
+    {
+      "action": "USE_VALIDATION_ONLY_FOR_MODEL_CONFIDENCE_NMS_INPUT_SIZE_CALIBRATION_ABSTENTION_AND_POSTPROCESSING_THEN_LOCK",
+      "failure": "NOT_READY_FOR_TEST",
+      "outputs": [
+        "validation_report",
+        "selection_log",
+        "locked_config_hash",
+        "locked_model_hash"
+      ],
+      "step": "E6_VALIDATION_SELECTION_AND_LOCK"
+    },
+    {
+      "action": "CUSTODIAN_SEALS_LOCKED_MODEL_PREDICTIONS_BEFORE_REFERENCE_RELEASE_AND_USES_FROZEN_EVALUATOR",
+      "failure": "TEST_EXPOSED_OR_NOT_EVALUABLE",
+      "outputs": [
+        "test_prediction_seal_hash",
+        "reference_hash",
+        "evaluator_hash",
+        "test_access_exposure_log",
+        "per_record_error_report"
+      ],
+      "step": "E7_ONE_SHOT_INDEPENDENT_TEST"
+    },
+    {
+      "action": "REPORT_OVERALL_STRATA_COVERAGE_UNDEFINED_FAILURES_RESOURCES_AND_PRE_REGISTERED_GATE_DECISION",
+      "failure": "ENGINEERING_PREPARATION_ONLY_OR_RESEARCH_GATE_FAIL",
+      "outputs": [
+        "metric_report",
+        "resource_report",
+        "negative_results",
+        "reproducibility_manifest",
+        "gate_decision"
+      ],
+      "step": "E8_REPORT_AND_STOP"
+    }
+  ]
+}
