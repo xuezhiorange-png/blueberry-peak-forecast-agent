@@ -151,6 +151,44 @@ function key(r: V020Record) {
 }
 type AreaInterval = { record: V020Record; start: string; end: string; value: bigint };
 function areaChecks(areas: V020Record[]) {
+  const groups = new Map<string, V020Record[]>();
+  const unknown = new Set([
+    "UNKNOWN",
+    "UNMAPPED",
+    "UNBOUND",
+    "N/A",
+    "NULL",
+    "NONE",
+    "-",
+    "未知",
+    "未映射",
+  ]);
+  for (const r of areas) {
+    const s = r.scope;
+    const identity = [s.base, s.farm, s.subfarm, s.plot, s.variety, s.season];
+    if (
+      identity.some((v) => !v.trim() || unknown.has(v.trim().toUpperCase())) ||
+      !systems.has(s.production_system) ||
+      r.issues.some((i) => i.code === "SEASON_INVALID")
+    ) {
+      issue(
+        r,
+        "AREA_SCOPE_UNMAPPED",
+        "面积业务身份不完整或含未知标记；保留原记录，不将未知成员合并进行跨记录面积比较。",
+        "WARNING",
+      );
+      continue;
+    }
+    // Scope belongs to the checker, independent of its caller's grouping.
+    const k = key(r);
+    const rows = groups.get(k) ?? [];
+    rows.push(r);
+    groups.set(k, rows);
+  }
+  for (const rows of groups.values()) areaChecksInScope(rows);
+}
+
+function areaChecksInScope(areas: V020Record[]) {
   const intervals: AreaInterval[] = [];
   for (const r of areas) {
     const a = r.area!;
@@ -576,6 +614,7 @@ function createRecord(
 }
 
 function crossChecks(records: V020Record[], plans: V020SheetPlan[]) {
+  areaChecks(records.filter((r) => r.area));
   const groups = new Map<string, V020Record[]>();
   for (const r of records) {
     const k = key(r);
@@ -671,7 +710,6 @@ function crossChecks(records: V020Record[], plans: V020SheetPlan[]) {
             "ERROR",
           );
     }
-    areaChecks(all.filter((r) => r.area));
     for (const seq of [
       ["flowering_start_date", "flowering_peak_date", "flowering_end_date"],
       ["BLOOM_10", "BLOOM_50", "BLOOM_90"],
