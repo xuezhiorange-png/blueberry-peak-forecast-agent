@@ -15,12 +15,21 @@ export async function sha256(bytes: ArrayBuffer): Promise<string> {
     .map((v) => v.toString(16).padStart(2, "0"))
     .join("");
 }
-function cell(value: unknown): Cell {
+function cell(value: unknown, preserveTime = false): Cell {
   const text =
-    value == null ? "" : value instanceof Date ? value.toISOString().slice(0, 10) : String(value);
+    value == null
+      ? ""
+      : value instanceof Date
+        ? preserveTime && value.toISOString().slice(11, 23) !== "00:00:00.000"
+          ? value.toISOString().slice(0, -1)
+          : value.toISOString().slice(0, 10)
+        : String(value);
   if (text.length > LIMITS.cellText) throw Error("CELL_TEXT_LIMIT");
   return {
     text,
+    ...(preserveTime && value instanceof Date
+      ? { temporal_source: "EXCEL_SERIAL_TIMEZONE_UNPROVEN" as const }
+      : {}),
     kind: !text
       ? "blank"
       : value instanceof Date
@@ -79,6 +88,7 @@ function csv(text: string): Cell[][] {
 export async function parsePreview(
   buffer: ArrayBuffer,
   format: "csv" | "xlsx",
+  v0_20_preserve_time = false,
 ): Promise<LocalBook> {
   if (!buffer.byteLength || buffer.byteLength > LIMITS.fileBytes) throw Error("FILE_SIZE_LIMIT");
   const hash = await sha256(buffer);
@@ -98,7 +108,7 @@ export async function parsePreview(
           })
         ).map((s) => ({
           name: s.sheet,
-          rows: Array.from(s.data, (r) => Array.from(r ?? [], cell)),
+          rows: Array.from(s.data, (r) => Array.from(r ?? [], (v) => cell(v, v0_20_preserve_time))),
         }));
   if (!sheets.length || sheets.length > LIMITS.sheets) throw Error("SHEET_LIMIT");
   let cells = 0;

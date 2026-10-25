@@ -1,0 +1,110 @@
+{
+  "base_main_sha": "d30e40b7a71f258f223c73c5fdb2b273d35ef1fa",
+  "data_class": "SYNTHETIC_TEST_FIXTURE",
+  "local_validation": {
+    "agronomic_rolling_postgres": {
+      "failed": 0,
+      "passed": 153
+    },
+    "browser_desktop_mobile": {
+      "existing": 40,
+      "failed": 0,
+      "new_v0_20": 10,
+      "passed": 50
+    },
+    "frontend_build": "PASS",
+    "frontend_format": "PASS",
+    "frontend_lint": "PASS",
+    "frontend_typecheck": "PASS",
+    "frontend_unit": {
+      "failed": 0,
+      "passed": 200
+    },
+    "historical_contracts": {
+      "failed": 0,
+      "passed": 55
+    },
+    "import_related_unit": {
+      "deselected_postgres_or_integration": 92,
+      "failed": 0,
+      "passed": 335
+    },
+    "mypy": "PASS",
+    "python_format": "PASS",
+    "ruff": "PASS"
+  },
+  "log_sha256": {
+    "final-browser.log": "58b3de5202c5f3b8ccd1a6f51348e17f516f4de06bfa1af030978b087af61515",
+    "format-python-final.log": "caed8734a634d1fdf779025d0d2ab0ac3f44422fbe5ebe0d148b269593a65b3e",
+    "historical-contracts.log": "696e76217876437a5c639c01a96d5e455157d5a6150e1e9a6de61c96b5e8795b",
+    "import-regression.log": "a2c0336c11664a42a90e6b096c5ecb2b41080a16901a27a9f80252a059e0663f",
+    "mypy.log": "d53bee255e9e35667b2d129ab30b3ab146bcd8d80a9f6bb6e317c2dbb1dc3950",
+    "ruff-final.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "unit-final.log": "ec89d873b8328f1d89ac101bc57a923f0b5c172395b3b4dc531a2af0682de849",
+    "unit-release.log": "1ff761ca40176bd94e4ce213ae733405f775bd0a70d3bab056092e205cfaa24a"
+  },
+  "normalized_example": {
+    "artifact_sha256": {
+      "agronomic-area.csv": "db5f4b41622eb188a376aa9ec0931a85b6300b5553f5f72145f6d1115ec116cc",
+      "agronomic-events.csv": "c75d017dc73037b1d69af1fec57a06810aeae496c212bb5b81f213f1b33fdbe0",
+      "agronomic-phenology.csv": "76cdf3288529169ea56ae81135baff5d4a005d82cf2e098bcb56356c7a19f73c",
+      "agronomic-quality-report.html": "cbaf72817a8cf4eeba29b304a62051256102332c84e256bbd1db0b2a0638ea88"
+    },
+    "mapping_sha256": "928d73abdbd9eb9ec761142266f3c677272265b3291ec28d1d0be75b08eaca2e",
+    "package_id": "V0_20-7ca546d45f6ce68f9a18d7ccad5b4c976eaab6e8d648510d2591aacd8d0d9e57",
+    "source_sha256": "d0fced2172cc0af7b6df7f2892efc27dba4fd3cdd57408e93e20babb85fe0b81",
+    "summary": {
+      "base_count": 2,
+      "issue_counts": {
+        "GENERIC_BLOOM_NOT_PERCENTILE": 18,
+        "PLOT_SOURCE_ONLY": 90,
+        "TIME_PRECISION_UNPROVEN": 180
+      },
+      "kind_counts": {
+        "AREA": 18,
+        "EVENT": 36,
+        "PHENOLOGY": 36
+      },
+      "record_count": 90,
+      "research_admitted_count": 0,
+      "season_counts": {
+        "2023-2024": 45,
+        "2024-2025": 45
+      },
+      "source_row_count": 18,
+      "state_counts": {
+        "CONFLICT": 0,
+        "PARTIAL": 0,
+        "PIT_NOT_PROVEN": 90,
+        "SOURCE_AUTHORITY_NOT_PROVEN": 90,
+        "UNMAPPED": 90,
+        "VALID_STRUCTURE": 90
+      },
+      "structurally_complete_count": 90,
+      "variety_count": 2
+    }
+  },
+  "original_failure_preserved": {
+    "boundary_red": "Revision cycle and per-source phase-order regression",
+    "browser_first": "Two manual-mapping locator failures: scope ambiguous season control to agronomic region; no business assertion removed",
+    "normalization_red": "Test-first source/schema implementation",
+    "system_red": "Natural-deciduous heating is rejected per fixed V0.9 registry; no new agronomic effect inferred",
+    "user_text_red": "Prototype-like input must remain unknown text"
+  },
+  "restrictions": {
+    "agronomic_effect_validated": false,
+    "deployed": false,
+    "formal_version_complete": false,
+    "independent_review_completed": false,
+    "merge_authorized": false,
+    "model_trained": false,
+    "postmerge_main_ci_verified": false,
+    "ready_authorized": false,
+    "real_data_imported": false,
+    "real_data_read": false,
+    "release_authorized": false,
+    "source_authority_proven": false,
+    "strict_pit_validated": false
+  },
+  "task_id": "V0_20_AGRONOMIC_HISTORY_DATA_FOUNDATION_R1"
+}

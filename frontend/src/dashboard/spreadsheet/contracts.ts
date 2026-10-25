@@ -26,7 +26,11 @@ export const FIELDS = [
 ] as const;
 export type Field = (typeof FIELDS)[number][0];
 export type Mapping = Partial<Record<Field, number | null>>;
-export type Cell = { text: string; kind: "text" | "number" | "date" | "blank" };
+export type Cell = {
+  text: string;
+  kind: "text" | "number" | "date" | "blank";
+  temporal_source?: "EXCEL_SERIAL_TIMEZONE_UNPROVEN";
+};
 export type LocalBook = { sha256: string; sheets: { name: string; rows: Cell[][] }[] };
 export type BookSummary = {
   sha256: string;
@@ -59,9 +63,17 @@ export type QualityPreview = {
   preview: string[][];
 };
 export type WorkerRequest =
-  | { type: "parse"; id: number; buffer: ArrayBuffer; format: "csv" | "xlsx" }
-  | { type: "analyze"; id: number; sheet: number; header: number; mapping: Mapping };
+  | {
+      type: "parse";
+      id: number;
+      buffer: ArrayBuffer;
+      format: "csv" | "xlsx";
+      v0_20_preserve_time?: boolean;
+    }
+  | { type: "analyze"; id: number; sheet: number; header: number; mapping: Mapping }
+  | import("../agronomic/v0_20_contracts").V020WorkerRequest;
 export type WorkerReply =
   | { id: number; type: "parsed"; book: BookSummary }
   | { id: number; type: "analyzed"; report: QualityPreview }
-  | { id: number; type: "error"; code: string };
+  | { id: number; type: "error"; code: string }
+  | import("../agronomic/v0_20_contracts").V020WorkerReply;

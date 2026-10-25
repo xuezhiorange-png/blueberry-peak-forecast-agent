@@ -1,5 +1,6 @@
 import { parsePreview, analyzePreview } from "./preview";
 import type { LocalBook, WorkerReply, WorkerRequest } from "./contracts";
+import { prepareV020 } from "../agronomic/v0_20_prepare";
 
 // Parsing has no network capability. Only the main application may request
 // registered synthetic assets or authorized saved forecasts.
@@ -10,7 +11,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   try {
     let reply: WorkerReply;
     if (request.type === "parse") {
-      book = await parsePreview(request.buffer, request.format);
+      book = await parsePreview(request.buffer, request.format, request.v0_20_preserve_time);
       reply = {
         id: request.id,
         type: "parsed",
@@ -22,6 +23,13 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
             columnCount: Math.max(0, ...s.rows.map((r) => r.length)),
           })),
         },
+      };
+    } else if (request.type === "v0_20_prepare") {
+      if (!book) throw Error("FILE_NOT_SELECTED");
+      reply = {
+        id: request.id,
+        type: "v0_20_prepared",
+        prepared: await prepareV020(book, request.plans),
       };
     } else {
       if (!book) throw Error("FILE_NOT_SELECTED");
