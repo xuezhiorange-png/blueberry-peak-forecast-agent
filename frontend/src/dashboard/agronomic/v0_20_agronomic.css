@@ -1,0 +1,88 @@
+.v020-agronomic .d-table-wrap table {
+  min-width: 760px;
+}
+.v020-agronomic iframe {
+  width: 100%;
+  height: 650px;
+  border: 1px solid #ccd9d2;
+  background: white;
+}
+.v020-agronomic details {
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.v020-agronomic code,
+.v020-agronomic pre {
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.v020-slots {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+.v020-slots fieldset {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px;
+  border: 1px solid #cadad2;
+  border-radius: 6px;
+}
+.v020-slots label {
+  display: flex;
+  flex: 1 1 160px;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+.v020-timeline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-height: 650px;
+  overflow: auto;
+}
+.v020-timeline article {
+  padding: 14px;
+  border: 1px solid #d5e1db;
+  border-left: 4px solid #236550;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+}
+.v020-timeline article[data-state="PLANNED"] {
+  border-left-color: #b1802d;
+  background: #fffaf0;
+}
+.v020-timeline article[data-state="UNKNOWN"] {
+  border-left-color: #87948c;
+}
+.v020-timeline article p {
+  font-size: 13px;
+  margin: 8px 0;
+}
+.v020-agronomic button {
+  margin: 4px 6px 4px 0;
+}
+.v020-modes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 0;
+}
+.v020-modes button[aria-selected="true"] {
+  background: #164d3d;
+  color: white;
+}
+@media (max-width: 700px) {
+  .v020-timeline {
+    grid-template-columns: 1fr;
+  }
+  .v020-agronomic iframe {
+    height: 480px;
+  }
+  .v020-modes button {
+    flex: 1 1 160px;
+  }
+}

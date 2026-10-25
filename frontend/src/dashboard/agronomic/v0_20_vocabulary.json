@@ -1,0 +1,206 @@
+{
+  "base_main_sha": "d30e40b7a71f258f223c73c5fdb2b273d35ef1fa",
+  "event_types": [
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "PRUNING",
+      "family": "PRUNING"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "POSTHARVEST_PRUNING",
+      "family": "PRUNING"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "SUMMER_PRUNING",
+      "family": "PRUNING"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING"],
+      "code": "WINTER_PRUNING",
+      "family": "PRUNING"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING"],
+      "code": "DORMANT_PRUNING",
+      "family": "PRUNING"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "CANE_RENEWAL",
+      "family": "PRUNING"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "FRUITING_WOOD_THINNING",
+      "family": "PRUNING"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "FLOWER_BUD_THINNING",
+      "family": "REPRODUCTIVE_SINK_MANAGEMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "FLOWER_REMOVAL",
+      "family": "REPRODUCTIVE_SINK_MANAGEMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "FLOWER_THINNING",
+      "family": "REPRODUCTIVE_SINK_MANAGEMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "FRUITLET_THINNING",
+      "family": "REPRODUCTIVE_SINK_MANAGEMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "FRUIT_THINNING",
+      "family": "REPRODUCTIVE_SINK_MANAGEMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "GREENHOUSE_CLOSE",
+      "family": "PROTECTED_ENVIRONMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "GREENHOUSE_OPEN",
+      "family": "PROTECTED_ENVIRONMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "HEATING_START",
+      "family": "PROTECTED_ENVIRONMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "HEATING_STOP",
+      "family": "PROTECTED_ENVIRONMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING"],
+      "code": "DORMANCY_BREAK_TREATMENT",
+      "family": "DORMANCY_MANAGEMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "SHADE_START",
+      "family": "PROTECTED_ENVIRONMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "SHADE_STOP",
+      "family": "PROTECTED_ENVIRONMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "SHADE_APPLICATION",
+      "family": "PROTECTED_ENVIRONMENT"
+    },
+    {
+      "applicable_systems": ["EVERGREEN", "DECIDUOUS_NATURAL", "DECIDUOUS_FORCING"],
+      "code": "LEAF_RETENTION_MANAGEMENT",
+      "family": "CANOPY_MANAGEMENT"
+    },
+    {
+      "applicable_systems": ["EVERGREEN", "DECIDUOUS_NATURAL", "DECIDUOUS_FORCING"],
+      "code": "DEFOLIATION",
+      "family": "CANOPY_MANAGEMENT"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "POLLINATION_WINDOW_START",
+      "family": "POLLINATION"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "POLLINATION_WINDOW_END",
+      "family": "POLLINATION"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "POLLINATION_START",
+      "family": "POLLINATION"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "POLLINATION_END",
+      "family": "POLLINATION"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "POLLINATOR_INTRODUCTION",
+      "family": "POLLINATION"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "IRRIGATION_STRESS",
+      "family": "WATER_NUTRITION"
+    },
+    {
+      "applicable_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+      "code": "NUTRITION_INTERVENTION",
+      "family": "WATER_NUTRITION"
+    }
+  ],
+  "intensity_modes": ["OBSERVED_VALUE", "BUSINESS_GRADE", "PRESENCE_ONLY", "PLANNED_VALUE"],
+  "intensity_requirements": ["value", "unit", "denominator", "method", "scope", "source_reference"],
+  "interpretation": "PREPARATION_ONLY_NO_BIOLOGICAL_MODEL_OR_AUTHORITY",
+  "phenology_stages": [
+    "POSTHARVEST",
+    "VEGETATIVE_REGROWTH",
+    "FLOWER_BUD_FORMATION",
+    "ACCLIMATION",
+    "DORMANT",
+    "CHILL_ACCUMULATING",
+    "CHILL_SATISFIED",
+    "FORCING",
+    "BUD_SWELL",
+    "BUD_BREAK",
+    "BLOOM_10",
+    "BLOOM_50",
+    "BLOOM_90",
+    "FRUIT_SET",
+    "GREEN_FRUIT",
+    "STAGE_I",
+    "STAGE_II",
+    "STAGE_III",
+    "COLOR_BREAK",
+    "RIPE",
+    "EVERGREEN_CONTINUATION"
+  ],
+  "production_plan_fields": [
+    "planted_area_mu",
+    "tree_age_years",
+    "pruning_date",
+    "flowering_start_date",
+    "flowering_peak_date",
+    "flowering_end_date",
+    "version",
+    "effective_from",
+    "effective_to",
+    "available_at",
+    "source_type",
+    "source_name",
+    "source_version"
+  ],
+  "production_systems": ["DECIDUOUS_NATURAL", "DECIDUOUS_FORCING", "EVERGREEN"],
+  "schema_version": "V0_20_AGRONOMIC_VOCABULARY_R1",
+  "sources": {
+    "backend/app/models/master_data.py": "2a6d5f11f012a14639faf14ee814ab43c3a4d2a3457e1cc2f859b3ee4bd1a712",
+    "backend/app/pit/schemas.py": "cd6021273a1715d4437ba0573bafc7302cd2858af0d6cc5a655846bb7de1e66c",
+    "backend/app/pit/visibility.py": "721a6f865aac624f72c964faca4c4e64004341c1f6cb29765614cd07ee4b702d",
+    "backend/app/planning/plan_schemas.py": "d6f81824ce75f18dd625a07966ec7c54eebab47c0028d3b01c51964843a299d0",
+    "docs/v0-9/s1/biological-state-registry-r1.json": "86f09a78565f06b73304d9e4f8232c96d7a91173ce8b5787d2b219c0baec719f",
+    "docs/v0-9/s1/management-event-registry-r1.json": "49a29e972191e67f04a32d3f50c27705b44a6a2f5dca97f2400eef0aab1b0729"
+  },
+  "upstream_versions": {
+    "management_events": "V0_9_S1_R1",
+    "phenology": "V0_9_S1_R1",
+    "pit": "V0_6_S1"
+  }
+}
