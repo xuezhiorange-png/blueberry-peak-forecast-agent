@@ -20,6 +20,7 @@ import {
   type WorkerReply,
 } from "./contracts";
 import "../styles/spreadsheet.css";
+import { V020AgronomicPreparation } from "../agronomic/V020AgronomicPreparation";
 
 const PATH = "/api/v1/rolling-forecast-runs";
 const assetSchema = z.object({
@@ -85,7 +86,28 @@ const errors: Record<string, string> = {
 
 export function SpreadsheetPreparation() {
   const session = useSession();
-  return <Workspace key={session?.user.principal_id ?? "none"} />;
+  const [mode, setMode] = useState<"inbound" | "agronomic">("inbound");
+  return (
+    <>
+      <div role="tablist" aria-label="电子表格准备模式" className="v020-modes">
+        <button role="tab" aria-selected={mode === "inbound"} onClick={() => setMode("inbound")}>
+          入库与预测演示
+        </button>
+        <button
+          role="tab"
+          aria-selected={mode === "agronomic"}
+          onClick={() => setMode("agronomic")}
+        >
+          历史农事数据
+        </button>
+      </div>
+      {mode === "inbound" ? (
+        <Workspace key={session?.user.principal_id ?? "none"} />
+      ) : (
+        <V020AgronomicPreparation key={session?.user.principal_id ?? "none"} />
+      )}
+    </>
+  );
 }
 
 function Workspace() {
@@ -191,7 +213,7 @@ function Workspace() {
         stopWorker();
         fail(Error(event.data.code));
       } else if (event.data.type === "parsed") setBook(event.data.book);
-      else setQuality(event.data.report);
+      else if (event.data.type === "analyzed") setQuality(event.data.report);
     };
     instance.onerror = () => {
       stopWorker();
