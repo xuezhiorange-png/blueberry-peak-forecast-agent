@@ -5,6 +5,7 @@ import { prepareV020, dateV020 } from "../dashboard/agronomic/v0_20_prepare";
 import type { V020SheetPlan } from "../dashboard/agronomic/v0_20_contracts";
 import { unzipSync } from "fflate";
 import { sha256 } from "../dashboard/spreadsheet/preview";
+import originalAcceptance from "../../../docs/v0-20/evidence/v0.20.0-local-acceptance-r1.json";
 
 async function custom(kind: V020SheetPlan["kind"], rows: Record<string, string>[]) {
   const common = {
@@ -47,6 +48,132 @@ async function custom(kind: V020SheetPlan["kind"], rows: Record<string, string>[
 function bytes(base64: string) {
   return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
 }
+
+const areaPeriod = {
+  area_unit: "mu",
+  effective_from: "2023-07-01",
+  effective_to: "2024-06-30",
+};
+function areaRows(rows: Record<string, string>[]) {
+  return custom(
+    "AREA",
+    rows.map((r, i) => ({ ...areaPeriod, logical_id: `area-${i}`, revision_id: "r1", ...r })),
+  );
+}
+const areaConflict = (p: Awaited<ReturnType<typeof areaRows>>, code: string) =>
+  p.data.records.filter((r) => r.issues.some((i) => i.code === code));
+
+it("V0_20 same complete area scope retains overlap detection and accepts disjoint periods", async () => {
+  const overlapping = await areaRows([
+    { area_basis: "PLANTED", area_value: "100" },
+    { area_basis: "PLANTED", area_value: "120", effective_from: "2024-06-30" },
+  ]);
+  expect(areaConflict(overlapping, "AREA_INTERVAL_CONFLICT")).toHaveLength(2);
+  expect(overlapping.data.records.map((r) => r.area!.raw_value)).toEqual(["100", "120"]);
+  const disjoint = await areaRows([
+    { area_basis: "PLANTED", area_value: "100", effective_to: "2023-12-31" },
+    { area_basis: "PLANTED", area_value: "120", effective_from: "2024-01-01" },
+  ]);
+  expect(areaConflict(disjoint, "AREA_INTERVAL_CONFLICT")).toHaveLength(0);
+});
+it.each(["PRODUCTIVE", "EFFECTIVE"])(
+  "V0_20 same complete scope compares %s only against overlapping planted area",
+  async (basis) => {
+    const p = await areaRows([
+      { area_basis: "PLANTED", area_value: "100" },
+      { area_basis: basis, area_value: "101" },
+    ]);
+    expect(areaConflict(p, "AREA_BASIS_CONFLICT")).toHaveLength(2);
+    const valid = await areaRows([
+      { area_basis: "PLANTED", area_value: "100" },
+      { area_basis: basis, area_value: "99" },
+    ]);
+    expect(areaConflict(valid, "AREA_BASIS_CONFLICT")).toHaveLength(0);
+    const differentPeriod = await areaRows([
+      { area_basis: "PLANTED", area_value: "100", effective_to: "2023-12-31" },
+      { area_basis: basis, area_value: "101", effective_from: "2024-01-01" },
+    ]);
+    expect(areaConflict(differentPeriod, "AREA_BASIS_CONFLICT")).toHaveLength(0);
+  },
+);
+const differentAreaScopes = [
+  ["base", "B-other"],
+  ["farm", "F-other"],
+  ["subfarm", "S-other"],
+  ["plot", "P-other"],
+  ["variety", "V-other"],
+  ["season", "2024-2025"],
+  ["production_system", "EVERGREEN"],
+] as const;
+it.each(differentAreaScopes)(
+  "V0_20 area %s isolation prevents both overlap and basis conflicts",
+  async (field, value) => {
+    const otherScope = { [field]: value };
+    // Keep dates identical even across seasons so date separation cannot hide a bad scope join.
+    const overlap = await areaRows([
+      { area_basis: "PLANTED", area_value: "100" },
+      { area_basis: "PLANTED", area_value: "120", ...otherScope },
+    ]);
+    expect(areaConflict(overlap, "AREA_INTERVAL_CONFLICT")).toHaveLength(0);
+    const basis = await areaRows([
+      { area_basis: "PLANTED", area_value: "100" },
+      { area_basis: "PRODUCTIVE", area_value: "200", ...otherScope },
+    ]);
+    expect(areaConflict(basis, "AREA_BASIS_CONFLICT")).toHaveLength(0);
+    expect(basis.data.records[1].scope[field]).toBe(value);
+    expect(basis.data.records.map((r) => r.area!.value)).toEqual(["100.000000", "200.000000"]);
+  },
+);
+it.each(["base", "farm", "subfarm", "plot", "variety", "season"] as const)(
+  "V0_20 missing area %s is not proof that two unknown members are identical",
+  async (field) => {
+    for (const basis of ["PLANTED", "PRODUCTIVE"]) {
+      const p = await areaRows([
+        { area_basis: "PLANTED", area_value: "100", [field]: "" },
+        { area_basis: basis, area_value: "200", [field]: "" },
+      ]);
+      expect(areaConflict(p, "AREA_INTERVAL_CONFLICT")).toHaveLength(0);
+      expect(areaConflict(p, "AREA_BASIS_CONFLICT")).toHaveLength(0);
+      expect(areaConflict(p, "AREA_SCOPE_UNMAPPED")).toHaveLength(2);
+      expect(
+        p.data.records.every((r) => r.states.includes("UNMAPPED") && r.scope[field] === ""),
+      ).toBe(true);
+      expect(p.data.records.map((r) => r.area)).toEqual([
+        expect.objectContaining({
+          raw_value: "100",
+          value: "100.000000",
+          unit: "mu",
+          effective_from: expect.objectContaining({ raw: "2023-07-01", precision: "DAY" }),
+        }),
+        expect.objectContaining({
+          raw_value: "200",
+          value: "200.000000",
+          unit: "mu",
+          effective_to: expect.objectContaining({ raw: "2024-06-30", precision: "DAY" }),
+        }),
+      ]);
+    }
+  },
+);
+it.each(["UNKNOWN", "UNMAPPED", "未知"])(
+  "V0_20 unknown plot marker %s remains unmapped rather than a shared plot authority",
+  async (plot) => {
+    const p = await areaRows([
+      { area_basis: "PLANTED", area_value: "100", plot },
+      { area_basis: "EFFECTIVE", area_value: "200", plot },
+    ]);
+    expect(areaConflict(p, "AREA_BASIS_CONFLICT")).toHaveLength(0);
+    expect(areaConflict(p, "AREA_SCOPE_UNMAPPED")).toHaveLength(2);
+    expect(
+      p.data.records.every(
+        (r) =>
+          r.scope.plot === plot &&
+          r.scope.plot_authority_id === null &&
+          r.states.includes("UNMAPPED"),
+      ),
+    ).toBe(true);
+  },
+);
 it.each(["wide", "long"] as const)(
   "V0_20 prepares real parsed %s XLSX with three kinds and two seasons",
   async (scenario) => {
@@ -76,6 +203,14 @@ it.each(["wide", "long"] as const)(
       "agronomic-quality-report.html",
     ]);
     expect(await prepareV020(book, a.plans as V020SheetPlan[])).toEqual(p);
+    if (scenario === "wide") {
+      expect(p.package_id).toBe(originalAcceptance.normalized_example.package_id);
+      expect(p.data.summary).toEqual(originalAcceptance.normalized_example.summary);
+      for (const [name, digest] of Object.entries(
+        originalAcceptance.normalized_example.artifact_sha256,
+      ))
+        expect(p.files.find((f) => f.name === name)!.sha256).toBe(digest);
+    }
   },
 );
 it("V0_20 keeps ambiguous forcing, conflicts, unknown plot and month precision", async () => {
