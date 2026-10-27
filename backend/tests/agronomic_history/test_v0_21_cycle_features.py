@@ -80,6 +80,50 @@ def test_month_year_intervals_are_not_fake_exact_days(raw, lo, hi):
     assert v == dict(status="INTERVAL", value=None, lower_days=lo, upper_days=hi, reason=None)
 
 
+@pytest.mark.parametrize(
+    "raw,lower,upper",
+    [
+        ("2023-08", "2023-08-01", "2023-09-30"),
+        ("2023-12", "2023-12-01", "2024-01-31"),
+        ("2023", "2023-01-01", "2024-12-31"),
+        ("2023-08", "2023-08-02", "2023-08-31"),
+        ("2023-08", "2023-08-01", "2023-08-30"),
+        ("2023", "2023-01-02", "2023-12-31"),
+        ("2023", "2023-01-01", "2023-12-30"),
+    ],
+)
+def test_invalid_month_year_bounds_cannot_produce_cycle_or_event_features(raw, lower, upper):
+    p, d = example()
+    token = dict(span(raw), lower_date=lower, upper_date=upper)
+    d["cycles"][0]["start"] = token
+    cycle = first(prepare(p, d))["features"]["days_since_cycle_start"]
+    assert cycle == dict(
+        status="NOT_COMPUTABLE",
+        value=None,
+        lower_days=None,
+        upper_days=None,
+        reason="CYCLE_START_MISSING_OR_AMBIGUOUS",
+    )
+
+    p, d = example()
+    r = record(p)
+    r["business_date"] = token
+    reseal(p, d)
+    result = prepare(p, d)
+    primary = first(result)["features"]["days_since_primary_pruning"]
+    assert primary == dict(
+        status="NOT_COMPUTABLE",
+        value=None,
+        lower_days=None,
+        upper_days=None,
+        reason="REVISION_VISIBILITY_NOT_PROVEN",
+    )
+    assert any(
+        item["record_id"] == r["record_id"] and item["reason"] == "DATE_NOT_COMPUTABLE"
+        for item in result["origin_decisions"]
+    )
+
+
 def test_future_origin_day_and_late_revisions_do_not_change_legal_features():
     p, d = example()
     before = first(prepare(p, d))

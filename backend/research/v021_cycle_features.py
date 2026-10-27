@@ -158,10 +158,14 @@ def _bounds(token: DateToken, zone: ZoneInfo) -> tuple[date, date]:
     if token.precision == "DAY" and lo != hi:
         raise ValueError("DATE_PRECISION_CONFLICT")
     if token.precision == "MONTH" and (
-        lo.day != 1 or hi != date(lo.year, lo.month, calendar.monthrange(lo.year, lo.month)[1])
+        (lo.year, lo.month) != (hi.year, hi.month)
+        or lo.day != 1
+        or hi != date(lo.year, lo.month, calendar.monthrange(lo.year, lo.month)[1])
     ):
         raise ValueError("DATE_PRECISION_CONFLICT")
-    if token.precision == "YEAR" and (lo != date(lo.year, 1, 1) or hi != date(lo.year, 12, 31)):
+    if token.precision == "YEAR" and (
+        lo.year != hi.year or lo != date(lo.year, 1, 1) or hi != date(lo.year, 12, 31)
+    ):
         raise ValueError("DATE_PRECISION_CONFLICT")
     return lo, hi
 
