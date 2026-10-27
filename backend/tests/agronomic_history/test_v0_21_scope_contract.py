@@ -55,7 +55,14 @@ def assert_boundaries(data):
     assert data["structure_contract"]["yield_or_peak_effect_coefficients"] is False
     assert data["evaluation_contract"]["season_peak_equals_origin_h15"] is False
     assert data["evaluation_contract"]["s1_metric_formula_changes"] is False
-    assert data["evaluation_contract"]["rolling15_role"] == "STRUCTURAL_DIAGNOSTIC_NOT_S1_METRIC"
+    assert data["evaluation_contract"]["rolling15_role"] == "V0_21_ADDITIVE_PROTOCOL_NOT_S1"
+    remaining = data["evaluation_contract"]["remaining_season"]
+    assert remaining["scope_id"] == "DECLARED_REMAINING_SEASON_PEAK"
+    assert remaining["start_rule"] == "EXPLICIT_START_GTE_LOCAL_ORIGIN_PLUS_1"
+    assert remaining["end_rule"] == "PREDECLARED_SEASON_CALENDAR_END"
+    assert remaining["missing_dates"] == "NOT_COMPUTABLE_NO_IMPUTATION_OR_SCOPE_SHRINK"
+    assert remaining["h15_relabel_allowed"] is False
+    assert data["evaluation_contract"]["single_candidate_window_is_timing_skill"] is False
     assert data["completion"]["s1_s4_implemented"] is False
     assert data["completion"]["v021_formal_complete"] is False
 
@@ -63,7 +70,9 @@ def assert_boundaries(data):
 def test_version_identity_and_authorization_boundaries():
     data = contract()
     assert_boundaries(data)
-    assert data["task_id"] == "V0_21_S0_VERSION_SCOPE_AND_IMPLEMENTATION_PLAN_R1"
+    assert data["task_id"] == "V0_21_S0_VERSION_SCOPE_AND_IMPLEMENTATION_PLAN_R2"
+    assert data["revision"]["review_id"] == 5663203952
+    assert data["revision"]["reviewed_head"] == "4c117bdea6b70d8806e87e48690219db8fac34a5"
     assert data["version_name"] == "AGRONOMIC_CYCLE_AND_FORECAST_RESEARCH_READINESS"
     assert data["base_main_sha"] == BASE
     assert data["preflight"]["existing_v021_conflicts"] == []
@@ -137,6 +146,7 @@ def test_documents_match_frozen_scope_and_address_seven_business_questions():
     assert len(set(data["evaluation_contract"]["s1_metric_ids"])) == 10
     assert data["evaluation_contract"]["window_families"] == [
         "FULL_SEASON_PEAK",
+        "DECLARED_REMAINING_SEASON_PEAK",
         "ORIGIN_H7_PREFIX",
         "ORIGIN_H15_LOCAL",
     ]
@@ -145,6 +155,51 @@ def test_documents_match_frozen_scope_and_address_seven_business_questions():
         "DECIDUOUS_FORCING",
         "EVERGREEN",
     ]
+
+
+def test_additive_protocol_freezes_units_denominators_and_failure_scopes():
+    data = contract()["evaluation_contract"]
+    additional = {m["id"]: m for m in data["v021_additive_metrics"]}
+    assert set(additional) == {
+        "V0_21_ROLLING_15DAY_PEAK_START_MAE",
+        "V0_21_ROLLING_15DAY_PEAK_QUANTITY_MAE",
+        "V0_21_ORIGIN_WINDOW_TOTAL_MAE",
+        "V0_21_ORIGIN_WINDOW_TOTAL_WAPE",
+    }
+    assert not set(additional) & set(data["s1_metric_ids"])
+    for metric in additional.values():
+        assert metric["implementation_status"] == "PLANNED_S3_NOT_IMPLEMENTED"
+        assert metric["numerator"] and metric["denominator"] and metric["not_computable"]
+    date_metric = additional["V0_21_ROLLING_15DAY_PEAK_START_MAE"]
+    assert date_metric["unit"] == "calendar_days"
+    assert date_metric["denominator"] == "N_COMMON_COMPLETE_POSITIVE_ACTUAL_WINDOWS"
+    quantity_metric = additional["V0_21_ROLLING_15DAY_PEAK_QUANTITY_MAE"]
+    assert quantity_metric["denominator"] == "N_COMMON_COMPLETE_WINDOWS_INCLUDING_ZERO_ACTUAL"
+    total = additional["V0_21_ORIGIN_WINDOW_TOTAL_WAPE"]
+    assert total["numerator"] == "SUM_ABS_WINDOW_PREDICTED_TOTAL_MINUS_ACTUAL_TOTAL"
+    assert total["denominator"] == "SUM_ACTUAL_WINDOW_TOTAL_ON_COMMON_COHORT"
+    assert total["scopes"] == ["ORIGIN_H7_PREFIX", "ORIGIN_H15_LOCAL"]
+    assert (
+        data["same_date_pairing"] == "EXACT_BASE_MEMBER_SEASON_SCOPE_TARGET_DATE_AND_PHYSICAL_BASIS"
+    )
+    assert data["common_cohort_per_metric"] is True
+    assert data["failures_retained_in_C0"] is True
+    assert data["full_season_wape_allowed_for_remaining"] is False
+    assert data["peak_selection"] == "INDEPENDENT_PREDICTION_AND_LABEL_MAXIMA_ON_SAME_SUPPORT"
+
+
+def test_r1_scope_remains_a_verifiable_historical_snapshot():
+    data = contract()
+    raw = subprocess.check_output(
+        [
+            "git",
+            "show",
+            f"{data['revision']['reviewed_head']}:docs/v0-21/evidence/v0.21-s0-scope.json",
+        ],
+        cwd=ROOT,
+    )
+    assert hashlib.sha256(raw).hexdigest() == data["revision"]["previous_scope_sha256"]
+    assert json.loads(raw)["schema_version"] == "V0_21_S0_SCOPE_R1"
 
 
 @pytest.mark.parametrize(
@@ -164,10 +219,27 @@ def test_documents_match_frozen_scope_and_address_seven_business_questions():
         ("evaluation_contract", "season_peak_equals_origin_h15", True),
         ("evaluation_contract", "s1_metric_formula_changes", True),
         ("evaluation_contract", "rolling15_role", "REDEFINED_S1_METRIC"),
+        ("evaluation_contract", "single_candidate_window_is_timing_skill", True),
     ],
 )
 def test_unsafe_scope_mutations_are_rejected(section, key, bad_value):
     changed = copy.deepcopy(contract())
     changed[section][key] = bad_value
+    with pytest.raises(AssertionError):
+        assert_boundaries(changed)
+
+
+@pytest.mark.parametrize(
+    "key,bad_value",
+    [
+        ("start_rule", "ORIGIN_DAY_ALLOWED"),
+        ("end_rule", "ORIGIN_PLUS_15_AUTO_END"),
+        ("missing_dates", "DROP_MISSING_TARGETS"),
+        ("h15_relabel_allowed", True),
+    ],
+)
+def test_remaining_season_scope_cannot_be_renamed_or_silently_shortened(key, bad_value):
+    changed = copy.deepcopy(contract())
+    changed["evaluation_contract"]["remaining_season"][key] = bad_value
     with pytest.raises(AssertionError):
         assert_boundaries(changed)

@@ -43,25 +43,60 @@
     ]
   },
   "document_sha256": {
-    "docs/v0-21/stage-implementation-plan.md": "53c972a012d5a1bd3f06db96a5d62788a4d3e857e601cda800b133ada4ab4c2a",
-    "docs/v0-21/v0.21.0-version-plan.md": "5ad3bb85244786c35bf24d97088d006b33de45112c9e86073c9ec01952c017c1"
+    "docs/v0-21/stage-implementation-plan.md": "c8a43f66bdeee008840fea3af3af83b85070e6ff0be04186993aa743f07a74ab",
+    "docs/v0-21/v0.21.0-version-plan.md": "2614c77f798b3697db6e83197e668b1a3cadaf7eefe49c38e58c8b148c2b1cbc"
   },
   "evaluation_contract": {
     "all_zero_actual_date_metric": "NOT_COMPUTABLE_NO_POSITIVE_ACTUAL_PEAK",
     "cohort": "C0_BEFORE_LABELS_AND_COMMON_CM_PER_METRIC_WITH_FAILURES",
+    "common_cohort_per_metric": true,
+    "daily_pair_output": [
+      "predicted_kg",
+      "actual_kg",
+      "signed_error_kg",
+      "absolute_error_kg"
+    ],
     "exposed_2025_2026": "EXPOSED_HISTORICAL_BENCHMARK_NOT_BLIND_OOT",
+    "failure_rules": "S1_PRIMARY_REASON_ORDER_PLUS_NO_COMPLETE_15DAY_WINDOW_C0_NEVER_SHRINKS",
+    "failures_retained_in_C0": true,
     "full_season": "ONE_PREDECLARED_COMPLETE_CALENDAR_AND_SINGLE_ISSUANCE_CURVE",
+    "full_season_wape_allowed_for_remaining": false,
     "future_real_experiment": "SEPARATE_OWNER_DATA_MODEL_AND_SCORING_AUTHORIZATION_REQUIRED",
     "missing_label_imputation": false,
+    "numerical_rules": "DECIMAL_PRECISION_50_NO_DISPLAY_ROUNDING_IN_METRICS",
+    "origin_window_output": [
+      "predicted_total_kg",
+      "actual_total_kg",
+      "signed_error_kg",
+      "absolute_error_kg"
+    ],
     "peak_objective": "MAX_CUMULATIVE_KG_RETURN_ALL_DAILY_ROWS",
+    "peak_selection": "INDEPENDENT_PREDICTION_AND_LABEL_MAXIMA_ON_SAME_SUPPORT",
     "peak_window_days": [
       7,
       15
     ],
     "physical_bases": "FEATURE_OBSERVATION_MODEL_TRAINING_FORECAST_TARGET_EVALUATION_LABEL_DISTINCT",
     "quantity_gain_timing_regression": "MIXED",
+    "remaining_season": {
+      "calendar_identity": "FROZEN_BEFORE_LABELS_SCOPE_ID_TIMEZONE_ORIGIN_CUTOFF_START_END_CALENDAR_HASH",
+      "cutoff": "BEFORE_FIRST_TARGET_START",
+      "end_rule": "PREDECLARED_SEASON_CALENDAR_END",
+      "h15_relabel_allowed": false,
+      "missing_dates": "NOT_COMPUTABLE_NO_IMPUTATION_OR_SCOPE_SHRINK",
+      "not_computable": [
+        "UNKNOWN_SEASON_END",
+        "INVALID_OR_OUTSIDE_DECLARED_SCOPE",
+        "INCOMPLETE_CALENDAR",
+        "NO_COMPLETE_7DAY_WINDOW",
+        "NO_COMPLETE_15DAY_WINDOW"
+      ],
+      "scope_id": "DECLARED_REMAINING_SEASON_PEAK",
+      "start_after_D1": "DISCLOSE_OMITTED_EARLIER_REMAINING_DATES",
+      "start_rule": "EXPLICIT_START_GTE_LOCAL_ORIGIN_PLUS_1"
+    },
     "repeated_origins_independent": false,
-    "rolling15_role": "STRUCTURAL_DIAGNOSTIC_NOT_S1_METRIC",
+    "rolling15_role": "V0_21_ADDITIVE_PROTOCOL_NOT_S1",
     "s1_metric_formula_changes": false,
     "s1_metric_ids": [
       "SEASON_TOTAL_WAPE",
@@ -75,11 +110,96 @@
       "SAMPLE_COVERAGE",
       "NOT_COMPUTABLE_COUNT"
     ],
+    "same_date_pairing": "EXACT_BASE_MEMBER_SEASON_SCOPE_TARGET_DATE_AND_PHYSICAL_BASIS",
     "season_peak_equals_origin_h15": false,
+    "single_candidate_window_is_timing_skill": false,
     "split": "TEMPORAL_CROSS_SEASON_ROLLING_ENTITY_HOLDOUT_WHEN_SUPPORTED",
+    "structural_timing_zero": {
+      "applies_to": [
+        "H7_ROLLING7",
+        "H15_ROLLING15",
+        "FULL_OR_REMAINING_LENGTH_EQUALS_WINDOW"
+      ],
+      "output": [
+        "candidate_window_count",
+        "timing_skill_interpretable=false"
+      ],
+      "rule": "REPORT_RAW_METRIC_WITH_ORIGINAL_CM_AND_DENOMINATOR_FLAG_STRUCTURAL_ZERO_NO_SKILL_CLAIM_OPTIONAL_DIAGNOSTIC_SUBSET_NOT_REPLACEMENT"
+    },
     "tie_break": "EARLIEST_DATE_OR_START",
+    "v021_additive_metrics": [
+      {
+        "aggregation": "PER_SCOPE_SPLIT_AND_METRIC_COMMON_CM_WITH_C0_COVERAGE_FAILURES",
+        "denominator": "N_COMMON_COMPLETE_POSITIVE_ACTUAL_WINDOWS",
+        "id": "V0_21_ROLLING_15DAY_PEAK_START_MAE",
+        "implementation_status": "PLANNED_S3_NOT_IMPLEMENTED",
+        "not_computable": [
+          "NO_COMPLETE_15DAY_WINDOW",
+          "NO_POSITIVE_ACTUAL_PEAK",
+          "EMPTY_COHORT",
+          "INCOMPLETE_CALENDAR"
+        ],
+        "numerator": "SUM_ABS_INDEPENDENT_PREDICTED_VS_ACTUAL_ROLLING15_START_DATE_DIFF",
+        "scopes": [
+          "FULL_SEASON_PEAK",
+          "DECLARED_REMAINING_SEASON_PEAK"
+        ],
+        "unit": "calendar_days"
+      },
+      {
+        "aggregation": "PER_SCOPE_SPLIT_AND_METRIC_COMMON_CM_WITH_C0_COVERAGE_FAILURES",
+        "denominator": "N_COMMON_COMPLETE_WINDOWS_INCLUDING_ZERO_ACTUAL",
+        "id": "V0_21_ROLLING_15DAY_PEAK_QUANTITY_MAE",
+        "implementation_status": "PLANNED_S3_NOT_IMPLEMENTED",
+        "not_computable": [
+          "NO_COMPLETE_15DAY_WINDOW",
+          "EMPTY_COHORT",
+          "INCOMPLETE_CALENDAR"
+        ],
+        "numerator": "SUM_ABS_INDEPENDENT_PREDICTED_VS_ACTUAL_ROLLING15_MAX_CUMULATIVE_KG_DIFF",
+        "scopes": [
+          "FULL_SEASON_PEAK",
+          "DECLARED_REMAINING_SEASON_PEAK"
+        ],
+        "unit": "kg/15day-window"
+      },
+      {
+        "aggregation": "PER_SCOPE_SPLIT_AND_METRIC_COMMON_CM_WITH_C0_COVERAGE_FAILURES",
+        "denominator": "N_COMMON_COMPLETE_ORIGIN_WINDOWS_INCLUDING_ZERO_ACTUAL",
+        "id": "V0_21_ORIGIN_WINDOW_TOTAL_MAE",
+        "implementation_status": "PLANNED_S3_NOT_IMPLEMENTED",
+        "not_computable": [
+          "EMPTY_COHORT",
+          "INCOMPLETE_CALENDAR"
+        ],
+        "numerator": "SUM_ABS_WINDOW_PREDICTED_TOTAL_MINUS_ACTUAL_TOTAL",
+        "scopes": [
+          "ORIGIN_H7_PREFIX",
+          "ORIGIN_H15_LOCAL"
+        ],
+        "unit": "kg/window"
+      },
+      {
+        "aggregation": "PER_SCOPE_SPLIT_AND_METRIC_COMMON_CM_WITH_C0_COVERAGE_FAILURES",
+        "denominator": "SUM_ACTUAL_WINDOW_TOTAL_ON_COMMON_COHORT",
+        "id": "V0_21_ORIGIN_WINDOW_TOTAL_WAPE",
+        "implementation_status": "PLANNED_S3_NOT_IMPLEMENTED",
+        "not_computable": [
+          "ZERO_DENOMINATOR",
+          "EMPTY_COHORT",
+          "INCOMPLETE_CALENDAR"
+        ],
+        "numerator": "SUM_ABS_WINDOW_PREDICTED_TOTAL_MINUS_ACTUAL_TOTAL",
+        "scopes": [
+          "ORIGIN_H7_PREFIX",
+          "ORIGIN_H15_LOCAL"
+        ],
+        "unit": "ratio"
+      }
+    ],
     "window_families": [
       "FULL_SEASON_PEAK",
+      "DECLARED_REMAINING_SEASON_PEAK",
       "ORIGIN_H7_PREFIX",
       "ORIGIN_H15_LOCAL"
     ]
@@ -89,6 +209,7 @@
     "season_peak": "EQUAL"
   },
   "implementation_stage": "S0",
+  "initial_task_id": "V0_21_S0_VERSION_SCOPE_AND_IMPLEMENTATION_PLAN_R1",
   "input_data_class": "SYNTHETIC_TEST_FIXTURE",
   "permissions": {
     "deployment": false,
@@ -340,7 +461,7 @@
     {
       "commit": "c26ad54bc380c3f87a2e2250c91c0bf9ece12e8c",
       "id": "s1_metrics",
-      "minimal_gap": "新增rolling15仅结构诊断，不改指标",
+      "minimal_gap": "V0.21独立附加rolling15峰和origin累计误差合同，保留S1十指标不变",
       "path": "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md",
       "reuse": "S1十指标、共同集合和窗口规则",
       "sha256": "946f9212695fe4e40b3e41d757191daf01601a8d0c97a6f516c82f08edfebb27",
@@ -373,7 +494,7 @@
     {
       "commit": "c26ad54bc380c3f87a2e2250c91c0bf9ece12e8c",
       "id": "curve_windows",
-      "minimal_gap": "最薄rolling15结构选窗，无新模型/拟合",
+      "minimal_gap": "复用完整窗口裁剪准备rolling15选窗及独立误差算术，不新增模型或拟合",
       "path": "backend/research/v019_accuracy_models.py",
       "reuse": "确定性完整连续窗口裁剪",
       "sha256": "5806244033de572c919a1e0e79d338bc36390d0cdf2451023b8dd4dcea9512d3",
@@ -418,7 +539,15 @@
       ]
     }
   ],
-  "schema_version": "V0_21_S0_SCOPE_R1",
+  "revision": {
+    "previous_scope_sha256": "c055dfd8bfb1cc1b7c16bbeb1de9679c679b3159bb60f9e51e65d3297694e5cb",
+    "recorded_at_utc": "2026-10-27T06:50:07.023753+00:00",
+    "review_id": 5663203952,
+    "review_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/762#pullrequestreview-5663203952",
+    "reviewed_head": "4c117bdea6b70d8806e87e48690219db8fac34a5",
+    "scope": "S0_ONLY_REMAINING_SEASON_AND_ADDITIVE_EVALUATION_PROTOCOL"
+  },
+  "schema_version": "V0_21_S0_SCOPE_R2",
   "stages": [
     {
       "acceptance": "七个问题均有可执行的后续规则；五阶段具备本表七类要素；机器/文档一致；历史引用用固定 Git 字节验证；相关回归、静态检查及本 HEAD PR CI 真实记录。S0 编写完成和独立审核通过分开。",
@@ -474,13 +603,13 @@
       "title": "生产结构变化与合成场景（待独立授权）"
     },
     {
-      "acceptance": "H7/H15 日期精确，H7 是同 origin H15 前缀；季节 7/15 日峰遍历所有完整候选连续窗口并返回向量；S1 数学不变；新 rolling15 仅结构诊断；共同集及十指标不可计算分母规则与上游一致；完整季节未准入不计算季节总量 WAPE；空集不报 0 误差；H7 rolling7 起点 0 不报技能。",
-      "business_goal": "在同一套明确成员、日历、数量口径和时点下，分别验收产季峰目标与任意起点滚动目标的评价输入。",
+      "acceptance": "H7/H15 日期精确，H7 是同 origin H15 前缀；FULL/声明剩余各自7/15日峰遍历已冻结完整范围并返回向量；remaining_start>=D+1且终点为已声明season_end；不足7/15日明确不可计算，缺日不缩范围；S1数学和评分器不变，新增四项独立命名按版本计划Q6公式逐项复算；同日期/成员/物理量/成熟标签与每指标共同Cm，失败全部保留；剩余范围不计算SEASON_TOTAL_WAPE；H7 rolling7、H15 rolling15及同长度季节范围起点结构性0不报技能。",
+      "business_goal": "在同一套明确成员、日历、数量口径和时点下，分别验收完整/声明剩余产季峰与任意起点滚动目标的评价输入。",
       "code_scope": "建议 `backend/research/v021_evaluation_readiness.py`、对应 `test_v0_21_evaluation_readiness.py`、`docs/v0-21/s3/` 及 evidence；不修改 `rolling_forecast/` 服务、原评分器/算法/模型。",
-      "functions": "预注册 comparison_family/C0；分离 origin 特征与标签接口；复用现有预测 seal、十指标算术和不可计算原因；核验完整季节曲线与 H7/H15 窗口；补最薄 rolling15 季节结构诊断；输出共同 Cm、分子/分母及限制。不训练或构造农艺增强预测器。",
+      "functions": "预注册 comparison_family/C0；分离 origin 特征与标签接口；复用现有预测 seal、十指标算术和不可计算原因；分别核验完整产季、声明剩余产季和 H7/H15；补 V0.21 独立的rolling15峰起点/峰量MAE、H7/H15累计量MAE/WAPE合成算术准备；保留逐日对应、共同Cm、失败账本和结构性零解释。不训练或构造农艺增强预测器。",
       "id": "S3",
       "inputs": "S1/S2 合成包、显式合成日历/预测向量/独立成熟标签、固定来源和配置身份。可复用现有 synthetic 示例产生的曲线；不根据标签调整曲线。合成诊断不冒充农艺特征带来增益。",
-      "outputs": "三评价族输入检查、单日/最大连续7日/15日窗口及窗口内逐日量、现有十指标 synthetic 算术、C0/Cm 与失败账本、因来源/时点/季节不全不能评价的清单。",
+      "outputs": "四评价族输入检查及冻结边界；单日/最大连续7日/15日窗口和每日向量；原十指标与独立V0.21附加项的synthetic算术、逐日/窗口累计p-a、分子分母、C0/Cm失败账本及不可计算原因。",
       "previous_stage": "S2",
       "prohibited": "真实预测/真实评分、以事后峰日作输入、对窗口标签归一化预测、修改原十指标/严格 PIT 门禁、混用模型族旧 WAPE、宣称精度提升或因果效果。",
       "start_gate": [
@@ -490,7 +619,7 @@
         "FRESH_MAIN_BRANCH"
       ],
       "status": "PLANNED_NOT_AUTHORIZED",
-      "synthetic_scenarios": "完整与残缺季节、H7 前缀和 H15 局部峰不等于季节峰、两个等高峰最早并列、全零/缺日/重复日/负值、不足15日、跨实体/制度/产季/口径不混汇、后签发/晚到来源拒绝、标签扰动不影响特征封存、改善/退化/MIXED 都保留、不同 coverage 不虚称胜出。",
+      "synthetic_scenarios": "完整与残缺季节、声明剩余起止及越界/未知终点、H7/H15不能改名为剩余或完整季节峰、两个等高峰最早并列、全零/缺日/重复日/负值、不足15日、跨实体/制度/产季/口径不混汇、后签发/晚到来源拒绝、标签扰动不影响特征封存、改善/退化/MIXED 都保留、不同coverage不虚称胜出、日误差不抵消但窗口累计误差抵消、H7 rolling7/H15 rolling15单一候选起点的结构性零、全零actual不产生假峰时命中。",
       "title": "高峰与 7/15 日滚动评价准备（待独立授权）"
     },
     {
@@ -539,7 +668,7 @@
     "yield_or_peak_effect_coefficients": false,
     "zero_or_unknown_denominator": "NOT_COMPUTABLE"
   },
-  "task_id": "V0_21_S0_VERSION_SCOPE_AND_IMPLEMENTATION_PLAN_R1",
+  "task_id": "V0_21_S0_VERSION_SCOPE_AND_IMPLEMENTATION_PLAN_R2",
   "temporal_contract": {
     "business_timezone": "EXPLICIT_NOT_INFERRED",
     "clock_provenance_required": true,
