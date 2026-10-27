@@ -1,0 +1,93 @@
+{
+  "base_main_sha": "0fe06ca320724d4067f573535f2b6be25ffafbc1",
+  "historical_source_identity": {
+    "backend/app/pit/visibility.py": {
+      "commit": "0fe06ca320724d4067f573535f2b6be25ffafbc1",
+      "sha256": "721a6f865aac624f72c964faca4c4e64004341c1f6cb29765614cd07ee4b702d"
+    },
+    "docs/v0-21/evidence/v0.21-s0-scope.json": {
+      "commit": "0fe06ca320724d4067f573535f2b6be25ffafbc1",
+      "sha256": "c7d80d3428c76fc647374ef051964b051f20dd1ce68feac8684fe0da85e584e3"
+    },
+    "docs/v0-21/stage-implementation-plan.md": {
+      "commit": "0fe06ca320724d4067f573535f2b6be25ffafbc1",
+      "sha256": "c8a43f66bdeee008840fea3af3af83b85070e6ff0be04186993aa743f07a74ab"
+    },
+    "docs/v0-21/v0.21.0-version-plan.md": {
+      "commit": "0fe06ca320724d4067f573535f2b6be25ffafbc1",
+      "sha256": "2614c77f798b3697db6e83197e668b1a3cadaf7eefe49c38e58c8b148c2b1cbc"
+    },
+    "frontend/src/dashboard/agronomic/v0_20_contracts.ts": {
+      "commit": "0fe06ca320724d4067f573535f2b6be25ffafbc1",
+      "sha256": "43e2e12afb89086031c301ab593a1d451216c41083db6b8fbf2dc3b99fa7c81e"
+    },
+    "frontend/src/dashboard/agronomic/v0_20_prepare.ts": {
+      "commit": "0fe06ca320724d4067f573535f2b6be25ffafbc1",
+      "sha256": "d465bdfec5209bc63c974853d33f75acf8ec2f3915461c1a5bc10056e02e72a9"
+    },
+    "frontend/src/dashboard/agronomic/v0_20_vocabulary.json": {
+      "commit": "0fe06ca320724d4067f573535f2b6be25ffafbc1",
+      "sha256": "064296b457435482a031682765c60267f21a537d8cc89500ce6e2081853231e4"
+    }
+  },
+  "original_v020_producer_fixture": {
+    "counts": {
+      "AREA": 18,
+      "EVENT": 36,
+      "PHENOLOGY": 36
+    },
+    "path": "backend/tests/agronomic_history/fixtures/v0_21_original_v020_package.json",
+    "plot_authority_upgraded": false,
+    "sha256": "daddd016fb7bf6bde9d0af6059a93e98500b3f33e734e71b9f20cf3ba8b8dc1a"
+  },
+  "outputs": {
+    "cycle_count": 6,
+    "example_result_sha256": "a2840d00f75b68c4f9822f1d0f9257fb73a67dd30178be4da428650179989124",
+    "example_sha256": {
+      "docs/v0-21/s1/examples/cycle-features-r1/cycle-features.json": "b10f6bbc654a74bcd5af167be2b66ad2ee239b3a28ee3c56533d9699e45f02a2",
+      "docs/v0-21/s1/examples/cycle-features-r1/synthetic-declarations.json": "cfd015384dedd2de4fd6bd59c6d0868238493558e9dabf11391044c16096b014",
+      "docs/v0-21/s1/examples/cycle-features-r1/synthetic-v020-package.json": "b27c2be9cc045df6cd99bd98e5734debeaf0501004295e801ea38b0d5fd71107"
+    },
+    "member_origin_snapshot_count": 8,
+    "record_count": 48
+  },
+  "owner_authorization": {
+    "commit_push_draft_pr": true,
+    "owner_original_approval_time": null,
+    "recorded_at_utc": "2026-10-27T10:46:03.587219+00:00",
+    "s1_implementation": true,
+    "scope": "IMPLEMENT_S1_ONLY",
+    "source": "CURRENT_OWNER_TASK_MESSAGE"
+  },
+  "preflight": {
+    "duplicate_s1_branch_or_pr_found": false,
+    "main_push_ci_conclusion": "SUCCESS",
+    "main_push_ci_run_id": 40474901080,
+    "new_worktree_started_clean": true,
+    "s0_merge_sha": "0fe06ca320724d4067f573535f2b6be25ffafbc1",
+    "s0_merged_pr": 762,
+    "tracked_untracked_checked": true
+  },
+  "restrictions": {
+    "actual_label_read": false,
+    "agronomic_effect_validated": false,
+    "deploy": false,
+    "merge": false,
+    "model_promotion": false,
+    "model_refitting": false,
+    "model_training": false,
+    "production_forecast_change": false,
+    "ready": false,
+    "real_data_read": false,
+    "release": false,
+    "s2_implemented": false,
+    "s3_implemented": false,
+    "s4_implemented": false,
+    "strict_pit_validated": false,
+    "tag": false
+  },
+  "schema_version": "V0_21_S1_EVIDENCE_R1",
+  "source_identity_policy": "REUSE_PINNED_GIT_BLOBS_RUNTIME_MODULE_SHA256_IN_SEPARATE_MANIFEST_NO_WORKTREE_TEST_HASH_BINDING",
+  "task_id": "V0_21_S1_AGRONOMIC_CYCLE_FEATURES_R1",
+  "verification": "ACTUAL_LOCAL_AND_EXACT_HEAD_RESULTS_REPORTED_AFTER_EXECUTION_IN_PR_RECEIPT"
+}
