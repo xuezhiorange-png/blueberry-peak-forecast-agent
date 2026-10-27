@@ -1,0 +1,109 @@
+{
+  "schema_version": "V0_21_S2_PREPARATION_EVIDENCE_R1",
+  "task_id": "V0_21_S2_PRODUCTION_STRUCTURE_CHANGE_AND_SYNTHETIC_SCENARIOS_R1",
+  "base_main_sha": "8376a737443299aae84dec473c8710d93719334a",
+  "previous_stage_main_ci": {
+    "run_id": 40519361402,
+    "head_sha": "8376a737443299aae84dec473c8710d93719334a",
+    "conclusion": "SUCCESS"
+  },
+  "owner_authorization": {
+    "scope": "IMPLEMENT_S2_ONLY",
+    "granted": true,
+    "source": "OWNER_TASK_IN_THIS_CHAT",
+    "third_party_signature_claimed": false
+  },
+  "implementation": [
+    "backend/research/v021_structure_scenarios.py",
+    "backend/tests/agronomic_history/test_v0_21_structure_scenarios.py",
+    "backend/tests/agronomic_history/v0_21_structure_fixture.py"
+  ],
+  "reused_sources": [
+    {
+      "path": "backend/research/v021_cycle_features.py",
+      "commit": "8376a737443299aae84dec473c8710d93719334a",
+      "sha256": "b972c7753a83a92975560765aea53b4e0033582eb7e9c3e64b1c68eaa9f5088f"
+    },
+    {
+      "path": "frontend/src/dashboard/agronomic/v0_20_contracts.ts",
+      "commit": "8376a737443299aae84dec473c8710d93719334a",
+      "sha256": "43e2e12afb89086031c301ab593a1d451216c41083db6b8fbf2dc3b99fa7c81e"
+    },
+    {
+      "path": "frontend/src/dashboard/agronomic/v0_20_prepare.ts",
+      "commit": "8376a737443299aae84dec473c8710d93719334a",
+      "sha256": "d465bdfec5209bc63c974853d33f75acf8ec2f3915461c1a5bc10056e02e72a9"
+    },
+    {
+      "path": "docs/v0-21/evidence/v0.21-s0-scope.json",
+      "commit": "8376a737443299aae84dec473c8710d93719334a",
+      "sha256": "c7d80d3428c76fc647374ef051964b051f20dd1ce68feac8684fe0da85e584e3"
+    }
+  ],
+  "scenario_registry": [
+    "UNCHANGED",
+    "AREA_INCREASE",
+    "AREA_DECREASE",
+    "ASYNCHRONOUS_AREA_CHANGE",
+    "VARIETY_REPLACEMENT",
+    "REPLANT",
+    "DENSITY_CHANGE",
+    "MIXED_PRODUCTION_SYSTEMS",
+    "UNPROVEN_CONTINUITY",
+    "CONFLICTING_EFFECTIVE_INTERVALS",
+    "ZERO_PREVIOUS_AREA",
+    "MISSING_AREA",
+    "UNIT_MISMATCH",
+    "SAME_NAME_DIFFERENT_ENTITY",
+    "BUSINESS_EXAMPLE"
+  ],
+  "example": {
+    "path": "docs/v0-21/s2/examples/business-r1",
+    "result_sha256": "bd83aad9a2d3fb43a8911f2388fead92aa595815de4dbd06dc1b10e029b7ebb1",
+    "s1_result_sha256": "6607b170e117b36c3de8673e14765535459914e29a57a6b921f28558cd9e16a3",
+    "area_records": 24,
+    "continuity_links": 4,
+    "origin_snapshots": 4,
+    "component_status_counts": {
+      "area_and_continuity": {
+        "COMPARABLE": 4
+      },
+      "density": {
+        "COMPARABLE": 1,
+        "NOT_PROVEN": 3
+      },
+      "replant": {
+        "COMPARABLE": 1,
+        "NOT_PROVEN": 3
+      }
+    },
+    "file_sha256": {
+      "s1-cycle-features.json": "2e18893fc25cabe4bc4ad44faa64097c75ef73d52ef4aa573349a368806462b6",
+      "area-changes.csv": "0107abd3fc7ad7ec9ec36bf2dcad736c254d0a007e2463b2813eece9cab45ad0",
+      "structure-declarations.json": "02e58a0990d5b56893b74ef01c001024831da2acd1aba8c835df4e1e9889c913",
+      "structure-scenarios.json": "6716a92a9072094ba511aaf7c9ca353ded5d1a974c2e71d9de944c7a4715ae62"
+    }
+  },
+  "numerical_policy": {
+    "decimal_precision": 50,
+    "density_differences_before_display_rounding": true,
+    "display_scale": 6,
+    "rounding": "ROUND_HALF_EVEN"
+  },
+  "restrictions": {
+    "real_data_read": false,
+    "real_source_authority_proven": false,
+    "strict_pit_validated": false,
+    "model_training": false,
+    "model_use_authorized": false,
+    "yield_effect_coefficients": false,
+    "peak_date_adjustments": false,
+    "s3_s4_implemented": false,
+    "production_database_writes": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "release_authorized": false,
+    "deployment_authorized": false
+  },
+  "validation_record": "LOCAL_LOGS_AND_EXACT_HEAD_CI_JUNIT; no future CI result is prefilled"
+}
