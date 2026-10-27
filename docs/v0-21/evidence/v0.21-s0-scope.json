@@ -44,7 +44,7 @@
   },
   "document_sha256": {
     "docs/v0-21/stage-implementation-plan.md": "53c972a012d5a1bd3f06db96a5d62788a4d3e857e601cda800b133ada4ab4c2a",
-    "docs/v0-21/v0.21.0-version-plan.md": "1b3427c3c90272b7b1e9194dd532d450499da2ec15e10a87c7847eb798b86c96"
+    "docs/v0-21/v0.21.0-version-plan.md": "5ad3bb85244786c35bf24d97088d006b33de45112c9e86073c9ec01952c017c1"
   },
   "evaluation_contract": {
     "all_zero_actual_date_metric": "NOT_COMPUTABLE_NO_POSITIVE_ACTUAL_PEAK",
