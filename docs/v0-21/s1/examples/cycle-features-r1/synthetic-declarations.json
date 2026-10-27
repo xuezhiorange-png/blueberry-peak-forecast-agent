@@ -1,0 +1,767 @@
+{
+  "schema_version": "V0_21_S1_DECLARATIONS_R1",
+  "data_class": "SYNTHETIC_TEST_FIXTURE",
+  "package_sha256": "23eeb5deb43ddc5ffbc35609c92f220efcab004318ca68595f99bdcfe8ab6e46",
+  "members": [
+    {
+      "member_id": "SYN-MEMBER-0-0-2023",
+      "cycle_id": "SYN-CYCLE-0-2023",
+      "scope": {
+        "base": "SYN-BASE-0",
+        "farm": "SYN-FARM-0",
+        "subfarm": "SYN-SUB-0",
+        "plot": "SYN-PLOT-0",
+        "variety": "SYN-VARIETY-0",
+        "season": "2023-2024",
+        "production_system": "DECIDUOUS_NATURAL"
+      },
+      "provenance": "SYNTHETIC_EXPLICIT_RELATIONSHIP",
+      "known_at": "2023-07-01T10:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-member-relation-not-master-data",
+      "primary_pruning": [
+        "SYN-MEMBER-0-0-2023-prune"
+      ],
+      "intervals": [
+        {
+          "interval_id": "pruning_to_generic_peak",
+          "start_record_id": "SYN-MEMBER-0-0-2023-prune",
+          "end_record_id": "SYN-MEMBER-0-0-2023-bloom"
+        }
+      ]
+    },
+    {
+      "member_id": "SYN-MEMBER-0-1-2023",
+      "cycle_id": "SYN-CYCLE-0-2023",
+      "scope": {
+        "base": "SYN-BASE-0",
+        "farm": "SYN-FARM-0",
+        "subfarm": "SYN-SUB-1",
+        "plot": "SYN-PLOT-1",
+        "variety": "SYN-VARIETY-1",
+        "season": "2023-2024",
+        "production_system": "DECIDUOUS_NATURAL"
+      },
+      "provenance": "SYNTHETIC_EXPLICIT_RELATIONSHIP",
+      "known_at": "2023-07-01T10:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-member-relation-not-master-data",
+      "primary_pruning": [
+        "SYN-MEMBER-0-1-2023-prune"
+      ],
+      "intervals": [
+        {
+          "interval_id": "pruning_to_generic_peak",
+          "start_record_id": "SYN-MEMBER-0-1-2023-prune",
+          "end_record_id": "SYN-MEMBER-0-1-2023-bloom"
+        }
+      ]
+    },
+    {
+      "member_id": "SYN-MEMBER-1-0-2023",
+      "cycle_id": "SYN-CYCLE-1-2023",
+      "scope": {
+        "base": "SYN-BASE-1",
+        "farm": "SYN-FARM-1",
+        "subfarm": "SYN-SUB-0",
+        "plot": "SYN-PLOT-0",
+        "variety": "SYN-VARIETY-0",
+        "season": "2023-2024",
+        "production_system": "DECIDUOUS_FORCING"
+      },
+      "provenance": "SYNTHETIC_EXPLICIT_RELATIONSHIP",
+      "known_at": "2023-07-01T10:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-member-relation-not-master-data",
+      "primary_pruning": [
+        "SYN-MEMBER-1-0-2023-prune"
+      ],
+      "intervals": [
+        {
+          "interval_id": "pruning_to_generic_peak",
+          "start_record_id": "SYN-MEMBER-1-0-2023-prune",
+          "end_record_id": "SYN-MEMBER-1-0-2023-bloom"
+        }
+      ]
+    },
+    {
+      "member_id": "SYN-MEMBER-2-0-2023",
+      "cycle_id": "SYN-CYCLE-2-2023",
+      "scope": {
+        "base": "SYN-BASE-2",
+        "farm": "SYN-FARM-2",
+        "subfarm": "SYN-SUB-0",
+        "plot": "SYN-PLOT-0",
+        "variety": "SYN-VARIETY-0",
+        "season": "2023-2024",
+        "production_system": "EVERGREEN"
+      },
+      "provenance": "SYNTHETIC_EXPLICIT_RELATIONSHIP",
+      "known_at": "2023-07-01T10:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-member-relation-not-master-data",
+      "primary_pruning": [
+        "SYN-MEMBER-2-0-2023-prune"
+      ],
+      "intervals": [
+        {
+          "interval_id": "pruning_to_generic_peak",
+          "start_record_id": "SYN-MEMBER-2-0-2023-prune",
+          "end_record_id": "SYN-MEMBER-2-0-2023-bloom"
+        }
+      ]
+    },
+    {
+      "member_id": "SYN-MEMBER-0-0-2024",
+      "cycle_id": "SYN-CYCLE-0-2024",
+      "scope": {
+        "base": "SYN-BASE-0",
+        "farm": "SYN-FARM-0",
+        "subfarm": "SYN-SUB-0",
+        "plot": "SYN-PLOT-0",
+        "variety": "SYN-VARIETY-0",
+        "season": "2024-2025",
+        "production_system": "DECIDUOUS_NATURAL"
+      },
+      "provenance": "SYNTHETIC_EXPLICIT_RELATIONSHIP",
+      "known_at": "2024-07-01T10:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-member-relation-not-master-data",
+      "primary_pruning": [
+        "SYN-MEMBER-0-0-2024-prune"
+      ],
+      "intervals": [
+        {
+          "interval_id": "pruning_to_generic_peak",
+          "start_record_id": "SYN-MEMBER-0-0-2024-prune",
+          "end_record_id": "SYN-MEMBER-0-0-2024-bloom"
+        }
+      ]
+    },
+    {
+      "member_id": "SYN-MEMBER-0-1-2024",
+      "cycle_id": "SYN-CYCLE-0-2024",
+      "scope": {
+        "base": "SYN-BASE-0",
+        "farm": "SYN-FARM-0",
+        "subfarm": "SYN-SUB-1",
+        "plot": "SYN-PLOT-1",
+        "variety": "SYN-VARIETY-1",
+        "season": "2024-2025",
+        "production_system": "DECIDUOUS_NATURAL"
+      },
+      "provenance": "SYNTHETIC_EXPLICIT_RELATIONSHIP",
+      "known_at": "2024-07-01T10:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-member-relation-not-master-data",
+      "primary_pruning": [
+        "SYN-MEMBER-0-1-2024-prune"
+      ],
+      "intervals": [
+        {
+          "interval_id": "pruning_to_generic_peak",
+          "start_record_id": "SYN-MEMBER-0-1-2024-prune",
+          "end_record_id": "SYN-MEMBER-0-1-2024-bloom"
+        }
+      ]
+    },
+    {
+      "member_id": "SYN-MEMBER-1-0-2024",
+      "cycle_id": "SYN-CYCLE-1-2024",
+      "scope": {
+        "base": "SYN-BASE-1",
+        "farm": "SYN-FARM-1",
+        "subfarm": "SYN-SUB-0",
+        "plot": "SYN-PLOT-0",
+        "variety": "SYN-VARIETY-0",
+        "season": "2024-2025",
+        "production_system": "DECIDUOUS_FORCING"
+      },
+      "provenance": "SYNTHETIC_EXPLICIT_RELATIONSHIP",
+      "known_at": "2024-07-01T10:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-member-relation-not-master-data",
+      "primary_pruning": [
+        "SYN-MEMBER-1-0-2024-prune"
+      ],
+      "intervals": [
+        {
+          "interval_id": "pruning_to_generic_peak",
+          "start_record_id": "SYN-MEMBER-1-0-2024-prune",
+          "end_record_id": "SYN-MEMBER-1-0-2024-bloom"
+        }
+      ]
+    },
+    {
+      "member_id": "SYN-MEMBER-2-0-2024",
+      "cycle_id": "SYN-CYCLE-2-2024",
+      "scope": {
+        "base": "SYN-BASE-2",
+        "farm": "SYN-FARM-2",
+        "subfarm": "SYN-SUB-0",
+        "plot": "SYN-PLOT-0",
+        "variety": "SYN-VARIETY-0",
+        "season": "2024-2025",
+        "production_system": "EVERGREEN"
+      },
+      "provenance": "SYNTHETIC_EXPLICIT_RELATIONSHIP",
+      "known_at": "2024-07-01T10:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-member-relation-not-master-data",
+      "primary_pruning": [
+        "SYN-MEMBER-2-0-2024-prune"
+      ],
+      "intervals": [
+        {
+          "interval_id": "pruning_to_generic_peak",
+          "start_record_id": "SYN-MEMBER-2-0-2024-prune",
+          "end_record_id": "SYN-MEMBER-2-0-2024-bloom"
+        }
+      ]
+    }
+  ],
+  "cycles": [
+    {
+      "cycle_id": "SYN-CYCLE-0-2023",
+      "base": "SYN-BASE-0",
+      "season": "2023-2024",
+      "start": {
+        "raw": "2023-08-20",
+        "precision": "DAY",
+        "lower_date": "2023-08-20",
+        "upper_date": "2023-08-20",
+        "instant": null
+      },
+      "clocks": {
+        "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+        "observed_at": "2023-08-20T17:00:00+08:00",
+        "recorded_at": "2023-08-20T18:00:00+08:00",
+        "known_at": "2023-08-20T19:00:00+08:00",
+        "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+      }
+    },
+    {
+      "cycle_id": "SYN-CYCLE-1-2023",
+      "base": "SYN-BASE-1",
+      "season": "2023-2024",
+      "start": {
+        "raw": "2023-08-20",
+        "precision": "DAY",
+        "lower_date": "2023-08-20",
+        "upper_date": "2023-08-20",
+        "instant": null
+      },
+      "clocks": {
+        "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+        "observed_at": "2023-08-20T17:00:00+08:00",
+        "recorded_at": "2023-08-20T18:00:00+08:00",
+        "known_at": "2023-08-20T19:00:00+08:00",
+        "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+      }
+    },
+    {
+      "cycle_id": "SYN-CYCLE-2-2023",
+      "base": "SYN-BASE-2",
+      "season": "2023-2024",
+      "start": {
+        "raw": "2023-08-20",
+        "precision": "DAY",
+        "lower_date": "2023-08-20",
+        "upper_date": "2023-08-20",
+        "instant": null
+      },
+      "clocks": {
+        "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+        "observed_at": "2023-08-20T17:00:00+08:00",
+        "recorded_at": "2023-08-20T18:00:00+08:00",
+        "known_at": "2023-08-20T19:00:00+08:00",
+        "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+      }
+    },
+    {
+      "cycle_id": "SYN-CYCLE-0-2024",
+      "base": "SYN-BASE-0",
+      "season": "2024-2025",
+      "start": {
+        "raw": "2024-09-10",
+        "precision": "DAY",
+        "lower_date": "2024-09-10",
+        "upper_date": "2024-09-10",
+        "instant": null
+      },
+      "clocks": {
+        "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+        "observed_at": "2024-09-10T17:00:00+08:00",
+        "recorded_at": "2024-09-10T18:00:00+08:00",
+        "known_at": "2024-09-10T19:00:00+08:00",
+        "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+      }
+    },
+    {
+      "cycle_id": "SYN-CYCLE-1-2024",
+      "base": "SYN-BASE-1",
+      "season": "2024-2025",
+      "start": {
+        "raw": "2024-09-10",
+        "precision": "DAY",
+        "lower_date": "2024-09-10",
+        "upper_date": "2024-09-10",
+        "instant": null
+      },
+      "clocks": {
+        "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+        "observed_at": "2024-09-10T17:00:00+08:00",
+        "recorded_at": "2024-09-10T18:00:00+08:00",
+        "known_at": "2024-09-10T19:00:00+08:00",
+        "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+      }
+    },
+    {
+      "cycle_id": "SYN-CYCLE-2-2024",
+      "base": "SYN-BASE-2",
+      "season": "2024-2025",
+      "start": {
+        "raw": "2024-09-10",
+        "precision": "DAY",
+        "lower_date": "2024-09-10",
+        "upper_date": "2024-09-10",
+        "instant": null
+      },
+      "clocks": {
+        "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+        "observed_at": "2024-09-10T17:00:00+08:00",
+        "recorded_at": "2024-09-10T18:00:00+08:00",
+        "known_at": "2024-09-10T19:00:00+08:00",
+        "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+      }
+    }
+  ],
+  "origins": [
+    {
+      "origin_id": "SYN-ORIGIN-0-2023",
+      "base": "SYN-BASE-0",
+      "season": "2023-2024",
+      "origin_date": "2024-03-01",
+      "timezone": "Asia/Shanghai",
+      "cutoff": "2024-03-01T08:00:00+08:00"
+    },
+    {
+      "origin_id": "SYN-ORIGIN-1-2023",
+      "base": "SYN-BASE-1",
+      "season": "2023-2024",
+      "origin_date": "2024-03-01",
+      "timezone": "Asia/Shanghai",
+      "cutoff": "2024-03-01T08:00:00+08:00"
+    },
+    {
+      "origin_id": "SYN-ORIGIN-2-2023",
+      "base": "SYN-BASE-2",
+      "season": "2023-2024",
+      "origin_date": "2024-03-01",
+      "timezone": "Asia/Shanghai",
+      "cutoff": "2024-03-01T08:00:00+08:00"
+    },
+    {
+      "origin_id": "SYN-ORIGIN-0-2024",
+      "base": "SYN-BASE-0",
+      "season": "2024-2025",
+      "origin_date": "2025-03-01",
+      "timezone": "Asia/Shanghai",
+      "cutoff": "2025-03-01T08:00:00+08:00"
+    },
+    {
+      "origin_id": "SYN-ORIGIN-1-2024",
+      "base": "SYN-BASE-1",
+      "season": "2024-2025",
+      "origin_date": "2025-03-01",
+      "timezone": "Asia/Shanghai",
+      "cutoff": "2025-03-01T08:00:00+08:00"
+    },
+    {
+      "origin_id": "SYN-ORIGIN-2-2024",
+      "base": "SYN-BASE-2",
+      "season": "2024-2025",
+      "origin_date": "2025-03-01",
+      "timezone": "Asia/Shanghai",
+      "cutoff": "2025-03-01T08:00:00+08:00"
+    }
+  ],
+  "record_clocks": {
+    "SYN-MEMBER-0-0-2023-prune": {
+      "record_sha256": "3f278c511d347f6104e8b5ef840d0692edc5026ca74c5c7b444c2238205a345a",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-09-15T17:00:00+08:00",
+      "recorded_at": "2023-09-15T18:00:00+08:00",
+      "known_at": "2023-09-15T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2023-prune2": {
+      "record_sha256": "3f51cda260f4c6b2505b8cf4cc0af7c6a4df8056cb1109b4a07c831501693b49",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-10-03T17:00:00+08:00",
+      "recorded_at": "2023-10-03T18:00:00+08:00",
+      "known_at": "2023-10-03T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2023-bloom": {
+      "record_sha256": "bfb31de6dc1916033f9e4318e1c8b58a844220a17c03d50cfba22f4a3c82c065",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-02-28T17:00:00+08:00",
+      "recorded_at": "2024-02-28T18:00:00+08:00",
+      "known_at": "2024-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2023-b50": {
+      "record_sha256": "b65742b761cf7f5524478789b4d399fb96764a94ea721ceae56e166965a28250",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-02-28T17:00:00+08:00",
+      "recorded_at": "2024-02-28T18:00:00+08:00",
+      "known_at": "2024-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2023-forcing": {
+      "record_sha256": "364258d7d6717312bcc9371472b73a27ca35065fbc437303c2b82410d4aa9661",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-10-02T17:00:00+08:00",
+      "recorded_at": "2023-10-02T18:00:00+08:00",
+      "known_at": "2023-10-02T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2023-planned": {
+      "record_sha256": "61193ee9893331fdf8360e7cd8e2185255538f35cf3683533ca89350dd9aee9e",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": null,
+      "recorded_at": "2023-11-01T18:00:00+08:00",
+      "known_at": "2023-11-01T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2023-prune": {
+      "record_sha256": "07bc939494bc303e7a0fbaa59264a6a2a296f820ff5ae2250b2c5b7b479b4ac1",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-09-16T17:00:00+08:00",
+      "recorded_at": "2023-09-16T18:00:00+08:00",
+      "known_at": "2023-09-16T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2023-prune2": {
+      "record_sha256": "3ea3659824bf1d29d117814463c26cb97047beba07879966e6a2588c15d7da3c",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-10-03T17:00:00+08:00",
+      "recorded_at": "2023-10-03T18:00:00+08:00",
+      "known_at": "2023-10-03T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2023-bloom": {
+      "record_sha256": "abf6433cc7ec27a4b17249e0d72a37e005a4fc39785ce15dc2cdd14a70cc13a4",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-02-28T17:00:00+08:00",
+      "recorded_at": "2024-02-28T18:00:00+08:00",
+      "known_at": "2024-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2023-b50": {
+      "record_sha256": "3b034e23a2aefbd91facd013ace791bef6e3c771466dd108136eeb79a31996e9",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-02-28T17:00:00+08:00",
+      "recorded_at": "2024-02-28T18:00:00+08:00",
+      "known_at": "2024-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2023-forcing": {
+      "record_sha256": "f72925f2b15311e3866f8742ca26a8563c72ab6b641a4960d6e33f7d8337eced",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-10-02T17:00:00+08:00",
+      "recorded_at": "2023-10-02T18:00:00+08:00",
+      "known_at": "2023-10-02T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2023-planned": {
+      "record_sha256": "f23cd61d157e6dfb333c4c964969d50b4d28f91cd5997236fc826cd7e3457e45",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": null,
+      "recorded_at": "2023-11-01T18:00:00+08:00",
+      "known_at": "2023-11-01T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2023-prune": {
+      "record_sha256": "5f7eb7b226605cfd60cb628a2e8df682ce025107356506de244063f5ffca4888",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-09-15T17:00:00+08:00",
+      "recorded_at": "2023-09-15T18:00:00+08:00",
+      "known_at": "2023-09-15T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2023-prune2": {
+      "record_sha256": "2c7d4f2360af8755cd2de4af7372b180e1510489a22916cb0fd9c649709f96e8",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-10-03T17:00:00+08:00",
+      "recorded_at": "2023-10-03T18:00:00+08:00",
+      "known_at": "2023-10-03T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2023-bloom": {
+      "record_sha256": "32b8e17dff176ba3495d50d9df2465a367b3fbddd3fa30fac1940201d1036c7e",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-02-28T17:00:00+08:00",
+      "recorded_at": "2024-02-28T18:00:00+08:00",
+      "known_at": "2024-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2023-b50": {
+      "record_sha256": "d1641dfeb4252908a0a7bce35597bb3035c76764da2a47a6950aea69227a6474",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-02-28T17:00:00+08:00",
+      "recorded_at": "2024-02-28T18:00:00+08:00",
+      "known_at": "2024-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2023-forcing": {
+      "record_sha256": "35d4c33121c0e3e3519d3754e86f1f9bc948daf58ec869059fc88d37fcbff85d",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-10-02T17:00:00+08:00",
+      "recorded_at": "2023-10-02T18:00:00+08:00",
+      "known_at": "2023-10-02T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2023-planned": {
+      "record_sha256": "88da808eb390e46dda75b68e8c95afae10630f85351f3dec0242335f9c6d4bd9",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": null,
+      "recorded_at": "2023-11-01T18:00:00+08:00",
+      "known_at": "2023-11-01T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2023-prune": {
+      "record_sha256": "e7c48c7afecf05281835dae0a9c10076a2f382c9aa2c9b1f483ee4a7e4941da3",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-09-15T17:00:00+08:00",
+      "recorded_at": "2023-09-15T18:00:00+08:00",
+      "known_at": "2023-09-15T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2023-prune2": {
+      "record_sha256": "a70b542c2291e7074a12ec95ca46d20a90aba7a8c3c1cc5a73b224f0028ed922",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-10-03T17:00:00+08:00",
+      "recorded_at": "2023-10-03T18:00:00+08:00",
+      "known_at": "2023-10-03T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2023-bloom": {
+      "record_sha256": "80d518c8f6a44de0edce3f498f170d146dcde3a896fcf03078157dae6bbd86a4",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-02-28T17:00:00+08:00",
+      "recorded_at": "2024-02-28T18:00:00+08:00",
+      "known_at": "2024-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2023-b50": {
+      "record_sha256": "f552ee13147732dca9a21f3d8ab94fc7b5faf49e9800491c5f3b1e60ca7433e0",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-02-28T17:00:00+08:00",
+      "recorded_at": "2024-02-28T18:00:00+08:00",
+      "known_at": "2024-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2023-forcing": {
+      "record_sha256": "fc192b016c4d113648178c08a47e3d9f4b97bb4a12342e572a8e107ec54aba27",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2023-10-02T17:00:00+08:00",
+      "recorded_at": "2023-10-02T18:00:00+08:00",
+      "known_at": "2023-10-02T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2023-planned": {
+      "record_sha256": "832b070947339c2f4264a9e414d3cd1e5b46060b43cc091b4b08790ac12c7e86",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": null,
+      "recorded_at": "2023-11-01T18:00:00+08:00",
+      "known_at": "2023-11-01T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2024-prune": {
+      "record_sha256": "33c4a2523ee9d8b932ce728e786a5325513959f91fdc8bfb9aed91efcbc027c3",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-09-15T17:00:00+08:00",
+      "recorded_at": "2024-09-15T18:00:00+08:00",
+      "known_at": "2024-09-15T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2024-prune2": {
+      "record_sha256": "cdf2c6924328293cb98ea545c906f06c5173bd2cbdb7a5056b6b27d5715d13ea",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-10-03T17:00:00+08:00",
+      "recorded_at": "2024-10-03T18:00:00+08:00",
+      "known_at": "2024-10-03T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2024-bloom": {
+      "record_sha256": "c6e5ce808f48a24525dca1c0894123409b5fa8eee4bcb3b091cc3fbe9f6d0c4c",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2025-02-28T17:00:00+08:00",
+      "recorded_at": "2025-02-28T18:00:00+08:00",
+      "known_at": "2025-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2024-b50": {
+      "record_sha256": "aee7005cd967a5b3f88f292c76a257cc87b200c72562624927651e3a20d0c180",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2025-02-28T17:00:00+08:00",
+      "recorded_at": "2025-02-28T18:00:00+08:00",
+      "known_at": "2025-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2024-forcing": {
+      "record_sha256": "edf059c19bcd358455cc1837de37aa4c74cc917d82fc9d1169cb2237df1ef86e",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-10-02T17:00:00+08:00",
+      "recorded_at": "2024-10-02T18:00:00+08:00",
+      "known_at": "2024-10-02T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-0-2024-planned": {
+      "record_sha256": "46c307a9146dd159b708e134c872d6f0f215d68508d9f2d2127c5e91e7dacef0",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": null,
+      "recorded_at": "2024-11-01T18:00:00+08:00",
+      "known_at": "2024-11-01T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2024-prune": {
+      "record_sha256": "75dab72b6662f7841e6ede869cfdd5e8b33f217f995dbdc9f373718e354f4c24",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-09-16T17:00:00+08:00",
+      "recorded_at": "2024-09-16T18:00:00+08:00",
+      "known_at": "2024-09-16T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2024-prune2": {
+      "record_sha256": "cced9951bfb9662f6f22feac3461949462dd1e722c9bc77d387626c097af0254",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-10-03T17:00:00+08:00",
+      "recorded_at": "2024-10-03T18:00:00+08:00",
+      "known_at": "2024-10-03T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2024-bloom": {
+      "record_sha256": "42d659cd1d3115705d1605fbd7b1ff573bac0449e965797069c06c6959a7a01e",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2025-02-28T17:00:00+08:00",
+      "recorded_at": "2025-02-28T18:00:00+08:00",
+      "known_at": "2025-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2024-b50": {
+      "record_sha256": "629288cacfa02a59aaa7b8d7df2d9edc9ed9526dce2d499fdf900d11ced6cf78",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2025-02-28T17:00:00+08:00",
+      "recorded_at": "2025-02-28T18:00:00+08:00",
+      "known_at": "2025-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2024-forcing": {
+      "record_sha256": "6df88a86b8c751d40b9358a1b2bceba0cb0d16a133329a0c787edb40df924ae1",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-10-02T17:00:00+08:00",
+      "recorded_at": "2024-10-02T18:00:00+08:00",
+      "known_at": "2024-10-02T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-0-1-2024-planned": {
+      "record_sha256": "7d98b10c0c47513ffd7c5372e4fa189884532aac2a20f71aa96656ebf197c3c7",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": null,
+      "recorded_at": "2024-11-01T18:00:00+08:00",
+      "known_at": "2024-11-01T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2024-prune": {
+      "record_sha256": "f18f608efe803c413686b46663d3e0d3bfad4e6d93ec1601c088fe38f8c2fc6d",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-09-15T17:00:00+08:00",
+      "recorded_at": "2024-09-15T18:00:00+08:00",
+      "known_at": "2024-09-15T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2024-prune2": {
+      "record_sha256": "b9098ed5e383f0f8175892910c467ffadbae5bf7cb7489d007ff8c6a2e54a483",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-10-03T17:00:00+08:00",
+      "recorded_at": "2024-10-03T18:00:00+08:00",
+      "known_at": "2024-10-03T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2024-bloom": {
+      "record_sha256": "e534ab7e001e311d241359ce4ff55e2930841432bb44589ed0ea852d1b940bdf",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2025-02-28T17:00:00+08:00",
+      "recorded_at": "2025-02-28T18:00:00+08:00",
+      "known_at": "2025-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2024-b50": {
+      "record_sha256": "16dad647e4ef930a402b68475549617f99f99056bdfdea789bb3ef78e0e578bc",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2025-02-28T17:00:00+08:00",
+      "recorded_at": "2025-02-28T18:00:00+08:00",
+      "known_at": "2025-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2024-forcing": {
+      "record_sha256": "d12a5a6bc0a3047205518d57dc71bac6f26a272b619d0637831e635c938fe858",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-10-02T17:00:00+08:00",
+      "recorded_at": "2024-10-02T18:00:00+08:00",
+      "known_at": "2024-10-02T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-1-0-2024-planned": {
+      "record_sha256": "e4666df4ddeb3c989941ebc0bb612ef43ffaae9d8dbf24b03d21234d5e9d3399",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": null,
+      "recorded_at": "2024-11-01T18:00:00+08:00",
+      "known_at": "2024-11-01T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2024-prune": {
+      "record_sha256": "515b1c484e427dd5fafedb128e1e9bbb4ad948c03a712e06d32f9c61cd78236f",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-09-15T17:00:00+08:00",
+      "recorded_at": "2024-09-15T18:00:00+08:00",
+      "known_at": "2024-09-15T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2024-prune2": {
+      "record_sha256": "89485cded70ccf0f29333d83884c3ef9e25475ce8f97079b16bf32230841dd9a",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-10-03T17:00:00+08:00",
+      "recorded_at": "2024-10-03T18:00:00+08:00",
+      "known_at": "2024-10-03T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2024-bloom": {
+      "record_sha256": "5139a38451e14153e5a8b465ed624830ad6892a6162a1884b8680784444a2046",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2025-02-28T17:00:00+08:00",
+      "recorded_at": "2025-02-28T18:00:00+08:00",
+      "known_at": "2025-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2024-b50": {
+      "record_sha256": "b487fa38abc44b33e1f034fb0da9480a810f28a9bfbc5fd7b4a84080016a65ec",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2025-02-28T17:00:00+08:00",
+      "recorded_at": "2025-02-28T18:00:00+08:00",
+      "known_at": "2025-02-28T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2024-forcing": {
+      "record_sha256": "5c044c5a778a3b9d805ce0d704a08878cef7d34cfa556284ca383bf1990bdf38",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": "2024-10-02T17:00:00+08:00",
+      "recorded_at": "2024-10-02T18:00:00+08:00",
+      "known_at": "2024-10-02T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    },
+    "SYN-MEMBER-2-0-2024-planned": {
+      "record_sha256": "c3337786ab8eeef3941602eb1529ed7dd9bab211a2cef2d3a0627fad78abd19e",
+      "provenance": "SYNTHETIC_EXPLICIT_CLOCKS",
+      "observed_at": null,
+      "recorded_at": "2024-11-01T18:00:00+08:00",
+      "known_at": "2024-11-01T19:00:00+08:00",
+      "evidence_reference": "SYNTHETIC-clock-proof-not-real-authority"
+    }
+  }
+}
