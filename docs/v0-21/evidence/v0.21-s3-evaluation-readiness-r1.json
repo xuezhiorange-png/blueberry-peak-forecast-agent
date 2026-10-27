@@ -1,0 +1,86 @@
+{
+  "task_id": "V0_21_S3_PEAK_AND_ROLLING_EVALUATION_READINESS_R1",
+  "schema_version": "V0_21_S3_DELIVERY_R1",
+  "data_class": "SYNTHETIC_TEST_FIXTURE",
+  "base_main_sha": "ab4f126a1a7e0eda47ca7c135f5b07da54f01f5a",
+  "predecessor": {
+    "pr": 764,
+    "main_ci_run_id": 40542459209,
+    "main_ci_conclusion": "SUCCESS"
+  },
+  "owner_authorization": {
+    "s3_implementation": true,
+    "synthetic_test": true,
+    "commit_push_draft_pr": true,
+    "source": "CURRENT_USER_TASK_MESSAGE",
+    "recorded_at_utc": "2026-10-27T18:13:12.942500+00:00",
+    "historical_approval_timestamp_proven": false,
+    "signature_created": false,
+    "historical_s0_snapshot_unchanged": true
+  },
+  "families": [
+    "FULL_SEASON_PEAK",
+    "DECLARED_REMAINING_SEASON_PEAK",
+    "ORIGIN_H7_PREFIX",
+    "ORIGIN_H15_LOCAL"
+  ],
+  "additive_metrics": [
+    "V0_21_ROLLING_15DAY_PEAK_START_MAE",
+    "V0_21_ROLLING_15DAY_PEAK_QUANTITY_MAE",
+    "V0_21_ORIGIN_WINDOW_TOTAL_MAE",
+    "V0_21_ORIGIN_WINDOW_TOTAL_WAPE"
+  ],
+  "quantity_basis": "RECORDED_INBOUND_WEIGHT",
+  "unit": "kg",
+  "decimal_precision": 50,
+  "kg_decimal_places": 6,
+  "registered_candidate_count": 6,
+  "registration_sha256": "b68800950f8da744426221fcde4d76912e6f92123ac4d55b27e5950283af93ac",
+  "prediction_seal_sha256": "09eb9b4a68fbb98f765d05718eda10e9afd7d8e9c64b359eafb1cd3f33aa240c",
+  "evaluation_result_sha256": "dc481181464a94d520d13083014d560031c63aaddc9858d8ae199a239929e8f3",
+  "executed_scenario_count": 22,
+  "local_related_regression": {
+    "passed": 449,
+    "failed": 0,
+    "skipped": 0
+  },
+  "ruff": "PASS",
+  "format": "PASS",
+  "mypy": {
+    "result": "PASS",
+    "source_files": 604
+  },
+  "protected_sources": {
+    "git_commit": "ab4f126a1a7e0eda47ca7c135f5b07da54f01f5a",
+    "sha256": {
+      "backend/research/v021_cycle_features.py": "b972c7753a83a92975560765aea53b4e0033582eb7e9c3e64b1c68eaa9f5088f",
+      "backend/research/v021_structure_scenarios.py": "24c9246f0e5507e7a0f57ce4318acf342636f96c1223de32d5bdb3670712c3dc",
+      "backend/research/v019_synthetic_validation.py": "bffd788b36fb1100428df02248a17de8bfc057d784d80ff7085bb2fe122f2626",
+      "backend/research/v019_research_evaluation.py": "11013b723e32a6f6d871b85e56ed5580fcc67028f18026636d4eaac236cda890",
+      "backend/research/v019_origin_evaluation.py": "944e40699b1e2cea24d9c894799f6305aaaffeedac06c159fc878b439c895671",
+      "docs/v0-21/evidence/v0.21-s0-scope.json": "c7d80d3428c76fc647374ef051964b051f20dd1ce68feac8684fe0da85e584e3"
+    }
+  },
+  "synthetic_files_sha256": {
+    "docs/v0-21/s3/examples/daily-errors.csv": "778cdc542919bc48b6272dad43519856d0ea22b43a415676b0e222ac45473669",
+    "docs/v0-21/s3/examples/evaluation.json": "4084da1983faa04c3eea9210206ff43c0f5589a5518cc695d63979bd444741ab",
+    "docs/v0-21/s3/examples/executed-scenarios.json": "029c357b6010908bab5c8a3c60d3ba61e19d9d6af8ecb754e503324b8b3bc143",
+    "docs/v0-21/s3/examples/labels.json": "64949f2e0ff82f56ff44eb707cffe595b3908d26a92d39a06a35a4e4dc2a215b",
+    "docs/v0-21/s3/examples/predictions.json": "58995d52f86e9987f8a09133a0fb6f368fdc7f13bc6565c3f894e7377bb260af",
+    "docs/v0-21/s3/examples/protocol.json": "77ebbc92ce2727481618869a20280295b5970834ba5d54b40979240272f46fb8",
+    "docs/v0-21/s3/examples/s1.json": "f053b5e8a7c4b7fe7de0b595e37ff9216d3f70d44fd233bb106581dab8139a01",
+    "docs/v0-21/s3/examples/s2.json": "ea3989ec2081bbfb4847c43e21340bc397662d5c51265d2eb1bc44ea2047999d"
+  },
+  "boundaries": {
+    "real_data_read": false,
+    "real_scoring": false,
+    "model_training": false,
+    "production_forecast_change": false,
+    "s4_implemented": false,
+    "strict_pit_validated": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "deploy_authorized": false
+  },
+  "s3_targeted_tests_passed": 59
+}
