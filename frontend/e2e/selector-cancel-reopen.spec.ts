@@ -1,44 +1,12 @@
-import { startOwnedServer } from "./support/owned-server";
+import { withOwnedAuthority, type OwnedAuthority } from "./support/owned-authority";
 import { test as base, expect } from "@playwright/test";
 import { startHeldCanonicalGet } from "./support/held-canonical-response";
 
 // SYNTHETIC=true. Independent correction regression using the committed S5 server.
-const test = base.extend<
-  Record<string, never>,
-  { authority: { url: string; identities: Record<string, string | number>[] } }
->({
+const test = base.extend<Record<never, never>, { authority: OwnedAuthority }>({
   authority: [
     async ({ playwright }, use) => {
-      const owned = await startOwnedServer("frontend.e2e.support.dashboard_api:app");
-      const url = owned.url;
-      try {
-        const api = await playwright.request.newContext();
-        try {
-          await expect
-            .poll(
-              async () => {
-                owned.assertRunning();
-                try {
-                  return (await api.get(url + "/__dashboard_test__/authority")).status();
-                } catch {
-                  return 0;
-                }
-              },
-              { timeout: 30000 },
-            )
-            .toBe(200);
-          const state = await (await api.get(url + "/__dashboard_test__/authority")).json();
-          expect(state.SYNTHETIC).toBe(true);
-          await use({ url, identities: state.identities });
-          expect(
-            (await (await api.get(url + "/__dashboard_test__/authority")).json()).read_dml_count,
-          ).toBe(0);
-        } finally {
-          await api.dispose();
-        }
-      } finally {
-        await owned.stop();
-      }
+      await withOwnedAuthority(playwright.request, "frontend.e2e.support.dashboard_api:app", use);
     },
     { scope: "worker" },
   ],
@@ -50,8 +18,11 @@ const test = base.extend<
           url: authority.url + incoming.pathname + incoming.search,
         });
       });
+    authority.owned.mark("PAGE_USE_BEGIN");
     await use(page);
+    authority.owned.mark("PAGE_UNROUTE_BEGIN");
     await page.unrouteAll({ behavior: "wait" });
+    authority.owned.mark("PAGE_UNROUTE_END");
   },
 });
 
