@@ -6,6 +6,7 @@ import inspect
 import json
 import subprocess
 import sys
+from datetime import date, timedelta
 from decimal import Decimal, localcontext
 from pathlib import Path
 
@@ -344,6 +345,99 @@ def test_h7_requires_a_registered_full_h15_prediction_vector():
         if c["evaluation_family"] == FAMILIES[2] and c["origin"]["origin_date"] == "2025-03-10"
     )
     assert "H7_REQUIRES_H15_PREDICTION_SUPPORT" in [f["detail"] for f in h7["failures"]]
+
+
+@pytest.mark.parametrize("sides", ["baseline", "candidate", "both"])
+@pytest.mark.parametrize("offset", [8, 15])
+@pytest.mark.parametrize("defect", ["missing", "duplicate", "invalid"])
+def test_h7_requires_actual_h15_prefix_and_keeps_failed_c0(sides, offset, defect):
+    *_, registration, predictions, labels = example()
+    selected = ("baseline", "candidate") if sides == "both" else (sides,)
+    bad_date = str(date(2025, 3, 10) + timedelta(days=offset))
+    for curve in predictions["curves"]:
+        if curve["curve_id"] not in {f"SYN-CURVE-0-10-{side}" for side in selected}:
+            continue
+        rows = curve["rows"]
+        first7 = copy.deepcopy(rows[:7])
+        index = next(i for i, row in enumerate(rows) if row["date"] == bad_date)
+        if defect == "missing":
+            rows.pop(index)
+        elif defect == "duplicate":
+            rows.insert(index + 1, copy.deepcopy(rows[index]))
+        else:
+            rows[index]["kg"] = "NaN"
+        assert rows[:7] == first7
+    sealed = seal_predictions(registration, predictions)
+    report = score(sealed, labels, as_of=AS_OF)
+    assert report["candidate_count"] == registration["candidate_count"] == 6
+    assert [c["case_id"] for c in report["member_ledger"]] == registration["c0_member_ids"]
+    expected_reason = (
+        "INCOMPLETE_CALENDAR" if defect == "missing" else "INVALID_VALUE_OR_DUPLICATE_DATE"
+    )
+    for family in FAMILIES[2:]:
+        bad = member(report, family, 10)
+        good = member(report, family, 11)
+        prediction = next(c for c in sealed["cases"] if c["case_id"] == bad["case_id"])
+        assert bad["principal_reason"] == expected_reason and bad["daily"] == []
+        for side in selected:
+            assert prediction[side]["status"] == "NOT_COMPUTABLE"
+            assert prediction[side]["peaks"] is None
+        if defect == "missing" and family == FAMILIES[2]:
+            assert "H7_REQUIRES_H15_PREDICTION_SUPPORT" in [f["detail"] for f in bad["failures"]]
+        g = group(report, family)
+        assert g["diagnosis"] == "INCONCLUSIVE"
+        names = [n for n in legacy.ERROR_METRICS if n != "SEASON_TOTAL_WAPE"] + [
+            "V0_21_ORIGIN_WINDOW_TOTAL_MAE",
+            "V0_21_ORIGIN_WINDOW_TOTAL_WAPE",
+        ]
+        for name in names:
+            m = g["metrics"][name]
+            assert m["candidate_count"] == 2 and m["common_count"] == 1
+            assert m["not_computable_count"] == 1
+            assert m["common_member_ids"] == [good["case_id"]]
+            assert m["exclusions"] == {bad["case_id"]: expected_reason}
+        daily = g["metrics"]["DAILY_WAPE"]
+        assert Decimal(daily["baseline"]["denominator"]) == (52 if family == FAMILIES[2] else 60)
+        assert Decimal(daily["baseline"]["numerator"]) == (54 if family == FAMILIES[2] else 92)
+        assert Decimal(daily["candidate"]["numerator"]) == 5
+
+
+@pytest.mark.parametrize("sides", ["baseline", "candidate", "both"])
+def test_h7_h15_do_not_require_seasonal_rows_after_the_complete_15day_prefix(sides):
+    *_, registration, predictions, labels = example()
+    original = score(seal_predictions(registration, predictions), labels, as_of=AS_OF)
+    selected = ("baseline", "candidate") if sides == "both" else (sides,)
+    for curve in predictions["curves"]:
+        if curve["curve_id"] in {f"SYN-CURVE-0-10-{side}" for side in selected}:
+            curve["rows"] = [r for r in curve["rows"] if r["date"] <= "2025-03-25"]
+    sealed = seal_predictions(registration, predictions)
+    report = score(sealed, labels, as_of=AS_OF)
+    for family in FAMILIES[2:]:
+        assert member(report, family, 10) == member(original, family, 10)
+        assert group(report, family) == group(original, family)
+    # The declared remaining season still requires its own full support to April 1.
+    assert member(report, FAMILIES[1], 10)["principal_reason"] == "INCOMPLETE_CALENDAR"
+
+
+def test_h7_prediction_prefix_gate_does_not_require_h15_actual_labels():
+    *_, registration, predictions, labels = example()
+    h15 = next(
+        c
+        for c in registration["cases"]
+        if c["evaluation_family"] == FAMILIES[3] and c["origin"]["origin_date"] == "2025-03-10"
+    )
+    lab = next(c for c in labels["labels"] if c["case_id"] == h15["case_id"])
+    lab["rows"] = [r for r in lab["rows"] if r["date"] != "2025-03-18"]
+    report = score(seal_predictions(registration, predictions), labels, as_of=AS_OF)
+    assert group(report, FAMILIES[2])["metrics"]["DAILY_MAE"]["common_count"] == 2
+    assert group(report, FAMILIES[3])["metrics"]["DAILY_MAE"]["common_count"] == 1
+
+
+def test_r2_preserves_every_frozen_r1_synthetic_scenario_result():
+    from backend.tests.agronomic_history.v0_21_evaluation_fixture import suite
+
+    expected = json.loads((ROOT / "docs/v0-21/s3/examples/executed-scenarios.json").read_text())
+    assert suite() == expected
 
 
 def test_declared_prediction_failure_remains_in_seal_and_full_c0():

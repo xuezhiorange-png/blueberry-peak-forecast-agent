@@ -641,6 +641,20 @@ def seal_predictions(registration: Record, predictions: Record) -> Record:
                         or date.fromisoformat(expected[-1]) > spec.support_end
                     ):
                         failures.append(_failure("CURVE_SUPPORT_MISMATCH"))
+                    if case["evaluation_family"] == FAMILIES[2]:
+                        prefix_start = date.fromisoformat(expected[0])
+                        prefix_dates = _dates(prefix_start, prefix_start + timedelta(days=14))
+                        prefix_days = set(prefix_dates)
+                        _, prefix_reason = _parse_rows(
+                            [
+                                Row.model_validate(r)
+                                for r in source["rows"]
+                                if r["date"] in prefix_days
+                            ],
+                            prefix_dates,
+                        )
+                        if prefix_reason:
+                            failures.append(_failure("H7_REQUIRES_H15_PREDICTION_SUPPORT"))
                     rows, why = _parse_rows(
                         [
                             Row.model_validate(r)
