@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — post-v0.21.0 engineering maintenance
+
+- TD-01 ([PR #767](https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/767), merge `5977fdc1ce3d7393b235bd646d93d18a83781679`): stop tracking two legacy receipt workbooks in future checkouts. Existing history, tags, releases and source evidence remain; this does not resolve historical publication exposure.
+- TD-02: separate engineering release, component and Git identities; align current development guidance and capability descriptions with the merged forecast-family contracts. Preserve package/service `0.2.0` compatibility fields, runtime APIs, frozen evidence and prediction mathematics. Add version inventory checks; no new release or deployment.
+
+## 0.21.0 — Agronomic Cycle and Forecast Research Readiness (2026-10-28)
+
+Official [GitHub Release](https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/releases/tag/v0.21.0), annotated tag at `3bf2e172822f8b375cf30a0e2c0fcb96ebade722`.
+
+This engineering release includes the merged V0.19 and V0.20 work and V0.21 S0–S4. V0.19/V0.20 are development milestones included here, **not separate official releases**. No retrospective tags or publication dates are invented.
+
+- [V0.19](docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md): daily-curve and peak research, bounded historical comparisons, rolling shadow forecasts, target-aligned inbound snapshots and source readiness. Existing real-research authorization and exposed-history limitations remain.
+- [V0.20](docs/v0-20/v0.20.0-version-plan.md): local CSV/XLSX agronomic preparation; area, events, phenology, source/revision/time quality and deterministic preparation packages.
+- [V0.21](docs/v0-21/v0.21.0-version-plan.md): cycle features, cross-season structure descriptions, full/declared-remaining-season peak and origin H7/H15 evaluation readiness; [S4](docs/v0-21/s4/research-readiness-and-closeout-r1.md) integrates 39 synthetic datasets and offline reports.
+
+Full-season peak and arbitrary-origin rolling forecasts remain separate, equally prioritized goals. Synthetic arithmetic and exposed historical results do not validate prospective accuracy, strict PIT or agronomic causality. Real agronomic authority is not fully verified; this release does not train/promote a new agronomic production model or deploy production services.
+
+### Earlier version navigation
+
+The preceding official release is [v0.18.0](https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/releases/tag/v0.18.0). For V0.3–V0.18 tag targets, dates and release notes use the [existing Release history](https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/releases) and corresponding version directories under `docs/`; this navigation does not rewrite those publication facts. Component `0.2.0` metadata is separately explained in [VERSIONING.md](VERSIONING.md).
+
+The original V0.2 and V0.1 entries below are retained as historical snapshots, including their then-current authorization and version statements.
+
 ## 0.2.0 — Forecast Quality Trial (2026-08-04)
 
 V0.2 is delivered as an `ENGINEERING_TRIAL`, not a production business
