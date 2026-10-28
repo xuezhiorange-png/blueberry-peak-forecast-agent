@@ -1,337 +1,75 @@
-蓝莓产量与加工峰值预测 Agent
+# 蓝莓产量与加工峰值预测 Agent
 
 Blueberry Yield & Processing Peak Forecast Agent
 
-让蓝莓生产从经验判断走向数据驱动
-
-Turning Blueberry Production Planning from Experience-Based Decisions into Data-Driven Operations
-
-蓝莓产量与加工峰值预测 Agent 是一套面向蓝莓生产、采摘组织、加工准备和产能规划的智能预测产品。
-
-系统综合基地位置、种植面积、品种结构、历史产量、成熟规律、天气条件、采摘能力及加工安排，预测不同基地、品种和产季的逐日产量变化，提前识别单日峰值、持续高峰和加工压力集中时段，为生产计划、人员安排、预冷能力、包装能力、运输组织和加工厂规划提供决策依据。
-
-The Blueberry Yield & Processing Peak Forecast Agent is an intelligent forecasting product designed for blueberry production, harvest organization, processing preparation, and capacity planning.
-
-By combining farm location, planted area, variety structure, historical yield, maturity patterns, weather conditions, harvesting capacity, and processing arrangements, the system forecasts daily production across farms, varieties, and seasons. It identifies daily peaks, sustained high-load periods, and processing pressure in advance, supporting better decisions in production scheduling, workforce allocation, precooling, packaging, transportation, and facility planning.
-
----
-
-为什么需要这个产品
-
-Why This Product Is Needed
-
-蓝莓产量具有明显的季节性和集中爆发特征。即使产季总产量接近，也可能因品种结构、天气变化、成熟时间和采摘条件不同，形成完全不同的每日到货曲线。
-
-传统计划通常依赖种植面积、产季总量和人工经验，难以准确回答以下问题：
-
-- 哪一天可能出现产量峰值；
-- 高负荷状态可能持续多长时间；
-- 不同基地和品种会在何时集中成熟；
-- 现有采摘、预冷、包装和运输能力是否能够承接；
-- 新建或改扩建加工厂应配置多大的处理能力；
-- 实际产量偏离预测后，后续计划应如何调整。
-
-本产品将这些分散的问题统一到一条完整的逐日产量预测曲线上，使生产和加工计划建立在同一套数据基础上。
-
-Blueberry production is highly seasonal and often concentrated within short peak periods. Even when two seasons have similar total output, differences in variety structure, weather, maturity timing, and harvesting conditions can produce very different daily arrival patterns.
-
-Traditional planning often relies on planted area, seasonal totals, and personal experience, making it difficult to answer:
-
-- On which day will production likely peak?
-- How long will the high-load period last?
-- When will different farms and varieties mature simultaneously?
-- Can current harvesting, precooling, packaging, and transport capacity handle the load?
-- How much capacity should be planned for a new or expanded processing facility?
-- How should the plan be adjusted when actual production deviates from the forecast?
-
-The product brings these questions together through a complete daily yield forecast curve, enabling production and processing teams to work from one consistent data foundation.
-
----
-
-核心产品能力
-
-Core Product Capabilities
-
-01 逐日产量预测
-
-Daily Yield Forecasting
-
-预测不同基地、分场、品种和产季的逐日产量变化，形成完整产季曲线，而不是只提供一个产季总量或单一峰值数字。
-
-Forecast daily production across farms, sub-farms, varieties, and seasons, producing a complete seasonal curve rather than only a seasonal total or a single peak value.
-
----
-
-02 多风险区间预测
-
-Multi-Level Forecast Ranges
-
-输出 P50、P80、P90 等不同风险水平的预测结果，帮助使用者根据正常计划、稳健计划和高风险保障方案配置资源。
-
-Provide P50, P80, and P90 forecast ranges to support normal planning, conservative preparation, and high-risk capacity protection.
-
----
-
-03 单日及持续峰值识别
-
-Daily and Sustained Peak Identification
-
-从逐日产量曲线中识别单日峰值、连续多日高负荷区间和产季累计产量，避免只关注某一个最高点而忽略持续加工压力。
-
-Identify single-day peaks, sustained multi-day high-load periods, and seasonal cumulative output, preventing planners from focusing only on one maximum value while overlooking prolonged operational pressure.
-
----
-
-04 品种与基地结构分析
-
-Variety and Farm Structure Analysis
-
-分析不同品种、基地和分场对产量曲线的贡献，识别成熟期重叠、集中上市和结构性峰值形成原因。
-
-Analyze the contribution of each variety, farm, and sub-farm to the production curve, revealing overlapping maturity periods, concentrated supply, and the structural causes of peak loads.
-
----
-
-05 天气与成熟进程分析
-
-Weather and Maturity Analysis
-
-结合温度、降雨、积温和物候信息，分析天气变化对成熟时间、采摘节奏和产量释放的影响。
-
-Combine temperature, rainfall, accumulated heat, and phenological information to assess how weather affects maturity timing, harvesting pace, and production release.
-
----
-
-06 采摘与积压模拟
-
-Harvesting Capacity and Backlog Simulation
-
-将自然成熟量与采摘人员、采摘能力、节假日和天气影响结合，区分“已经成熟的果实”和“当天能够实际采收并进入加工环节的果实”。
-
-Combine natural maturity with workforce availability, harvesting capacity, holidays, and weather effects to distinguish between fruit that has matured and fruit that can actually be harvested and delivered for processing.
-
----
-
-07 加工能力匹配
-
-Processing Capacity Matching
-
-将预测产量与采摘、运输、预冷、分选、包装和成品储存能力进行对比，提前识别产能缺口和高风险日期。
-
-Compare forecast output with harvesting, transportation, precooling, sorting, packaging, and finished-product storage capacity to identify capacity gaps and high-risk dates in advance.
-
----
-
-08 预测与实际对比
-
-Forecast-to-Actual Comparison
-
-导入实际采收数据，对预测结果进行持续核验，分析不同基地、品种、时间范围和预测周期下的偏差。
-
-Import actual harvest data to continuously evaluate forecasts and analyze errors across farms, varieties, time periods, and forecast horizons.
-
----
-
-09 历史回测与模型改进
-
-Historical Backtesting and Model Improvement
-
-按照历史时点能够获得的数据重新运行预测，避免使用未来信息评价模型，并通过历史偏差持续修正模型和参数。
-
-Re-run forecasts using only the information that would have been available at each historical point in time, preventing future-data leakage and enabling continuous model and parameter improvement.
-
----
-
-10 可追溯预测结果
-
-Traceable Forecast Evidence
-
-记录每次预测所使用的数据版本、参数、模型、预测范围和计算结果，使预测可以查询、复核、对比和重复执行。
-
-Record the data versions, parameters, models, forecast scope, and calculated results used in each run, allowing forecasts to be reviewed, compared, verified, and reproduced.
-
----
-
-产品输出
-
-Product Outputs
-
-系统可形成以下核心输出：
-
-- 产季逐日产量预测曲线；
-- P50、P80、P90 预测区间；
-- 单日操作峰值及预计发生日期；
-- 连续七日累计峰值及高负荷区间；
-- 不同基地、分场和品种的产量构成；
-- 产季累计产量；
-- 预测与实际产量对比；
-- 预测误差及历史回测结果；
-- 加工能力缺口和风险提示；
-- 预冷、包装、人员、班次和运输准备参考；
-- 可导出的预测及质量评估报告。
-
-The system can produce:
-
-- Daily seasonal yield forecast curves;
-- P50, P80, and P90 forecast ranges;
-- Expected single-day operating peak and peak date;
-- Rolling seven-day cumulative peak and high-load periods;
-- Yield composition by farm, sub-farm, and variety;
-- Seasonal cumulative production;
-- Forecast-versus-actual comparisons;
-- Forecast errors and historical backtest results;
-- Processing-capacity gaps and risk alerts;
-- References for precooling, packaging, workforce, shifts, and transportation;
-- Exportable forecast and quality-evaluation reports.
-
----
-
-应用场景
-
-Application Scenarios
-
-生产计划
-
-根据不同基地和品种的成熟节奏，提前安排采摘人员、生产批次和物资准备。
-
-Production Planning
-
-Schedule harvesting teams, production batches, and material preparation according to the maturity patterns of different farms and varieties.
-
-加工厂运行
-
-提前判断每日到货压力，安排预冷、分选、包装、班次和运输资源。
-
-Processing Operations
-
-Anticipate daily arrival pressure and prepare precooling, sorting, packaging, shifts, and transportation resources.
-
-加工厂规划
-
-以逐日产量峰值和持续高负荷为依据，测算加工能力、预冷能力和功能区规模。
-
-Processing Facility Planning
-
-Use daily peaks and sustained high-load periods to determine processing capacity, precooling capacity, and functional-area requirements.
-
-跨基地协同
-
-分析不同基地和加工厂之间的产量与能力关系，为跨厂分流和资源协调提供依据。
-
-Cross-Farm Coordination
-
-Analyze the relationship between output and processing capacity across farms and facilities to support load balancing and resource coordination.
-
-产季复盘
-
-比较预测与实际结果，识别偏差来源，积累下一产季可复用的经验和数据。
-
-Seasonal Review
-
-Compare forecasts with actual results, identify sources of error, and build reusable knowledge and data for future seasons.
-
----
-
-产品价值
-
-Product Value
-
-提前发现产能风险
-
-从事后应对转向提前识别，减少峰值期间预冷不足、包装拥堵、人员不足和运输延误。
-
-Identify Capacity Risks Earlier
-
-Shift from reactive problem-solving to early risk identification, reducing precooling shortages, packaging bottlenecks, labor shortages, and transport delays during peak periods.
-
-提高资源利用效率
-
-根据逐日产量曲线配置人员、设备、班次和储存能力，减少过度配置和临时调配。
-
-Improve Resource Utilization
-
-Allocate labor, equipment, shifts, and storage capacity according to the daily production curve, reducing overcapacity and last-minute adjustments.
-
-提升加工厂规划准确性
-
-由“总产量加经验系数”转变为“逐日曲线加持续峰值”，提高新建和改扩建项目的产能测算合理性。
-
-Improve Facility Planning Accuracy
-
-Replace “seasonal total plus experience factor” with “daily curves plus sustained peaks,” improving capacity calculations for new and expanded facilities.
-
-统一业务计划口径
-
-让基地、加工厂、供应链、投资规划和管理部门基于同一套预测结果协同工作。
-
-Establish a Shared Planning Basis
-
-Enable farms, processing facilities, supply chain teams, investment planners, and management to coordinate using one consistent forecast.
-
-建立持续改进机制
-
-通过预测、实际、误差分析和历史回测形成闭环，使模型和业务计划随数据积累持续改进。
-
-Build a Continuous Improvement Loop
-
-Create a closed loop of forecasts, actual results, error analysis, and historical backtesting so both the model and operational plans improve over time.
-
----
-
-产品定位
-
-Product Positioning
-
-蓝莓产量与加工峰值预测 Agent 不是单一的产量计算工具，而是连接蓝莓生产、采摘、加工和产能规划的决策支持系统。
-
-它不替代生产负责人、农业专家或加工厂管理人员的专业判断，而是将分散的数据、规则和经验转化为可以计算、解释、验证和持续改进的预测依据。
-
-The Blueberry Yield & Processing Peak Forecast Agent is not simply a yield calculator. It is a decision-support system connecting blueberry production, harvesting, processing, and capacity planning.
-
-It does not replace the professional judgment of production managers, agronomists, or processing-facility operators. Instead, it transforms fragmented data, rules, and experience into forecasting evidence that can be calculated, explained, validated, and continuously improved.
-
----
-
-项目发展阶段
-
-Project Milestones
-
-2026 年 7 月 16 日
-
-July 16, 2026
-
-完成 V0.1 核心预测版本。
-
-建立完整的逐日产量预测计算链路，实现逐日 P50、P80、P90 曲线、单日峰值、连续七日累计峰值、产季累计量、预测结果持久化及确定性重复执行。
-
-Completed the V0.1 Core Forecast release.
-
-Established the complete daily forecasting calculation chain, including P50, P80, and P90 curves, single-day peaks, rolling seven-day cumulative peaks, seasonal totals, persisted forecast results, and deterministic replay.
-
----
-
-2026 年 8 月 4 日
-
-August 4, 2026
-
-完成 V0.2 工程试用版。
-
-形成浏览器端预测与质量评估闭环，支持预测创建、逐日曲线查看、峰值查看、实际采收数据导入、数据校验、历史回测、预测质量评估、基线比较和结果导出，并完成桌面端及移动端工程验证。
-
-Completed the V0.2 Engineering Trial.
-
-Delivered a browser-based forecasting and quality-evaluation loop supporting forecast creation, daily curve inspection, peak inspection, actual harvest import, data validation, historical backtesting, forecast-quality evaluation, baseline comparison, and result export, with engineering validation on desktop and mobile browsers.
-
----
-
-当前阶段
-
-Current Stage
-
-项目已完成核心预测与工程试用产品闭环，正在进入真实业务数据接入和业务试点准备阶段。
-
-下一阶段重点包括真实数据口径确认、数据责任体系建立、真实历史滚动回测、预测准确性验证以及生产和加工业务场景试用。
-
-The project has completed its core forecasting capability and engineering trial product loop and is now preparing for real-business data integration and pilot deployment.
-
-The next stage will focus on confirming real-data definitions, establishing data ownership, running rolling historical backtests, validating forecast accuracy, and testing the product in real production and processing scenarios.
+本项目提供确定性的预测计算、历史研究、数据准备和受控 Shadow 业务流程。
+当前正式工程版本是 [v0.21.0](https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/releases/tag/v0.21.0)，
+发布提交为 `3bf2e172822f8b375cf30a0e2c0fcb96ebade722`。当前 main 包含发布后的技术债修复，
+不能与该 Tag 的源码等同；实际身份请记录 Git SHA 和工作树状态。
+
+Python、前端和 FastAPI 保留的 `0.2.0` 是组件兼容元数据，不是“当前工程只到 V0.2”。
+版本来源、锁文件和更新规则见 [VERSIONING.md](VERSIONING.md) 与
+[机器清单](version-manifest.json)。本次没有发布新组件包或新的工程版本。
+
+## 已实现什么，证明到哪一步
+
+| 能力 | 已实现范围 | 证据边界 |
+| --- | --- | --- |
+| 既有 Core Forecast、Area Forecast、Operational Peak 等模型族 | 确定性日曲线、对应峰值、不可变保存与读取、各自 API 和质量流程 | 每个族有独立日历、模型、物理口径和权限；字段/接口存在不证明真实未来精度 |
+| V0.19 曲线与历史研究 | 冻结基线/唯一日曲线候选、限定历史回放、训练与跨季研究、独立评分和失败保留 | 既有获授权历史研究已经执行；已暴露样本和跨来源限制仍保留，不是盲测或前瞻验收 |
+| V0.19 S7–S9 滚动工程 | 冻结 M0/M1、H7/H15、逐日曲线、高峰、PostgreSQL保存/重载、Origin查询比较、Dashboard、独立标签评价及来源准备 CLI | CONTROLLED_RESEARCH_SHADOW；真实来源需逐项授权并证明身份/时间/口径，工程测试不晋级模型 |
+| 电子表格准备与演示 | 浏览器本地 CSV/XLSX、多表/表头/人工映射、质量预览；固定合成样本绑定既有预测与报告导出 | 任意用户文件为未验证预览，不自动上传、导入、登记来源或触发预测；合成演示不是实际产量 |
+| V0.20 农事历史基础 | 面积、管理事件、物候规范化，身份/修订/有效期/来源时点检查，版本化 JSON/CSV/HTML | 本地数据准备及合成验收；普通开花不自动变成 BLOOM_10/50/90，未知促早不推断为加温 |
+| V0.21 研究准备 | 跨季生产周期、面积/品种/换苗/密度结构描述，完整/剩余产季及 H7/H15 合成评价，离线研究就绪报告 | S0–S4 已合并并随 v0.21.0 发布；39 个合成数据集不是39个实际基地，也不证明农艺预测增益 |
+
+来源导航：[V0.19 范围](docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md)、
+[历史回放边界](docs/v0-19/s3/owner-controlled-replay-r1.md)、
+[S7 运行流程](docs/v0-19/s7/rolling-forecast-integration-r1.md)、
+[S8 入库快照](docs/v0-19/s8/target-aligned-inbound-source-r1.md)、
+[S9 准备工具](docs/v0-19/s9/inbound-source-readiness-r1.md)、
+[V0.20](docs/v0-20/v0.20.0-version-plan.md)、
+[V0.21](docs/v0-21/v0.21.0-version-plan.md)、
+[S4 报告与运行说明](docs/v0-21/s4/research-readiness-and-closeout-r1.md)。
+各文档保留交付当时的授权与验收快照；后续合并/发布事实以 GitHub 记录为准，不回写历史状态。
+
+## 预测的范围和数量不能混用
+
+完整产季高峰与任意预测起点未来7/15日是两个独立且同等优先级目标。
+
+| 范围 | 日期与解释 |
+| --- | --- |
+| 完整产季 | 事前冻结 season_start…season_end；产季内单日、最大连续7/15日累计及峰窗日量 |
+| 声明剩余产季 | 事前冻结 remaining_start…season_end，起点至少 D+1；不能冒称完整产季 |
+| Origin H7/H15 | D+1…D+7/15；H7 为同一完整 H15 曲线的前七日；局部峰不是全季峰 |
+
+单日峰、旧3日持续峰、rolling7、rolling15 各有自己的公式。单一候选峰窗的零起点误差不代表
+预测峰时能力。日误差与窗口累计误差分别报告，不能用正负抵消掩盖日量偏差。
+
+既有 Core Forecast 的 P50/P80/P90 字段按其冻结合同保留；有字段不等于已完成真实校准。
+M0/M1 的 Point 及规划上界不能改名为已验证分位数，也不能凭页面展示宣称覆盖率。
+
+田间采摘 `FARM_PICK`、入库登记重量 `RECORDED_INBOUND_WEIGHT`、SOURCE_002 入库称重净重、
+自然成熟量和商品果量是不同物理量。S6 冻结训练目标为入库登记重量；特征、训练目标、预测目标、
+评价标签分别记录，无等价证明不能执行伪同口径评价。重量显示默认 kg，吨只作展示换算。
+
+## 尚未验证与未来工作
+
+- 真实农事数据的完整权威、可信历史可见时点及对应成熟标签仍未完整验证。
+- 业务日期、事后历史回放和合成时钟不能证明 STRICT_PIT；真实签发与事后重算必须分开。
+- 已暴露历史结果、工程 CI 和合成改善不证明未来精度、农艺因果增益或生产可用性。
+- V0.21 未训练/晋级新的农艺增强生产模型；剪枝、促早、开花和密度不能直接变成产量倍率或峰日偏移。
+- 真实数据验证、受控前瞻研究、模型晋级和生产部署是后续独立授权工作，不由本 README 自动启动。
+
+## 数据与开发入口
+
+原始业务数据不随当前 checkout 提供。TD-01 已取消两份历史 XLS 的追踪；旧工具需明确授权原件，
+文件缺失应失败，不能自动寻找替身或补零。历史提交及旧 Tag/Release 仍可能引用这些文件，
+取消追踪不代表历史公开风险已消除。数据保管/研究许可不等于公开发布许可。
+
+开发从 [AGENTS.md](AGENTS.md)、[当前 Codex 模板](CODEX_MASTER_PROMPT.md) 与
+[任务及历史路线](CODEX_TASKS.md) 开始；测试命令见 [版本检查](VERSIONING.md#可执行检查)，
+发布导航见 [CHANGELOG](CHANGELOG.md)。修改模型族前阅读其具体合同，禁止按早期 Task 0–14
+重新开发或无条件套用1—4月、3日峰与置信区间默认项。
+
+本仓库提供规划、研究和受控工程能力，不替代业务负责人或农业专家判断；没有对应证据和授权，
+不得将研究候选视为生产默认模型，也不得自行 Ready、Merge、Tag、Release 或 Deploy。

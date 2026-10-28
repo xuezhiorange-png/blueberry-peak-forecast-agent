@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "engineering_release": {
+    "version": "0.21.0",
+    "tag": "v0.21.0",
+    "commit": "3bf2e172822f8b375cf30a0e2c0fcb96ebade722",
+    "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/releases/tag/v0.21.0",
+    "scope_document": "docs/v0-21/v0.21.0-version-plan.md"
+  },
+  "component_policy": "RETAIN_EXISTING_COMPATIBILITY_IDENTITIES",
+  "components": {
+    "python_package": {
+      "source": "pyproject.toml",
+      "version": "0.2.0",
+      "lock": "uv.lock"
+    },
+    "frontend_application": {
+      "source": "frontend/package.json",
+      "version": "0.2.0",
+      "lock": "frontend/package-lock.json"
+    },
+    "fastapi_service": {
+      "source": "backend/app/core/version.py",
+      "symbol": "APP_VERSION",
+      "version": "0.2.0"
+    }
+  },
+  "checkout_identity": {
+    "source": "git rev-parse --verify HEAD",
+    "dirty_source": "git status --porcelain=v1",
+    "release_record_is_current_checkout": false
+  },
+  "runtime_reads_manifest": false
+}
