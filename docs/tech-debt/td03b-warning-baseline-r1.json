@@ -1098,6 +1098,72 @@
       }
     ]
   },
+  "follow_up_after_initial_ci": {
+    "additional_old_entrypoint_exit_regressions_failed": 3,
+    "final_complete_s3_resource_repeats": [
+      {
+        "all_connections_closed": true,
+        "live_workers_after_suite": 0,
+        "opened_engines": 61,
+        "passed": 1491,
+        "same_query_and_dispose_loops": true,
+        "skipped": 1,
+        "warnings": 2,
+        "workers_observed": 61
+      },
+      {
+        "all_connections_closed": true,
+        "live_workers_after_suite": 0,
+        "opened_engines": 61,
+        "passed": 1491,
+        "same_query_and_dispose_loops": true,
+        "skipped": 1,
+        "warnings": 2,
+        "workers_observed": 61
+      },
+      {
+        "all_connections_closed": true,
+        "live_workers_after_suite": 0,
+        "opened_engines": 61,
+        "passed": 1491,
+        "same_query_and_dispose_loops": true,
+        "skipped": 1,
+        "warnings": 2,
+        "workers_observed": 61
+      }
+    ],
+    "final_lifecycle_test_count": 22,
+    "initial_ci": {
+      "attempt": 1,
+      "golden_deselected": 1033,
+      "golden_log_sha256": "4fe163188b5e7c262e12f955979e9714bcca17bb3523a442fc1331af17b633fe",
+      "golden_passed": 10445,
+      "golden_skipped": 21,
+      "golden_thread_warnings": 2,
+      "golden_warnings": 408,
+      "head_sha": "ea2e80f9c662eb54903d45225e049674a1a1fc3a",
+      "job_success_count": 16,
+      "reporting_site_does_not_prove_allocation_owner": true,
+      "run_id": 40801427102,
+      "target_warning_gate": "FAIL",
+      "warning_reporting_test": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py::test_contract_is_authorized_and_not_an_implementation_grant"
+    },
+    "initial_ci_separate_asyncpg_warnings": {
+      "count_variation_cause": "NOT_PROVEN",
+      "fixed_or_suppressed": false,
+      "runtime_warning_baseline": 56,
+      "runtime_warning_head": 60,
+      "sa_warning_baseline": 12,
+      "sa_warning_head": 12,
+      "unraisable_warning_baseline": 1,
+      "unraisable_warning_head": 3
+    },
+    "intermediate_failed_run_preserved": true,
+    "intermediate_fresh_database_catalog_assertion_failures": 7,
+    "original_module_constants_unchanged": 360,
+    "original_test_assertion_asts_unchanged": 158,
+    "retained_state_strategy": "PYTEST_OWNED_SYNTHETIC_TEMPORARY_SQLITE_STORE;FRESH_STATICPOOL_ENGINE_PER_SESSION;SAME_LOOP_DISPOSE"
+  },
   "owner_scope": "IMPLEMENT_AND_CREATE_DRAFT_PR_ONLY",
   "resource_evidence": {
     "baseline_after_query": {

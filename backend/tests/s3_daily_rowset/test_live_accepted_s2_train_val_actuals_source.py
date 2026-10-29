@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 import sqlalchemy as sa
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.schema import Table
 
 from backend.app.s2_materialized_dataset.lane_d.canonical import build_partition_bytes
@@ -46,6 +46,7 @@ from backend.app.s3_daily_rowset.schemas import (
 )
 from backend.app.s3_daily_rowset.service import build_daily_rowset_materializer_with_live_actuals
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY, make_cell, make_row
+from backend.tests.s3_daily_rowset.owned_sqlite_session import owned_sqlite_session_maker
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 LIVE_MODULE = Path("backend/app/s3_daily_rowset/live_accepted_s2_train_val_actuals_source.py")
@@ -146,21 +147,22 @@ async def _async_session_maker_with_rows(
     train_rows: tuple,
     validation_rows: tuple,
 ) -> async_sessionmaker[AsyncSession]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as conn:
-        await conn.run_sync(_create_tables)
-    session_maker: async_sessionmaker[AsyncSession] = async_sessionmaker(
-        bind=engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-    async with session_maker() as session:
-        await _persist_accepted_dataset_async(
-            session,
-            train_rows=train_rows,
-            validation_rows=validation_rows,
+    async def prepare(engine: AsyncEngine) -> None:
+        async with engine.begin() as conn:
+            await conn.run_sync(_create_tables)
+        session_maker: async_sessionmaker[AsyncSession] = async_sessionmaker(
+            bind=engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
         )
-    return session_maker
+        async with session_maker() as session:
+            await _persist_accepted_dataset_async(
+                session,
+                train_rows=train_rows,
+                validation_rows=validation_rows,
+            )
+
+    return owned_sqlite_session_maker(prepare, retain_test_data=True)
 
 
 def _session_maker_with_rows(
