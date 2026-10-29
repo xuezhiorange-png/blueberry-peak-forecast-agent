@@ -11,13 +11,14 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.s2_materialized_dataset.shared.contracts import SOURCE_002_ROW_LEVEL_READ
 from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read import (
     AcceptedS2TrainValSource002RowLevelReadAttestation,
     clear_source_002_row_level_read_session_provider,
 )
+from backend.tests.s3_daily_rowset.owned_sqlite_session import owned_sqlite_session_maker
 
 _async_session_query = importlib.import_module(
     "backend.app.s3_daily_rowset."
@@ -97,12 +98,7 @@ SESSION_MODULE = Path("backend/app/db/session.py")
 
 
 async def _async_session_maker_sqlite() -> async_sessionmaker[AsyncSession]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    return async_sessionmaker(
-        bind=engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
+    return owned_sqlite_session_maker()
 
 
 def _session_maker_sqlite() -> async_sessionmaker[AsyncSession]:
