@@ -89,7 +89,7 @@ for the authorized helper edits; historical objects and their expected IDs are
 not rewritten. No real SOURCE_002 file, private dataset or production DB is read.
 This does not certify production-wide cross-loop engine use.
 
-## Local acceptance
+## Initial local acceptance
 
 The new lifecycle suite has 15 cases: the nine original synthetic paths, body
 failure, task cancellation, failed setup, fail-closed query failure, two separate
@@ -116,10 +116,66 @@ also exposed missing `pytest` on nested subprocess PATH. Runtime setup was
 corrected without changing assertions or timeouts. Neither is reported as an
 aiosqlite fix or included in the three completed repetitions.
 
-The complete local S3 rowset regression passed 1,484 tests with one existing
-skip and two unchanged SQLite datetime adapter warnings. Exact-head
-Golden/Canary results belong in the PR receipt and are not prefilled here. Original tests and skip/coverage rules
-are retained, with only the 15 lifecycle cases added.
+The initial complete local S3 rowset regression passed 1,484 tests with one
+existing skip and two unchanged SQLite datetime adapter warnings. That head
+added 15 lifecycle cases and retained the original tests/skip rules. Those local
+results preceded the first CI and did not establish a suite-wide warning fix.
+
+## Initial CI exposed additional test owners
+
+The first PR head, `ea2e80f9c662eb54903d45225e049674a1a1fc3a`, completed
+[CI 40801427102](https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/40801427102)
+with all 16 jobs successful. It **did not pass this task's target-warning gate**:
+Golden reported 10,445 passed, 21 skipped, 1,033 deselected and 408 warnings,
+including two aiosqlite worker exceptions attributed to
+`test_s3_a2_completeness_pass_closeout_contract.py`.
+The reporting location is not treated as the allocation owner. These logs and
+the earlier successful local results remain preserved.
+
+Three further exit regressions demonstrated live workers after the real synthetic
+live-actuals, live-catalog and direct-connection entrypoints returned. All three
+failed before their fixture correction. The two session factories now use the
+same owned-session helper; the direct connection has a test-only AsyncConnection
+whose close awaits its engine's disposal. It remains a real AsyncEngine and uses
+the standard SQLite async dialect and StaticPool, with no application changes.
+
+Catalog contracts also require landed synthetic rows to survive successive
+public calls. An intermediate fresh-memory-per-session correction closed all
+workers but failed seven unchanged catalog assertions. That failed run is
+retained. For these two data-retaining factories, a pytest-owned temporary SQLite
+file now preserves the synthetic rows. Each session still creates/connects/uses/
+disposes a different engine within its own query loop. The test storage owner
+unlinks only files it created, on normal or exceptional exit. No existing file
+path is accepted or discovered; seed tables and rows are unchanged.
+
+The final lifecycle suite has 22 cases, including retained-state round trips
+across two loops, storage cleanup after exceptions, and connection failure/
+cancellation. Nested inspectors can checkout the same StaticPool record more
+than once: one catalog trace had 17 closed checkout proxies although checkin
+event counts were not one-to-one. Every actual proxy is therefore checked for
+invalidated/cleared state, in addition to physical driver closure, worker exit,
+same-loop disposal and close/dispose ordering. No business assertion was removed.
+
+All 158 existing test functions in the changed test modules retain their exact
+assertion ASTs, and all 360 original module constants retain their values. Only
+one business test's resource-construction call changed; its public call and
+assertions did not. The production files, dependency pins and CI criteria remain
+unchanged. Final complete-suite repetitions and the new exact-head CI are recorded
+in the evidence ledger/PR receipt rather than inferred from the first green CI.
+
+The corrected implementation passed three independent complete S3 repetitions:
+1,491 passed, one existing skip and two datetime warnings on each repetition.
+Each process traced 61 opened synthetic SQLite engines/workers, with zero live
+workers after the suite, every connection closed, and matching query/dispose
+loops. Thread exception warnings were errors. Original/red/intermediate logs
+remain retained. Ruff, format and Mypy checks apply to the final code; its CI
+result is reported separately from these local measurements.
+
+The first CI's Canary also retained separate asyncpg warnings: SAWarning 12,
+`Connection._cancel` RuntimeWarning 60 (baseline 56), and unraisable warnings 3
+(baseline 1). The cause of that count variation is not proven. These signatures
+already occur in the old Canary; they are not claimed fixed or suppressed by
+this SQLite-fixture change.
 
 ## Other warning work remains separate
 

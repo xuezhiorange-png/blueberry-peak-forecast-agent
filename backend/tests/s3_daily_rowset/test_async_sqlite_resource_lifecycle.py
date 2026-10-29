@@ -5,14 +5,20 @@ from __future__ import annotations
 import asyncio
 import importlib
 from collections.abc import Iterator
+from contextlib import nullcontext
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
-from sqlalchemy import event, select
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy import event, select, text
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
-from backend.tests.s3_daily_rowset.owned_sqlite_session import owned_sqlite_session_maker
+from backend.tests.s3_daily_rowset.owned_sqlite_session import (
+    owned_sqlite_connection_engine,
+    owned_sqlite_session_maker,
+    sqlite_test_storage,
+)
 
 pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
@@ -34,6 +40,7 @@ class _Resources:
     def __init__(self) -> None:
         self.engines: list[AsyncEngine] = []
         self.drivers: list[Any] = []
+        self.checkouts: list[Any] = []
         self.events: list[tuple[str, int, asyncio.AbstractEventLoop]] = []
 
     def record(self, kind: str, engine: AsyncEngine) -> None:
@@ -49,6 +56,10 @@ class _Resources:
             driver._thread.join(timeout=1)
             assert not driver._thread.is_alive(), "aiosqlite worker outlived the query loop"
             assert driver._connection is None, "SQLite connection was not explicitly closed"
+        assert self.checkouts
+        assert all(
+            not proxy.is_valid and proxy.dbapi_connection is None for proxy in self.checkouts
+        )
         for engine in self.engines:
             events = [(kind, loop) for kind, ident, loop in self.events if ident == id(engine)]
             connects = [loop for kind, loop in events if kind == "CONNECT"]
@@ -57,8 +68,12 @@ class _Resources:
             assert set(connects) == set(disposed), "engine crossed query/dispose event loops"
             assert all(loop.is_closed() for loop in connects), "test loop has not exited"
             kinds = [kind for kind, _ in events]
-            assert kinds.count("CHECKOUT") == kinds.count("CHECKIN")
-            assert max(i for i, kind in enumerate(kinds) if kind == "SESSION_CLOSE_END") < (
+            # Nested inspector checkouts can share a StaticPool connection record;
+            # check every actual checkout proxy above, not a one-to-one event count.
+            close_kind = (
+                "SESSION_CLOSE_END" if "SESSION_CLOSE_END" in kinds else "CONNECTION_CLOSE_END"
+            )
+            assert max(i for i, kind in enumerate(kinds) if kind == close_kind) < (
                 kinds.index("DISPOSE_BEGIN")
             )
             assert kinds.index("CLOSE") < kinds.index("DISPOSE_END")
@@ -69,6 +84,7 @@ def resources(monkeypatch: pytest.MonkeyPatch) -> Iterator[_Resources]:
     observed = _Resources()
     original_init = AsyncEngine.__init__
     original_close = AsyncSession.close
+    original_connection_close = AsyncConnection.close
     original_dispose = AsyncEngine.dispose
 
     def engine_init(self: AsyncEngine, *args: Any, **kwargs: Any) -> None:
@@ -85,6 +101,8 @@ def resources(monkeypatch: pytest.MonkeyPatch) -> Iterator[_Resources]:
         for name in ("checkout", "checkin", "close"):
 
             def received(*args: Any, _kind: str = name.upper()) -> None:
+                if _kind == "CHECKOUT":
+                    observed.checkouts.append(args[2])
                 observed.record(_kind, self)
 
             event.listen(self.sync_engine, name, received)
@@ -105,8 +123,17 @@ def resources(monkeypatch: pytest.MonkeyPatch) -> Iterator[_Resources]:
         if tracked:
             observed.record("DISPOSE_END", self)
 
+    async def connection_close(self: AsyncConnection) -> None:
+        tracked = self.engine in observed.engines
+        if tracked:
+            observed.record("CONNECTION_CLOSE_BEGIN", self.engine)
+        await original_connection_close(self)
+        if tracked:
+            observed.record("CONNECTION_CLOSE_END", self.engine)
+
     monkeypatch.setattr(AsyncEngine, "__init__", engine_init)
     monkeypatch.setattr(AsyncSession, "close", session_close)
+    monkeypatch.setattr(AsyncConnection, "close", connection_close)
     monkeypatch.setattr(AsyncEngine, "dispose", engine_dispose)
     try:
         yield observed
@@ -139,6 +166,26 @@ class _SyntheticFailure(Exception):
     pass
 
 
+@pytest.mark.parametrize("case", ("live_actuals", "live_catalog", "direct_connection"))
+def test_other_synthetic_entrypoints_release_their_resources(
+    case: str, resources: _Resources, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    prefix = "backend.tests.s3_daily_rowset."
+    if case == "live_actuals":
+        module = importlib.import_module(prefix + "test_live_accepted_s2_train_val_actuals_source")
+        rows = module.synthetic_rows.__wrapped__()
+        module.test_synthetic_sqlite_bind_with_monkeypatched_official_counts_is_not_official_live(
+            monkeypatch, rows
+        )
+    elif case == "live_catalog":
+        module = importlib.import_module(prefix + "test_s3_a2_live_catalog_execution")
+        module.test_patched_session_maker_produces_catalog_from_in_season_partitions(monkeypatch)
+    else:
+        module = importlib.import_module(_PREFIX + "live_async_connection")
+        module.test_synthetic_sqlite_aiosqlite_connected_is_not_official_live_async_connection()
+    resources.assert_released()
+
+
 def test_owned_session_closes_on_body_failure(resources: _Resources) -> None:
     async def run() -> None:
         async with owned_sqlite_session_maker()() as session:
@@ -160,6 +207,26 @@ def test_owned_session_closes_on_task_cancellation(resources: _Resources) -> Non
             await asyncio.sleep(0)
 
     with pytest.raises(asyncio.CancelledError):
+        asyncio.run(run())
+    resources.assert_released()
+
+
+@pytest.mark.parametrize("cancel", (False, True))
+def test_owned_connection_closes_on_failure_or_cancellation(
+    cancel: bool, resources: _Resources
+) -> None:
+    async def run() -> None:
+        async with owned_sqlite_connection_engine().connect() as connection:
+            assert await connection.scalar(select(1)) == 1
+            if cancel:
+                task = asyncio.current_task()
+                assert task is not None
+                task.cancel()
+                await asyncio.sleep(0)
+            raise _SyntheticFailure("synthetic connection failure")
+
+    expected = asyncio.CancelledError if cancel else _SyntheticFailure
+    with pytest.raises(expected):
         asyncio.run(run())
     resources.assert_released()
 
@@ -215,6 +282,43 @@ def test_reusing_maker_on_separate_loops_never_reuses_an_engine(resources: _Reso
     assert len(resources.engines) == len(resources.drivers) == 2
     assert resources.engines[0] is not resources.engines[1]
     assert resources.drivers[0]._thread is not resources.drivers[1]._thread
+    resources.assert_released()
+
+
+@pytest.mark.parametrize("fail", (False, True))
+def test_shared_synthetic_rows_survive_loops_and_storage_owner_cleans_up(
+    fail: bool, tmp_path: Path, resources: _Resources
+) -> None:
+    prepared = 0
+
+    async def prepare(engine: AsyncEngine) -> None:
+        nonlocal prepared
+        prepared += 1
+        async with engine.begin() as connection:
+            await connection.execute(text("CREATE TABLE synthetic_state (value INTEGER)"))
+            await connection.execute(text("INSERT INTO synthetic_state VALUES (7)"))
+
+    with pytest.raises(_SyntheticFailure) if fail else nullcontext():
+        with sqlite_test_storage(tmp_path):
+            maker = owned_sqlite_session_maker(prepare, retain_test_data=True)
+
+            async def first() -> None:
+                async with maker() as session:
+                    assert await session.scalar(text("SELECT value FROM synthetic_state")) == 7
+                    await session.execute(text("UPDATE synthetic_state SET value=9"))
+                    await session.commit()
+
+            async def second() -> None:
+                async with maker() as session:
+                    assert await session.scalar(text("SELECT value FROM synthetic_state")) == 9
+
+            asyncio.run(first())
+            asyncio.run(second())
+            assert prepared == 1
+            assert len(resources.engines) == 2
+            if fail:
+                raise _SyntheticFailure("synthetic storage body failure")
+    assert not list(tmp_path.glob("synthetic-*.sqlite"))
     resources.assert_released()
 
 
