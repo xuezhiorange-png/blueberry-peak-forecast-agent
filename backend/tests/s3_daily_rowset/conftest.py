@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -18,8 +19,16 @@ from backend.app.s3_daily_rowset.schemas import (
     HorizonWindowRequest,
 )
 from backend.app.s3_daily_rowset.service import DailyRowsetMaterializerService
+from backend.tests.s3_daily_rowset.owned_sqlite_session import sqlite_test_storage
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
+
+
+@pytest.fixture(autouse=True)
+def _owned_synthetic_sqlite_storage(tmp_path: Path) -> Iterator[None]:
+    with sqlite_test_storage(tmp_path):
+        yield
+
 
 DATASET_IDENTITY = DatasetIdentity(
     dataset_id="source-002",
