@@ -253,7 +253,7 @@ async def test_dev_db_safeguard_still_active() -> None:
     safeguard itself still raises (i.e. the safeguard logic is
     intact and not bypassed by the fixture's import path).
     """
-    from backend.tests.postgres_test_support import (
+    from backend.tests.db.profile import (
         assert_safe_postgres_test_identity,
     )
 

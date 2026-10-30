@@ -287,11 +287,11 @@ async def transactional_pg_session() -> AsyncIterator[object]:
     ``@pytest.mark.skipif(not _postgres_integration_enabled(), ...)``
     (or the equivalent pattern used elsewhere in this directory).
     """
+    from backend.tests.db.profile import (
+        assert_safe_postgres_test_identity,
+    )
     from backend.tests.integration._txn_isolation import (
         transactional_async_session,
-    )
-    from backend.tests.postgres_test_support import (
-        assert_safe_postgres_test_identity,
     )
 
     if not _postgres_integration_enabled():
