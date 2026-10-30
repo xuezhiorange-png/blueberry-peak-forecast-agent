@@ -1552,6 +1552,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Docker Compose config
         run: docker compose config
 
@@ -1574,9 +1578,22 @@ jobs:
       - name: Check container status
         run: docker compose ps
 
+      - name: Build constrained backend and verify disposable PostgreSQL 16
+        run: |
+          python scripts/ci/check_environment_consistency.py docker \
+            --root . --report-dir reports/environment
+
       - name: Stop Docker Compose
         if: always()
         run: docker compose down -v
+
+      - name: Upload environment consistency receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: environment-consistency
+          path: reports/environment/docker-postgres.json
+          if-no-files-found: error
 
   # ----------------------------------------------------------------
   # §4 — full-suite-canary (all events, including pull_request)

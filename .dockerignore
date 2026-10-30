@@ -1,0 +1,10 @@
+*
+!pyproject.toml
+!uv.lock
+!backend/
+!backend/**
+**/.env
+**/.env.*
+**/.venv
+**/__pycache__
+**/*.pyc
