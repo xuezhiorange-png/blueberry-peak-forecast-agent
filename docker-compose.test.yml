@@ -8,7 +8,8 @@
 # - database:  blueberry_peak_test
 # - port:      55432 (NOT 5432, which is reserved for the dev DB)
 # - APP_ENV:   test
-# - volume:    postgres_test_data (named volume; removed by `down -v`)
+# - volume:    postgres_test_data_v16 (fresh PG16 volume; removed by `down -v`)
+# The former blueberry_postgres_test_data PG15 volume is not reused or removed.
 # - health:    pg_isready -U postgres -d blueberry_peak_test
 # - isolation: dedicated bridge network `blueberry_test_net`
 #
@@ -18,7 +19,7 @@
 
 services:
   postgres-test:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: blueberry-postgres-test
     restart: "no"
     environment:
@@ -30,7 +31,7 @@ services:
     ports:
       - "55432:5432"
     volumes:
-      - postgres_test_data:/var/lib/postgresql/data
+      - postgres_test_data_v16:/var/lib/postgresql/data
     networks:
       - blueberry_test_net
     healthcheck:
@@ -48,6 +49,6 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_test_data:
-    name: blueberry_postgres_test_data
+  postgres_test_data_v16:
+    name: blueberry_postgres_test_data_v16
     driver: local
