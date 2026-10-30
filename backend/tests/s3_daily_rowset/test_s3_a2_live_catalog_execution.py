@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 import sqlalchemy as sa
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.schema import Table
 
@@ -63,6 +63,7 @@ from backend.app.s3_daily_rowset.s3_a2_live_catalog_execution import (
     execute_live_catalog_origin,
 )
 from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY, make_row
+from backend.tests.s3_daily_rowset.owned_sqlite_session import owned_sqlite_session_maker
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 LIVE_MODULE = Path("backend/app/s3_daily_rowset/s3_a2_live_catalog_execution.py")
@@ -238,22 +239,23 @@ async def _async_session_maker_with_rows(
     train_rows: tuple[MaterializableRow, ...],
     validation_rows: tuple[MaterializableRow, ...],
 ) -> async_sessionmaker[AsyncSession]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as conn:
-        await conn.run_sync(_create_s2_tables)
-        await conn.run_sync(_create_replay_table)
-    session_maker: async_sessionmaker[AsyncSession] = async_sessionmaker(
-        bind=engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-    async with session_maker() as session:
-        await _persist_accepted_dataset_async(
-            session,
-            train_rows=train_rows,
-            validation_rows=validation_rows,
+    async def prepare(engine: AsyncEngine) -> None:
+        async with engine.begin() as conn:
+            await conn.run_sync(_create_s2_tables)
+            await conn.run_sync(_create_replay_table)
+        session_maker: async_sessionmaker[AsyncSession] = async_sessionmaker(
+            bind=engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
         )
-    return session_maker
+        async with session_maker() as session:
+            await _persist_accepted_dataset_async(
+                session,
+                train_rows=train_rows,
+                validation_rows=validation_rows,
+            )
+
+    return owned_sqlite_session_maker(prepare, retain_test_data=True)
 
 
 def _session_maker_with_rows(

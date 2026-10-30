@@ -10,13 +10,14 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.app.s2_materialized_dataset.shared.contracts import SOURCE_002_ROW_LEVEL_READ
 from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read import (
     AcceptedS2TrainValSource002RowLevelReadAttestation,
     clear_source_002_row_level_read_session_provider,
 )
+from backend.tests.s3_daily_rowset.owned_sqlite_session import owned_sqlite_connection_engine
 
 _async_connection = importlib.import_module(
     "backend.app.s3_daily_rowset."
@@ -114,7 +115,7 @@ def test_official_live_async_engine_path_fail_closed_or_connected() -> None:
 
 
 def test_synthetic_sqlite_aiosqlite_connected_is_not_official_live_async_connection() -> None:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    engine = owned_sqlite_connection_engine()
 
     with patch("backend.app.db.session.engine", engine):
         envelope = obtain_accepted_s2_train_val_async_connection_from_the_already_configured_live_async_engine()  # noqa: E501

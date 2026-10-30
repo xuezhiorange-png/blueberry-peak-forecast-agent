@@ -17,7 +17,6 @@ from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncSession,
     async_sessionmaker,
-    create_async_engine,
 )
 from sqlalchemy.schema import Table
 
@@ -39,6 +38,7 @@ from backend.app.s3_daily_rowset.accepted_s2_train_val_source_002_row_level_read
     AcceptedS2TrainValSource002RowLevelReadAttestation,
     clear_source_002_row_level_read_session_provider,
 )
+from backend.tests.s3_daily_rowset.owned_sqlite_session import owned_sqlite_session_maker
 
 _connection_obtain = importlib.import_module(
     "backend.app.s3_daily_rowset."
@@ -248,8 +248,7 @@ async def _persist_accepted_dataset_async(
     await session.commit()
 
 
-async def _async_session_maker_with_dataset() -> async_sessionmaker[AsyncSession]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+async def _prepare_synthetic_dataset(engine: Any) -> None:
     async with engine.begin() as conn:
         await conn.run_sync(_create_tables)
     session_maker: async_sessionmaker[AsyncSession] = async_sessionmaker(
@@ -259,7 +258,10 @@ async def _async_session_maker_with_dataset() -> async_sessionmaker[AsyncSession
     )
     async with session_maker() as session:
         await _persist_accepted_dataset_async(session)
-    return session_maker
+
+
+async def _async_session_maker_with_dataset() -> async_sessionmaker[AsyncSession]:
+    return owned_sqlite_session_maker(_prepare_synthetic_dataset)
 
 
 def _session_maker_with_dataset() -> async_sessionmaker[AsyncSession]:

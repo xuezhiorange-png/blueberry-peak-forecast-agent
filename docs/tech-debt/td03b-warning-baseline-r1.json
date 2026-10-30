@@ -1,0 +1,1258 @@
+{
+  "base_main_sha": "50394cc13b0c2204ad76abdb8219e1ea9d3b8d29",
+  "baseline": {
+    "attribution_limit": "CI groups some warning occurrences by module; individual nodeids are not reconstructed when absent. Warning attribution is not allocation ownership.",
+    "counts": {
+      "deselected": 1033,
+      "passed": 10430,
+      "skipped": 21,
+      "warnings": 407
+    },
+    "head_sha": "27efc8ccfb5a648e673fa68b5bf26e748e4beec2",
+    "job_id": 122776024767,
+    "log_sha256": "5b588418e9f4ba14c6f8b2c770597e450abe7b36ad43bd9b4c3039acbf49fbc3",
+    "run_id": 40676457191,
+    "warning_categories": {
+      "DeprecationWarning": 7,
+      "PydanticDeprecatedSince20": 276,
+      "PytestAssertRewriteWarning": 1,
+      "PytestUnhandledThreadExceptionWarning": 1,
+      "PytestWarning": 15,
+      "StarletteDeprecationWarning": 3,
+      "UserWarning": 104
+    },
+    "warning_groups": [
+      {
+        "category": "PytestAssertRewriteWarning",
+        "location": "site-packages/_pytest/config/__init__.py:885",
+        "message": "Module already imported so cannot be rewritten; backend.tests.forecast_quality.authority_loader_fixture",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "site-packages/_pytest/config/__init__.py:885"
+        ]
+      },
+      {
+        "category": "PydanticDeprecatedSince20",
+        "location": "site-packages/pydantic/_internal/_generate_schema.py:325",
+        "message": "`json_encoders` is deprecated. See https://docs.pydantic.dev/2.13/concepts/serialization/#custom-serializers for alternatives. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/",
+        "occurrences": 276,
+        "reported_tests_or_module_groups": [
+          "site-packages/pydantic/_internal/_generate_schema.py:325: 12 warnings",
+          "backend/tests/actual_harvest_import/test_api_routes.py: 24 warnings",
+          "backend/tests/forecast_intelligence/test_v0_17_s1_service_read_api.py: 24 warnings",
+          "backend/tests/forecast_intelligence/test_v0_17_s2_decision_api.py: 24 warnings",
+          "backend/tests/s2_materialized_dataset/lane_d/test_integration_seams.py: 24 warnings",
+          "backend/tests/test_harvest_state_api.py: 120 warnings",
+          "backend/tests/test_version_contract.py: 24 warnings",
+          "backend/tests/trial/test_api.py: 24 warnings"
+        ]
+      },
+      {
+        "category": "DeprecationWarning",
+        "location": "backend/tests/actual_harvest_import/postgres_cases.py:19",
+        "message": "backend.tests.postgres_test_support has moved to backend.tests.db.profile. The top-level shim will be removed in a future round; update imports.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/postgres_cases.py:19"
+        ]
+      },
+      {
+        "category": "DeprecationWarning",
+        "location": "backend/tests/safety/test_dev_db_protection.py:31",
+        "message": "backend.tests.migration_isolation_helpers has moved to backend.tests.db.migration. The top-level shim will be removed in a future round; update imports.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/safety/test_dev_db_protection.py:31"
+        ]
+      },
+      {
+        "category": "DeprecationWarning",
+        "location": "backend/tests/test_concurrency_isolation_helpers.py:38",
+        "message": "backend.tests.concurrency_isolation_helpers has moved to backend.tests.db.concurrency. The top-level shim will be removed in a future round; update imports.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/test_concurrency_isolation_helpers.py:38"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_commit_contract.py:687",
+        "message": "The test <Function test_commit_manifest_hash_ignores_database_ids> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_commit_contract.py::test_commit_manifest_hash_ignores_database_ids"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_commit_contract.py:728",
+        "message": "The test <Function test_commit_manifest_hash_is_deterministic> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_commit_contract.py::test_commit_manifest_hash_is_deterministic"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_commit_contract.py:842",
+        "message": "The test <Function test_record_manifest_hash_authority_is_single_source> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_commit_contract.py::test_record_manifest_hash_authority_is_single_source"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_i7_label_snapshot.py:735",
+        "message": "The test <Function test_winner_numeric_identity_survives_builder_and_dict_projection> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_i7_label_snapshot.py::test_winner_numeric_identity_survives_builder_and_dict_projection"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_i7_label_snapshot.py:782",
+        "message": "The test <Function test_winner_orm_projection_replays_numeric_identity_and_legacy_nulls> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_i7_label_snapshot.py::test_winner_orm_projection_replays_numeric_identity_and_legacy_nulls"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_i7_label_snapshot.py:3282",
+        "message": "The test <Function test_persisted_lineage_node_hash_is_recomputable_from_columns> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_i7_label_snapshot.py::test_persisted_lineage_node_hash_is_recomputable_from_columns"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_i7_label_snapshot.py:3324",
+        "message": "The test <Function test_legacy_basis_member_hash_stable_under_finalized_at_persistence> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_i7_label_snapshot.py::test_legacy_basis_member_hash_stable_under_finalized_at_persistence"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_i7_label_snapshot.py:3363",
+        "message": "The test <Function test_canonical_record_hash_changes_when_finalized_at_changes> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_i7_label_snapshot.py::test_canonical_record_hash_changes_when_finalized_at_changes"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_i7_label_snapshot.py:3404",
+        "message": "The test <Function test_request_identity_hash_is_deterministic> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_i7_label_snapshot.py::test_request_identity_hash_is_deterministic"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_i7_label_snapshot.py:3438",
+        "message": "The test <Function test_label_row_set_hash_is_canonical> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_i7_label_snapshot.py::test_label_row_set_hash_is_canonical"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_i7_label_snapshot.py:3456",
+        "message": "The test <Function test_winner_row_hash_is_stable_against_dict_order> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_i7_label_snapshot.py::test_winner_row_hash_is_stable_against_dict_order"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/actual_harvest_import/test_i7_label_snapshot.py:3537",
+        "message": "The test <Function test_instance_identity_hash_is_independent_of_snapshot_executed_at> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/actual_harvest_import/test_i7_label_snapshot.py::test_instance_identity_hash_is_independent_of_snapshot_executed_at"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 11,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py: 11 warnings"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_row_hash_tampering_blocks"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/pydantic/main.py:475",
+        "message": "Pydantic serializer warnings:",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/core_forecast/test_metrics.py::test_native_float_quantity_blocks"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/residual_model/test_state_matrix.py:662",
+        "message": "The test <Function test_failed_zero_rows_constraint_exists> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/residual_model/test_state_matrix.py::TestORMConstraints::test_failed_zero_rows_constraint_exists"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/residual_model/test_state_matrix.py:671",
+        "message": "The test <Function test_blocked_zero_rows_constraint_exists> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/residual_model/test_state_matrix.py::TestORMConstraints::test_blocked_zero_rows_constraint_exists"
+        ]
+      },
+      {
+        "category": "PytestWarning",
+        "location": "backend/tests/residual_model/test_state_matrix.py:680",
+        "message": "The test <Function test_structural_fallback_constraint_exists> is marked with '@pytest.mark.asyncio' but it is not an async function. Please remove the asyncio mark. If the test is not marked explicitly, check for global marks applied via 'pytestmark'.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/residual_model/test_state_matrix.py::TestORMConstraints::test_structural_fallback_constraint_exists"
+        ]
+      },
+      {
+        "category": "PytestUnhandledThreadExceptionWarning",
+        "location": "site-packages/_pytest/threadexception.py:58",
+        "message": "Exception in thread Thread-2318 (_connection_worker_thread)",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_run_sync_query.py::test_synthetic_sqlite_aiosqlite_queryable_is_not_official_live_async_session_run_sync_query"
+        ],
+        "stack": "  site-packages/_pytest/threadexception.py:58: PytestUnhandledThreadExceptionWarning: Exception in thread Thread-2318 (_connection_worker_thread)\n  \n  Traceback (most recent call last):\n    File \"site-packages/aiosqlite/core.py\", line 66, in _connection_worker_thread\n      future.get_loop().call_soon_threadsafe(set_result, future, result)\n    File \"stdlib/python3.12/asyncio/base_events.py\", line 844, in call_soon_threadsafe\n      self._check_closed()\n    File \"stdlib/python3.12/asyncio/base_events.py\", line 545, in _check_closed\n##[error]      raise RuntimeError('Event loop is closed')\n  RuntimeError: Event loop is closed\n  \n  During handling of the above exception, another exception occurred:\n  \n  Traceback (most recent call last):\n    File \"stdlib/python3.12/threading.py\", line 1075, in _bootstrap_inner\n      self.run()\n    File \"stdlib/python3.12/threading.py\", line 1012, in run\n      self._target(*self._args, **self._kwargs)\n    File \"site-packages/aiosqlite/core.py\", line 75, in _connection_worker_thread\n      future.get_loop().call_soon_threadsafe(set_exception, future, e)\n    File \"stdlib/python3.12/asyncio/base_events.py\", line 844, in call_soon_threadsafe\n      self._check_closed()\n    File \"stdlib/python3.12/asyncio/base_events.py\", line 545, in _check_closed\n##[error]      raise RuntimeError('Event loop is closed')\n  RuntimeError: Event loop is closed\n  \n  Enable tracemalloc to get traceback where the object was allocated.\n  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.\n    warnings.warn(pytest.PytestUnhandledThreadExceptionWarning(msg))"
+      },
+      {
+        "category": "DeprecationWarning",
+        "location": "site-packages/sqlalchemy/engine/default.py:952",
+        "message": "The default datetime adapter is deprecated as of Python 3.12; see the sqlite3 documentation for suggested replacement recipes",
+        "occurrences": 4,
+        "reported_tests_or_module_groups": [
+          "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_persistence_schema.py::test_grain_unique_constraint_rejects_duplicate_triple",
+          "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_persistence_schema.py::test_grain_unique_constraint_rejects_duplicate_triple",
+          "backend/tests/trial/test_forecast_evidence.py::test_sqlite_migration_installs_immutable_guards_and_round_trips",
+          "backend/tests/trial/test_forecast_evidence.py::test_sqlite_migration_installs_immutable_guards_and_round_trips"
+        ]
+      },
+      {
+        "category": "StarletteDeprecationWarning",
+        "location": "backend/app/api/residual_model.py:494",
+        "message": "'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.",
+        "occurrences": 2,
+        "reported_tests_or_module_groups": [
+          "backend/tests/test_residual_model_execution_api.py::test_training_post_invalid_schema_returns_422_stable_error",
+          "backend/tests/test_residual_model_execution_api.py::test_training_post_unknown_prediction_mode_returns_422"
+        ]
+      },
+      {
+        "category": "StarletteDeprecationWarning",
+        "location": "backend/app/api/residual_model.py:906",
+        "message": "'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/test_residual_model_execution_api.py::test_prediction_post_invalid_schema_returns_422_stable_error"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/fastapi/openapi/utils.py:252",
+        "message": "Duplicate Operation ID session_operation_api_v1_auth__operation__get for function session_operation at /home/runner/work/blueberry-peak-forecast-agent/blueberry-peak-forecast-agent/backend/app/api/local_auth.py",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/test_version_contract.py::test_service_openapi_identity_remains_the_component_not_release"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/fastapi/openapi/utils.py:252",
+        "message": "Duplicate Operation ID manage_api_v1_admin__resource___object_id___action__post for function manage at /home/runner/work/blueberry-peak-forecast-agent/blueberry-peak-forecast-agent/backend/app/api/local_auth_admin.py",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/test_version_contract.py::test_service_openapi_identity_remains_the_component_not_release"
+        ]
+      },
+      {
+        "category": "UserWarning",
+        "location": "site-packages/fastapi/openapi/utils.py:252",
+        "message": "Duplicate Operation ID manage_api_v1_admin__resource__get for function manage at /home/runner/work/blueberry-peak-forecast-agent/blueberry-peak-forecast-agent/backend/app/api/local_auth_admin.py",
+        "occurrences": 1,
+        "reported_tests_or_module_groups": [
+          "backend/tests/test_version_contract.py::test_service_openapi_identity_remains_the_component_not_release"
+        ]
+      }
+    ]
+  },
+  "follow_up_after_initial_ci": {
+    "additional_old_entrypoint_exit_regressions_failed": 3,
+    "final_complete_s3_resource_repeats": [
+      {
+        "all_connections_closed": true,
+        "live_workers_after_suite": 0,
+        "opened_engines": 61,
+        "passed": 1491,
+        "same_query_and_dispose_loops": true,
+        "skipped": 1,
+        "warnings": 2,
+        "workers_observed": 61
+      },
+      {
+        "all_connections_closed": true,
+        "live_workers_after_suite": 0,
+        "opened_engines": 61,
+        "passed": 1491,
+        "same_query_and_dispose_loops": true,
+        "skipped": 1,
+        "warnings": 2,
+        "workers_observed": 61
+      },
+      {
+        "all_connections_closed": true,
+        "live_workers_after_suite": 0,
+        "opened_engines": 61,
+        "passed": 1491,
+        "same_query_and_dispose_loops": true,
+        "skipped": 1,
+        "warnings": 2,
+        "workers_observed": 61
+      }
+    ],
+    "final_lifecycle_test_count": 22,
+    "initial_ci": {
+      "attempt": 1,
+      "golden_deselected": 1033,
+      "golden_log_sha256": "4fe163188b5e7c262e12f955979e9714bcca17bb3523a442fc1331af17b633fe",
+      "golden_passed": 10445,
+      "golden_skipped": 21,
+      "golden_thread_warnings": 2,
+      "golden_warnings": 408,
+      "head_sha": "ea2e80f9c662eb54903d45225e049674a1a1fc3a",
+      "job_success_count": 16,
+      "reporting_site_does_not_prove_allocation_owner": true,
+      "run_id": 40801427102,
+      "target_warning_gate": "FAIL",
+      "warning_reporting_test": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py::test_contract_is_authorized_and_not_an_implementation_grant"
+    },
+    "initial_ci_separate_asyncpg_warnings": {
+      "count_variation_cause": "NOT_PROVEN",
+      "fixed_or_suppressed": false,
+      "runtime_warning_baseline": 56,
+      "runtime_warning_head": 60,
+      "sa_warning_baseline": 12,
+      "sa_warning_head": 12,
+      "unraisable_warning_baseline": 1,
+      "unraisable_warning_head": 3
+    },
+    "intermediate_failed_run_preserved": true,
+    "intermediate_fresh_database_catalog_assertion_failures": 7,
+    "original_module_constants_unchanged": 360,
+    "original_test_assertion_asts_unchanged": 158,
+    "retained_state_strategy": "PYTEST_OWNED_SYNTHETIC_TEMPORARY_SQLITE_STORE;FRESH_STATICPOOL_ENGINE_PER_SESSION;SAME_LOOP_DISPOSE"
+  },
+  "owner_scope": "IMPLEMENT_AND_CREATE_DRAFT_PR_ONLY",
+  "resource_evidence": {
+    "baseline_after_query": {
+      "dispose_calls": 0,
+      "live_owned_workers": 1,
+      "query_loops_closed": true,
+      "session_close_calls": 1
+    },
+    "baseline_test_helpers_match_base_main": true,
+    "controlled_finalization": {
+      "error_types": [
+        "RuntimeError"
+      ],
+      "explicitly_invoked_real_driver_finalizer": true,
+      "not_a_claim_of_natural_pytest_reproduction": true,
+      "thread_error_count": 1
+    },
+    "finite_repeats": [
+      {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 145
+      },
+      {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 145
+      },
+      {
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0,
+        "tests": 145
+      }
+    ],
+    "fixed_after_query": {
+      "dispose_calls": 1,
+      "live_owned_workers": 0,
+      "query_loops_closed": true,
+      "session_close_calls": 1
+    },
+    "fixed_connection_closed": true,
+    "fixed_order": [
+      "ENGINE_CREATE",
+      "CONNECT",
+      "CHECKOUT",
+      "SESSION_CLOSE_BEGIN",
+      "CHECKIN",
+      "SESSION_CLOSE_END",
+      "DISPOSE_BEGIN",
+      "CLOSE",
+      "DISPOSE_END"
+    ],
+    "fixed_query_and_dispose_same_loop": true,
+    "fixed_thread_error_count": 0,
+    "fixed_worker_released": true,
+    "input_kind": "SYNTHETIC_SQLITE_ONLY",
+    "pool_class_before_and_after": "StaticPool",
+    "postgres_contracts": {
+      "passed": 10,
+      "skipped": 0,
+      "synthetic_task_owned_postgres": true,
+      "warnings": 13
+    },
+    "root_cause_status": "PROVEN_TEST_OWNERSHIP_DEFECT",
+    "s3_rowset_regression": {
+      "passed": 1484,
+      "skipped": [
+        {
+          "reason": "official live binding unavailable in this environment",
+          "test": "backend.tests.s3_daily_rowset.test_live_accepted_s2_train_val_actuals_source::test_official_live_window_without_reviewed_grain_fails_closed_forecast_unavailable"
+        }
+      ],
+      "target_thread_warnings": 0,
+      "warnings": 2
+    }
+  },
+  "scope_guards": {
+    "business_assertions_changed": false,
+    "dependencies_changed": false,
+    "frozen_blob_constants_changed": false,
+    "merge_authorized": false,
+    "production_files_changed": false,
+    "ready_authorized": false,
+    "real_source_002_accessed": false,
+    "td03a_changed": false,
+    "warning_filters_changed": false
+  },
+  "task_id": "BLUEBERRY_TECH_DEBT_TD03B_ASYNC_RESOURCE_CLEANUP_R1"
+}
