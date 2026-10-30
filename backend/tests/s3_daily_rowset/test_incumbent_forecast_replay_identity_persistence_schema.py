@@ -114,7 +114,7 @@ def test_grain_unique_constraint_rejects_duplicate_triple() -> None:
                 """
             ),
             {
-                "cutoff": cutoff.isoformat(" "),
+                "cutoff": cutoff,
                 "model_id": "schema-uniqueness-probe",
                 "forecast_quantile": "P50",
             },
@@ -128,7 +128,7 @@ def test_grain_unique_constraint_rejects_duplicate_triple() -> None:
                     """
                 ),
                 {
-                    "cutoff": cutoff.isoformat(" "),
+                    "cutoff": cutoff,
                     "model_id": "schema-uniqueness-probe",
                     "forecast_quantile": "P50",
                 },

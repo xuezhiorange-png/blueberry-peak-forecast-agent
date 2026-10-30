@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import importlib
 import json
 import os
@@ -242,10 +243,6 @@ assert all(getattr(shim, name) is getattr(current, name) for name in shim.__all_
     "module,function",
     [
         (
-            "backend.tests.s3_daily_rowset.test_incumbent_forecast_replay_identity_persistence_schema",
-            "test_grain_unique_constraint_rejects_duplicate_triple",
-        ),
-        (
             "backend.tests.trial.test_forecast_evidence",
             "test_sqlite_migration_installs_immutable_guards_and_round_trips",
         ),
@@ -255,6 +252,40 @@ def test_sqlite_raw_migration_binds_do_not_use_deprecated_datetime_adapter(modul
     with warnings.catch_warnings():
         warnings.simplefilter("error", DeprecationWarning)
         getattr(importlib.import_module(module), function)()
+
+
+def _assert_frozen_source(relative):
+    evidence = json.loads((ROOT / "docs/v0-18/s1/local-auth-runtime-r1.json").read_text())
+    assert (
+        hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
+        == evidence["source_evidence_sha256"][relative]
+    )
+
+
+def test_frozen_schema_probe_keeps_its_hash_and_adapter_diagnostics():
+    relative = (
+        "backend/tests/s3_daily_rowset/"
+        "test_incumbent_forecast_replay_identity_persistence_schema.py"
+    )
+    _assert_frozen_source(relative)
+    module = importlib.import_module(relative.removesuffix(".py").replace("/", "."))
+    with pytest.warns(DeprecationWarning, match="default datetime adapter") as diagnostics:
+        module.test_grain_unique_constraint_rejects_duplicate_triple()
+    assert len(diagnostics) == 2
+
+
+def test_frozen_safety_probe_keeps_its_hash_and_import_diagnostic():
+    _assert_frozen_source("backend/tests/safety/test_dev_db_protection.py")
+    probe = """
+import importlib, warnings
+with warnings.catch_warnings(record=True) as diagnostics:
+    warnings.simplefilter("always", DeprecationWarning)
+    importlib.import_module("backend.tests.safety.test_dev_db_protection")
+assert len(diagnostics) == 1
+assert diagnostics[0].category is DeprecationWarning
+assert "backend.tests.migration_isolation_helpers has moved" in str(diagnostics[0].message)
+"""
+    subprocess.run([sys.executable, "-c", probe], cwd=ROOT, check=True, timeout=30)
 
 
 def test_authority_fixture_is_rewritten_before_its_first_import():
