@@ -281,7 +281,7 @@ def test_slice5_does_not_bypass_slice1_dev_db_safeguard() -> None:
     connection. This negative test asserts the safeguard itself is
     still fail-closed when handed an obviously unsafe DATABASE_URL.
     """
-    from backend.tests.postgres_test_support import (
+    from backend.tests.db.profile import (
         assert_safe_postgres_test_identity,
     )
 
@@ -302,7 +302,7 @@ def test_slice5_no_password_leak_in_failure_message() -> None:
     obviously-leaked secret passed to the helper does not appear in
     any error message.
     """
-    from backend.tests.postgres_test_support import (
+    from backend.tests.db.profile import (
         assert_safe_postgres_test_identity,
     )
 

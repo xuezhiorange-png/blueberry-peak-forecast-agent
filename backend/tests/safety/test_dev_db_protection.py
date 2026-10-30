@@ -28,7 +28,7 @@ from uuid import uuid4
 
 import pytest
 
-from backend.tests.migration_isolation_helpers import (
+from backend.tests.db.migration import (
     ISOLATED_DB_NAME_PREFIX,
     assert_safe_isolated_db_name,
     resolve_isolated_db_name,

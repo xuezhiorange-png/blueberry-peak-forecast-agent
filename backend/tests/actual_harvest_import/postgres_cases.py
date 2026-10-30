@@ -16,7 +16,7 @@ from backend.app.actual_harvest_import.persistence import (
 )
 from backend.app.db.session import AsyncSessionMaker
 from backend.tests.actual_harvest_import.test_persistence import _batch, _record
-from backend.tests.postgres_test_support import assert_safe_postgres_test_identity
+from backend.tests.db.profile import assert_safe_postgres_test_identity
 
 pytestmark = [pytest.mark.postgres, pytest.mark.integration]
 

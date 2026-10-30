@@ -49,7 +49,7 @@ def _to_response(payload: dict[str, object]) -> ProductionPlanRead:
 
 def _map_error(exc: Exception) -> HTTPException:
     if isinstance(exc, ProductionPlanValidationError):
-        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
     if isinstance(exc, (ProductionPlanVersionConflictError, ProductionPlanIntervalConflictError)):
         return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     if isinstance(exc, (ProductionPlanNotFoundError, ProductionPlanUnavailableError)):

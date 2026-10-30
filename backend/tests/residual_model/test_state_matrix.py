@@ -56,7 +56,6 @@ from backend.tests.residual_model.test_training_manifest import (
     _supplemental_features,
 )
 
-pytestmark = pytest.mark.asyncio
 pytest_plugins = ("backend.tests.residual_model.test_training_manifest",)
 
 

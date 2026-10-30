@@ -389,7 +389,7 @@ def test_sqlite_migration_installs_immutable_guards_and_round_trips() -> None:
                 "schema_version": "v0.2-trial-forecast-evidence-v1",
                 "public_id": FORECAST_ID,
                 "authority_hash": AUTHORITY_HASH,
-                "available_at": NOW,
+                "available_at": NOW.isoformat(" "),
                 "farm": "farm-1",
                 "subfarm": "subfarm-1",
                 "season": "season-2026",
@@ -413,7 +413,7 @@ def test_sqlite_migration_installs_immutable_guards_and_round_trips() -> None:
                     plan_row_hash=PLAN_HASH,
                     planting_area_mu=Decimal("12.340000"),
                 ),
-                "created_at": NOW,
+                "created_at": NOW.isoformat(" "),
             },
         )
         for statement in (
