@@ -72,9 +72,9 @@
     {
       "category": "DeprecationWarning",
       "before": 7,
-      "defect_occurrences_targeted": 7,
+      "defect_occurrences_targeted": 4,
       "expected_retained": 0,
-      "unresolved": 0,
+      "unresolved": 3,
       "sources": [
         "backend/tests/postgres_test_support.py",
         "backend/tests/migration_isolation_helpers.py",
@@ -83,7 +83,7 @@
         "backend/tests/trial/test_forecast_evidence.py"
       ],
       "root_cause": "Three legacy shim imports and four untyped raw SQL datetime bindings through sqlite3 default adapter.",
-      "change": "Move consumers to canonical db modules, retain shim forwarding/deprecation contract, explicitly bind identical isoformat-space datetime text in synthetic raw SQL tests."
+      "change": "Migrate unfrozen DB shim consumers and two trial raw-SQL datetime binds. Preserve the V0.18-pinned safety consumer (one warning) and schema probe (two warnings) byte-for-byte; no old hashes or contracts adapted."
     },
     {
       "category": "StarletteDeprecationWarning",
@@ -112,8 +112,7 @@
     }
   ],
   "pre_ci_checks": {
-    "new_compatibility_tests_passed": 48,
-    "related_warning_as_error_tests_passed": 449,
+    "new_compatibility_tests_passed": 49,
     "isolated_postgres_tests_passed": 26,
     "postgres_server": "16.15 (Homebrew)",
     "owned_postmaster_stopped": true,
@@ -124,7 +123,11 @@
     "original_skip_xfail_marks_preserved": true,
     "ruff": "pass",
     "format": "pass",
-    "strict_mypy_source_files": 637
+    "strict_mypy_source_files": 637,
+    "related_regression_tests_passed": 449,
+    "related_warning_as_error_subset_passed": 406,
+    "first_full_local_golden": "Not accepted: host disk full / temp creation failures; subprocess pytest missing from PATH; V0.18 source pin mismatches identified and restored. The failed log/JUnit are retained.",
+    "affected_full_local_golden_cases_rechecked_passed": 226
   },
   "final_ci_results_location": "Final exact-head run and measured before/after ledger are attached to the Draft PR receipt; this pre-CI evidence does not predeclare CI success.",
   "guards": {
@@ -142,5 +145,17 @@
     "merge_authorized": false,
     "deploy_authorized": false,
     "v0_22_started": false
-  }
+  },
+  "compatibility_blockers": [
+    {
+      "source": "backend/tests/safety/test_dev_db_protection.py",
+      "sha256": "f3e21bd3f65407c5762e62798d51fb207eda2bf8976d41fd1b4189089b997421",
+      "retained_warnings": 1
+    },
+    {
+      "source": "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_persistence_schema.py",
+      "sha256": "e95f570b8efcc6c1f0880d22a6b6018a77d10feb3d59d39153b18662f76227eb",
+      "retained_warnings": 2
+    }
+  ]
 }
