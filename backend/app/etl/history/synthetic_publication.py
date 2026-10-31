@@ -225,7 +225,7 @@ def _season_rows(package: PublicPackage, season: str) -> tuple[PublicRow, ...]:
     return rows
 
 
-def xlsx_bytes(package: PublicPackage, season: str = "2039-2040") -> bytes:
+def _build_xlsx(package: PublicPackage, season: str) -> bytes:
     rows = _season_rows(package, season)
     book = Workbook()
     sheet = book.active
@@ -257,7 +257,11 @@ def xlsx_bytes(package: PublicPackage, season: str = "2039-2040") -> bytes:
             info.create_system = 3
             info.external_attr = 0o600 << 16
             target.writestr(info, content)
-    data = out.getvalue()
+    return out.getvalue()
+
+
+def xlsx_bytes(package: PublicPackage, season: str = "2039-2040") -> bytes:
+    data = _build_xlsx(package, season)
     check_xlsx(data, package, season)
     return data
 
@@ -271,6 +275,10 @@ def check_csv(data: bytes, package: PublicPackage, season: str) -> None:
 
 def check_xlsx(data: bytes, package: PublicPackage, season: str = "2039-2040") -> None:
     expected_rows = _season_rows(package, season)
+    # Authenticate all parts before opening supplied workbook bytes. Legal
+    # member names alone cannot admit notes hidden in styles/theme/metadata.
+    if data != _build_xlsx(package, season):
+        raise ValueError("UNSAFE_PUBLIC_WORKBOOK_CONTENT_BINDING")
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         if (
             set(archive.namelist()) != _ZIP_MEMBERS
