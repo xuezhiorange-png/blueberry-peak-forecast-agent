@@ -53,7 +53,6 @@ QUANTITIES = re.compile(
     r"(?:weight|actual|total|quantity|harvest).*kg|area_mu|latitude|longitude|产量|面积|公斤|净重",
     re.I,
 )
-RAW_PATH = re.compile(r"\.(?:xls[x]?|gz|parquet|bz2|zip)$", re.I)
 NUMBER = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
 
 
@@ -157,7 +156,7 @@ def _source_object(value: object) -> bool:
             if (
                 key in {"source_path", "input_path", "source_file"}
                 and isinstance(item, str)
-                and RAW_PATH.search(item)
+                and item.strip()
             ):
                 return True
         return any(_source_object(item) for item in value.values())
@@ -208,7 +207,7 @@ def text_reason(path: str, data: bytes) -> str | None:
                     if (
                         isinstance(item, ast.Constant)
                         and isinstance(item.value, str)
-                        and RAW_PATH.search(item.value)
+                        and item.value.strip()
                     ):
                         literal_objects.append({"source_path": item.value})
             if isinstance(node, ast.Dict):
