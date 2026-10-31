@@ -1,0 +1,58 @@
+{
+  "audit_status": "CANDIDATE_DISCLOSURE_SURFACES_NOT_PUBLICATION_CLEARANCE",
+  "base_main_sha": "aeb6cad797d8e45e9520753f5f065311d106c4dd",
+  "candidate_paths": 1658,
+  "compressed_assets_metadata_only": [
+    {
+      "content_opened_or_decompressed": false,
+      "git_blob_id": "176898e7d1924945389f0f9f9f6d42d5ed58878f",
+      "path": "backend/tests/fixtures/s3_a2_official_s2_partitions/test.content.gz"
+    },
+    {
+      "content_opened_or_decompressed": false,
+      "git_blob_id": "d5116f568420aec3fb26e88b5336778ce0a1e011",
+      "path": "backend/tests/fixtures/s3_a2_official_s2_partitions/train.content.gz"
+    },
+    {
+      "content_opened_or_decompressed": false,
+      "git_blob_id": "cf3a861302e30722396171ac739dc81ffdda6c6b",
+      "path": "backend/tests/fixtures/s3_a2_official_s2_partitions/validation.content.gz"
+    },
+    {
+      "content_opened_or_decompressed": false,
+      "git_blob_id": "4afa86882d862cb15ffb9f5c242d3e8baa93c4ab",
+      "path": "backend/tests/harvest_state/golden/harvest_state_report_blocked.zip"
+    },
+    {
+      "content_opened_or_decompressed": false,
+      "git_blob_id": "74eb1b2deb521f0b7646be57c20c65a0680ccc9a",
+      "path": "backend/tests/harvest_state/golden/harvest_state_report_completed.zip"
+    }
+  ],
+  "explicit_content_hash_dictionary_references": 1194,
+  "frozen_evidence_changed": false,
+  "large_public_text_streamed": [
+    "docs/v0-15/evidence/access-closure-r1/revised-owner-data-supplement-package.json",
+    "docs/v0-15/evidence/historical-ecmwf-coverage-sweep-r1/historical-base-season-origin-weather-matrix.csv",
+    "docs/v0-15/evidence/owner-data-supplement-package-r2.json",
+    "docs/v0-15/evidence/precipitation-packing-policy-closure-r1/historical-base-season-origin-weather-pit-matrix.json",
+    "docs/v0-15/evidence/retrospective-research-cohort-split-freeze-r1/research-forecast-origin-universe.json",
+    "docs/v0-21/s4/examples/report.md",
+    "docs/v0-21/s4/examples/research-readiness.json"
+  ],
+  "limitations": [
+    "No raw or compressed source files opened.",
+    "Text indicators may identify schemas or synthetic examples rather than actual private values.",
+    "An unflagged file is not certified safe for publication.",
+    "Legacy references and source Hashes are linkage metadata, not publication permission.",
+    "No automatic deletion, redaction, licence or equivalence decisions."
+  ],
+  "method": "Current tracked public text only; field-name indicators are candidate surfaces, not proof of real records or confidentiality. No original rows copied into this registry.",
+  "raw_assets_metadata_only": [],
+  "raw_workbooks_read": false,
+  "real_workbook_sheets_headers_or_cells_reverified": false,
+  "register_sha256": "f588f7b3bb242b7336eba01747ea44413737b3fd21d305a2ac72c7e001a899ec",
+  "scanned_public_text_files": 2768,
+  "sensitive_values_reproduced": false,
+  "task_id": "BLUEBERRY_TECH_DEBT_TD01C_DATA_DESENSITIZATION_AND_HISTORY_MIGRATION_PREP_R1"
+}
