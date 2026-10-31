@@ -1,0 +1,203 @@
+{
+  "task_id": "BLUEBERRY_TECH_DEBT_TD03F_ASYNCPG_RESOURCE_LIFECYCLE_R1",
+  "base_main_sha": "748321e56ba15973af1c2bef1fd7e7c8c965650c",
+  "predecessor_main_ci": {
+    "run_id": 41159759053,
+    "event": "push",
+    "conclusion": "success",
+    "head_sha": "748321e56ba15973af1c2bef1fd7e7c8c965650c"
+  },
+  "result": "PARTIAL",
+  "root_cause_status": "PARTIALLY_PROVEN",
+  "runtime": {
+    "python": "3.12.13",
+    "postgresql": "16.15",
+    "sqlalchemy": "2.0.51",
+    "asyncpg": "0.31.0",
+    "dependencies_changed": false,
+    "synthetic_isolated_database_only": true
+  },
+  "historical_ci_warning_baseline": {
+    "run_id": 41089726587,
+    "canary_total": 301,
+    "SAWarning": 12,
+    "connection_cancel_RuntimeWarning": 54,
+    "PytestUnraisableExceptionWarning": 0
+  },
+  "before_single_original_test": {
+    "cases": 1,
+    "passed": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "warnings": {
+      "SAWarning": 1
+    },
+    "log_sha256": "80ae00be9017741d8665f27470a05ff307fe1851b4e57e76b449caf93d4976c8",
+    "junit_sha256": "005b0a13f25fe358b02bb044ebd212aa44cba87d45b6f8d0e1c62fcdb121b202"
+  },
+  "before_original_orchestration_and_s3": {
+    "cases": 1562,
+    "passed": 1561,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "warnings": {
+      "SAWarning": 12,
+      "RuntimeWarning": 59,
+      "DeprecationWarning": 2,
+      "PytestUnraisableExceptionWarning": 5
+    },
+    "log_sha256": "c208090a76009f2f298de0b30afd40cb12dfbfc916615ee68c73bd8478fe03b5",
+    "junit_sha256": "2c1c1cd4c773189aad1aea23fa2c6989452c985e455931d48bc706ae55e8641b"
+  },
+  "before_native_trace": {
+    "post_context_fixture_session_reuses": 12,
+    "affected_existing_test_count": 9,
+    "native_cancel_requests": 112,
+    "wrong_loop_cancel_requests": 112,
+    "already_closed_driver_loop_requests": 108,
+    "default_construction_cancel_requests": 88,
+    "trace_sha256": "b66dbacf8a6fe7594018bb22bc65a3383d62066b52910617e164a424e5c8a0aa"
+  },
+  "red_exit_regression": {
+    "cases": 7,
+    "passed": 4,
+    "failures": 3,
+    "errors": 0,
+    "skipped": 0,
+    "warnings": {},
+    "log_sha256": "788cd35171714b7c5b05be270bc5832d661136f7fded718982bbef89cf940c92",
+    "junit_sha256": "8fa654dd0da2cd5d9ffc51bf0b29954c2d27cc7ad108a2a7d1d022b9a63f54ba"
+  },
+  "green_exit_regression": {
+    "cases": 8,
+    "passed": 8,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "warnings": {},
+    "log_sha256": "b6ebe80c136cbd7cab96360d3f6dc7852a9fdc3c06e6099d23eda13902ceacd1",
+    "junit_sha256": "5e00e37cae7cfcb55a15803e53fb9d0720f3326ad061f613e12946e036266254"
+  },
+  "independent_process_repetitions": [
+    {
+      "cases": 78,
+      "passed": 78,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "warnings": {},
+      "log_sha256": "067a74707f8c7504ef1f72a26a1537d7c2c9676f52a11b61cc5c4f09a45d778e",
+      "junit_sha256": "76185382f419019babded20c2e2688e4876a3e7cd21fc807ed6fba5787e49f8c",
+      "process_number": 1,
+      "post_context_fixture_reuses": 0,
+      "trace_exit_outstanding_records": 0,
+      "trace_sha256": "bcd55a66e0e309477d694f91627a52c3d9e32529d481a8f09a20f2b93252629d"
+    },
+    {
+      "cases": 78,
+      "passed": 78,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "warnings": {},
+      "log_sha256": "c0c7d7375c8fd421fb94022f76206435d09a6e65b09c4f73ea06621fdb2a9ea9",
+      "junit_sha256": "2f5e5e26230399b8f2aff49ec699c24ed75df6ef192bd2a99dcfd3ee1fd555eb",
+      "process_number": 2,
+      "post_context_fixture_reuses": 0,
+      "trace_exit_outstanding_records": 0,
+      "trace_sha256": "0706db59bcdf5eec7a18ff0edd46a6f3f09eb35377373c73d5c221f7e6632982"
+    },
+    {
+      "cases": 78,
+      "passed": 78,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "warnings": {},
+      "log_sha256": "29953ac132935106a67fc09f715f41174397f38e1425465055716b2aec093e73",
+      "junit_sha256": "c3f66c618fe525d431280a07832dabb531dd0b0943e04c86e92e1bc8f9b1f1b9",
+      "process_number": 3,
+      "post_context_fixture_reuses": 0,
+      "trace_exit_outstanding_records": 0,
+      "trace_sha256": "9c7726f5eaea93e0692b2314a5e6e4ebb635e4de1d4bb35bbd0863b0bc4f5a09"
+    }
+  ],
+  "after_s3_regression": {
+    "cases": 1492,
+    "passed": 1491,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "warnings": {
+      "RuntimeWarning": 47,
+      "PytestUnraisableExceptionWarning": 4,
+      "DeprecationWarning": 2
+    },
+    "log_sha256": "f7056a7a7ceb72ee111c3ce397eaaf408e4d85614b1c33ad1eb0d788ac21f2a3",
+    "junit_sha256": "bae801223f433215b2a8ab406c27cf5ae3a99caf58834d1a100b33b171114505"
+  },
+  "contract_regression": {
+    "cases": 186,
+    "passed": 186,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "warnings": {
+      "DeprecationWarning": 1
+    },
+    "log_sha256": "8e570bebef3d9a56d423cb68884ecb91cda9cad027f9fb3318bea345add056f7",
+    "junit_sha256": "17c31b2081a16bc0d386366865a161d8c6d04726e644cf5de4f2378f06630b6a"
+  },
+  "original_local_test_identity_and_skip_parity": {
+    "old_cases_retained": 1562,
+    "missing_or_changed_original_skip_reasons": 0
+  },
+  "static": {
+    "ruff_check": "PASS",
+    "ruff_format": "PASS",
+    "strict_mypy": "PASS",
+    "mypy_sources": 637
+  },
+  "historical_authority": {
+    "file": "docs/v0-18/s1/local-auth-runtime-r1.json",
+    "fixture_original_sha256": "459b82f4e3dff0f19d3f654630930446f2ca6769a0eba8b58578ffe7fd6564b6",
+    "fixed_historical_commit": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+    "old_hash_and_json_unchanged": true,
+    "original_module_ast_equal_after_flattening_only_new_context": true
+  },
+  "fix": {
+    "owned_session_daily_io_scope": true,
+    "borrowed_engine_disposed": false,
+    "fixture_checks_before_safety_cleanup": true,
+    "real_query_cancellation_and_rollback_verified": true
+  },
+  "remaining": {
+    "cross_loop_application_pool_cancellation": "NOT_FIXED",
+    "every_historical_unawaited_coroutine_allocation_proven": false,
+    "controlled_topology_test_is_not_a_driver_fix": true,
+    "earlier_unsafe_diagnostic_prototype_succeeded": false,
+    "global_pool_policy_or_frozen_application_blobs_modified": false
+  },
+  "exact_head_ci": {
+    "state_at_commit": "NOT_RUN",
+    "final_receipt_location": "pull request body and task response",
+    "success_not_inferred_from_local_results": true
+  },
+  "boundaries": {
+    "real_source_002_read": false,
+    "business_semantics_changed": false,
+    "td03a_td03b_changed": false,
+    "ci_criteria_changed": false,
+    "warning_ignore_added": false,
+    "new_skip_or_xfail": false,
+    "dependency_versions_changed": false,
+    "history_or_frozen_hashes_changed": false,
+    "td01_raw_xls_retracked": false,
+    "production_database_access": false,
+    "ready_or_merge": false,
+    "deploy": false,
+    "v0_22_started": false
+  }
+}
