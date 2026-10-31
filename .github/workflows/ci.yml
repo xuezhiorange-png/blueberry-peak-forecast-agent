@@ -2050,6 +2050,10 @@ jobs:
           git cat-file -e 320f2046e3105b1b55da9cb037892571110b584a^{commit}
           git cat-file -e 320f2046e3105b1b55da9cb037892571110b584a:backend/app/api/forecast_intelligence_read.py
           git cat-file -e 320f2046e3105b1b55da9cb037892571110b584a:backend/app/api/forecast_intelligence_decision.py
+      # The shared code-only identity verifier is stdlib-only Python 3.12.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - uses: actions/setup-node@v4
         with:
           node-version: "24.15.0"

@@ -35,7 +35,19 @@ function evidenceBytes(path: string): Buffer {
   // PR #716's immutable authority snapshot, independently checked against the
   // unchanged S5 evidence. Runtime API behavior is tested separately.
   execFileSync("git", ["cat-file", "-e", `${historicalCommit}^{commit}`], { cwd: root });
-  return execFileSync("git", ["show", `${historicalCommit}:${path}`], { cwd: root });
+  return execFileSync(
+    "python3",
+    [
+      "-m",
+      "backend.app.core.historical_code_identity",
+      "read",
+      "--commit",
+      historicalCommit,
+      "--path",
+      path,
+    ],
+    { cwd: root },
+  );
 }
 function sources(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
