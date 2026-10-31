@@ -236,7 +236,7 @@ def _validate_training_request(request_body: Any) -> dict[str, Any] | Response:
     if not isinstance(request_body, dict):
         return _json_error_response(
             _execution_input_error_payload("request body must be a JSON object"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     manifest_snapshot = request_body.get("manifest_snapshot")
@@ -256,7 +256,7 @@ def _validate_training_request(request_body: Any) -> dict[str, Any] | Response:
     if missing:
         return _json_error_response(
             _execution_input_error_payload(f"missing required field(s): {', '.join(missing)}"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # forecast_cutoff parseable as ISO-8601
@@ -265,7 +265,7 @@ def _validate_training_request(request_body: Any) -> dict[str, Any] | Response:
     except ValueError as exc:
         return _json_error_response(
             _execution_input_error_payload(str(exc)),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # manifest_rows: list of dicts (or null) — fall back to manifest_snapshot["rows"]
@@ -274,13 +274,13 @@ def _validate_training_request(request_body: Any) -> dict[str, Any] | Response:
         if not isinstance(manifest_rows_raw, list):
             return _json_error_response(
                 _execution_input_error_payload("manifest_rows must be an array of objects"),
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             )
         for idx, item in enumerate(manifest_rows_raw):
             if not isinstance(item, dict):
                 return _json_error_response(
                     _execution_input_error_payload(f"manifest_rows[{idx}] must be an object"),
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 )
             manifest_rows.append(item)
 
@@ -293,7 +293,7 @@ def _validate_training_request(request_body: Any) -> dict[str, Any] | Response:
                         _execution_input_error_payload(
                             f"manifest_snapshot.rows[{idx}] must be an object"
                         ),
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                     )
                 manifest_rows.append(item)
 
@@ -302,7 +302,7 @@ def _validate_training_request(request_body: Any) -> dict[str, Any] | Response:
             _execution_input_error_payload(
                 "manifest_rows (or manifest_snapshot.rows) must be non-empty"
             ),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # source_run_ids: dict of int values (or null)
@@ -313,7 +313,7 @@ def _validate_training_request(request_body: Any) -> dict[str, Any] | Response:
                 _execution_input_error_payload(
                     "source_run_ids must be an object mapping string to integer"
                 ),
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             )
         for key, value in source_run_ids_raw.items():
             if not isinstance(key, str) or not isinstance(value, int) or isinstance(value, bool):
@@ -321,7 +321,7 @@ def _validate_training_request(request_body: Any) -> dict[str, Any] | Response:
                     _execution_input_error_payload(
                         "source_run_ids values must be non-bool integers"
                     ),
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 )
             source_run_ids[key] = value
 
@@ -330,7 +330,7 @@ def _validate_training_request(request_body: Any) -> dict[str, Any] | Response:
     if idempotency_key_raw is not None and not isinstance(idempotency_key_raw, str):
         return _json_error_response(
             _execution_input_error_payload("idempotency_key must be a string or null"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
     idempotency_key = idempotency_key_raw
 
@@ -703,7 +703,7 @@ def _validate_prediction_request(
     if not isinstance(request_body, dict):
         return _json_error_response(
             _execution_input_error_payload("request body must be a JSON object"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     training_run_id_raw = request_body.get("training_run_id")
@@ -728,7 +728,7 @@ def _validate_prediction_request(
     if missing:
         return _json_error_response(
             _execution_input_error_payload(f"missing required field(s): {', '.join(missing)}"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # training_run_id must be a positive integer
@@ -739,7 +739,7 @@ def _validate_prediction_request(
     ):
         return _json_error_response(
             _execution_input_error_payload("training_run_id must be a positive integer"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # feature_actual_snapshot must be an object (or null)
@@ -751,14 +751,14 @@ def _validate_prediction_request(
     else:
         return _json_error_response(
             _execution_input_error_payload("feature_actual_snapshot must be an object"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # prediction_mode must be one of the frozen enum values
     if not isinstance(prediction_mode_raw, str):
         return _json_error_response(
             _execution_input_error_payload("prediction_mode must be a string"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
     if prediction_mode_raw not in _VALID_PREDICTION_MODES:
         return _json_error_response(
@@ -766,7 +766,7 @@ def _validate_prediction_request(
                 f"prediction_mode must be one of {sorted(_VALID_PREDICTION_MODES)}, "
                 f"got {prediction_mode_raw!r}"
             ),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # task9_run_id (optional)
@@ -778,7 +778,7 @@ def _validate_prediction_request(
     else:
         return _json_error_response(
             _execution_input_error_payload("task9_run_id must be a positive integer or null"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # task9_result_hash (optional, 64 hex chars if present)
@@ -790,7 +790,7 @@ def _validate_prediction_request(
     else:
         return _json_error_response(
             _execution_input_error_payload("task9_result_hash must be a 64-character hex string"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # If task9_run_id is present, task9_result_hash MUST also be present (and vice versa)
@@ -799,7 +799,7 @@ def _validate_prediction_request(
             _execution_input_error_payload(
                 "task9_run_id and task9_result_hash must be supplied together"
             ),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # supplemental_features: list of objects (or null)
@@ -814,7 +814,7 @@ def _validate_prediction_request(
                     _execution_input_error_payload(
                         f"supplemental_features[{idx}] must be an object"
                     ),
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 )
             out.append(item)
         supplemental_feature_payloads = out
@@ -823,7 +823,7 @@ def _validate_prediction_request(
             _execution_input_error_payload(
                 "supplemental_features must be an array of objects or null"
             ),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     # source_run_ids: dict of int values (or null)
@@ -834,13 +834,13 @@ def _validate_prediction_request(
                 _execution_input_error_payload(
                     "source_run_ids must be an object mapping string to integer"
                 ),
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             )
         for key, value in source_run_ids_raw.items():
             if not isinstance(value, int) or isinstance(value, bool):
                 return _json_error_response(
                     _execution_input_error_payload(f"source_run_ids[{key}] must be an integer"),
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 )
             source_run_ids[key] = value
 
@@ -853,7 +853,7 @@ def _validate_prediction_request(
     else:
         return _json_error_response(
             _execution_input_error_payload("idempotency_key must be a string or null"),
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
     return {

@@ -97,7 +97,7 @@ from backend.app.actual_harvest_import.validation_models import (
 )
 from backend.app.db.base import Base
 
-pytestmark = [pytest.mark.unit, pytest.mark.contract, pytest.mark.asyncio]
+pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
 
 # ---------------------------------------------------------------------------

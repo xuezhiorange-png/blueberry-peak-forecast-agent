@@ -44,7 +44,7 @@ def _map_error(exc: Exception) -> HTTPException:
     if isinstance(exc, ValueError):
         if "not found" in detail.lower():
             return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
-        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=detail)
+        return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=detail)
     return HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="internal error")
 
 

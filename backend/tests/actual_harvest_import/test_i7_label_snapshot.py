@@ -107,7 +107,7 @@ from backend.app.actual_harvest_labels.service import (
 from backend.app.db.base import Base
 from backend.app.models.master_data import Farm, Season, Subfarm, Variety
 
-pytestmark = [pytest.mark.unit, pytest.mark.contract, pytest.mark.asyncio]
+pytestmark = [pytest.mark.unit, pytest.mark.contract]
 
 
 _I7_REQUIRED_TABLES = (

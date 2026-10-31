@@ -63,7 +63,7 @@ def _validate_merged_date_range(record: Season | Holiday, values: dict[str, Any]
         return
     if end_date < start_date:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="end_date must be greater than or equal to start_date",
         )
 
