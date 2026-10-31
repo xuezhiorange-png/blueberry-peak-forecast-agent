@@ -301,3 +301,31 @@ def test_new_exact_member_mapping_requires_review_not_confirmed_leak(repo):
     assert out["status"] == "REVIEW_REQUIRED"
     assert out["violations"][0]["reason"] == "POSSIBLE_BUSINESS_LITERALS_REVIEW_REQUIRED"
     assert "SYNTHETIC_OTHER_LABEL" not in json.dumps(out)
+
+
+@pytest.mark.parametrize(
+    "filename", ["observations.csv", "source.tsv", "snapshot.json", "no_extension"]
+)
+@pytest.mark.parametrize("code", [False, True])
+def test_explicit_source_paths_require_review_regardless_of_extension(repo, filename, code):
+    root, base = repo
+    source = "/SYNTHETIC_PRIVATE/" + filename
+    if code:
+        commit(
+            root,
+            "source.py",
+            ('from pathlib import Path\nSOURCE_PATH = Path("' + source + '")\n').encode(),
+        )
+    else:
+        commit(root, "source.json", json.dumps({"source_path": source}).encode())
+    out = gate.inspect(root, base)
+    assert out["status"] == "REVIEW_REQUIRED"
+    assert out["violations"][0]["reason"] == "REAL_SOURCE_PATH_REVIEW_REQUIRED"
+    assert "SYNTHETIC_PRIVATE" not in json.dumps(out)
+
+
+def test_source_path_field_schema_and_computed_reference_are_normal_code(repo):
+    root, base = repo
+    commit(root, "schema.json", b'{"properties":{"source_path":{"type":"string"}}}')
+    commit(root, "code.py", b"def resolve(source_path: str) -> str:\n    return source_path\n")
+    assert gate.inspect(root, base)["status"] == "PASS"
