@@ -158,6 +158,22 @@ def test_clean_workbook_with_relabelled_private_cells_is_rejected():
         publication.check_xlsx(output.getvalue(), package)
 
 
+def test_hidden_text_in_an_otherwise_legitimate_style_part_is_rejected():
+    package = publication.generate()
+    data = publication.xlsx_bytes(package)
+    output = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(data)) as source, zipfile.ZipFile(output, "w") as target:
+        for name in source.namelist():
+            content = source.read(name)
+            if name == "xl/styles.xml":
+                content = content.replace(
+                    b"</styleSheet>", b"<!--SYNTHETIC_PRIVATE_NOTE--></styleSheet>"
+                )
+            target.writestr(name, content)
+    with pytest.raises(ValueError, match="UNSAFE_PUBLIC_WORKBOOK"):
+        publication.check_xlsx(output.getvalue(), package)
+
+
 def test_csv_identity_and_weights_are_bound_before_export(tmp_path):
     package = publication.generate()
     output = tmp_path / "synthetic"
