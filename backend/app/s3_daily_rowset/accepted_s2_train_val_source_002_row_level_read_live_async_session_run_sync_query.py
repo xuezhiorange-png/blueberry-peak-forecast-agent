@@ -19,6 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 from sqlalchemy.orm import Session
 
+from backend.app.db.loop_resources import LoopResourceUnavailable, loop_owned_session
+
 
 class LiveAsyncSessionRunSyncQueryReasonCode(StrEnum):
     QUERYABLE = "QUERYABLE"
@@ -93,9 +95,11 @@ def _fail(
 async def _probe_with_session_maker(
     live_async_session_maker: _AsyncSessionMakerCls[AsyncSession],
 ) -> AcceptedS2TrainValLiveAsyncSessionRunSyncQueryEnvelope:
-    session_cm = live_async_session_maker()
+    session_cm = loop_owned_session(live_async_session_maker)
     try:
         session = await session_cm.__aenter__()
+    except LoopResourceUnavailable:
+        raise
     except Exception as exc:
         raise _AsyncSessionNotObtained() from exc
     try:

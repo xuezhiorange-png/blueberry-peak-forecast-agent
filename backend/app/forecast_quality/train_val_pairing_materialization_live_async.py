@@ -10,6 +10,7 @@ from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from backend.app.db.loop_resources import loop_owned_session
 from backend.app.forecast_quality.train_val_pairing_materialization import (
     TrainValidationPairingMaterializationBlocker,
     TrainValidationPairingMaterializationDeps,
@@ -62,7 +63,7 @@ async def _materialize_train_validation_pairing_inputs_live_async() -> (
             ),
         )
 
-    session_cm = live_async_session_maker()
+    session_cm = loop_owned_session(live_async_session_maker)
     try:
         session = await session_cm.__aenter__()
     except Exception:
