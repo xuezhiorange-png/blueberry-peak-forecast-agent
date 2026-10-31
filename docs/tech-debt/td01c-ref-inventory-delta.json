@@ -1,0 +1,17 @@
+{
+  "base_main_sha": "aeb6cad797d8e45e9520753f5f065311d106c4dd",
+  "changed_refs": {
+    "refs/heads/main": {
+      "current": "aeb6cad797d8e45e9520753f5f065311d106c4dd",
+      "previous": "1086c5f8ae983e16cef7c09f78ea68c25a73db48"
+    }
+  },
+  "current_head_and_tag_count": 743,
+  "new_refs": {
+    "refs/heads/codex/td01b-historical-xls-exposure-r1": "f18b83526043614fd49b62b5fce004ff0f068279"
+  },
+  "note": "Main advanced by the normal PR776 merge; original TD01B inventory remains unchanged. This delta is metadata, not migration authorization.",
+  "previous_inventory_rows": 742,
+  "previous_inventory_sha256": "2ee716764c8a67d27447bb018eb0e02c88cf73743f9dfa42abc71c881621eeb6",
+  "real_history_rewrite_performed": false
+}
