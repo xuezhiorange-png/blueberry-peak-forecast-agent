@@ -18,6 +18,12 @@ from sqlalchemy.exc import MissingGreenlet
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 
+from backend.app.db.loop_resources import (
+    LoopResourceUnavailable,
+    loop_bound_connection,
+    loop_owned_session,
+)
+
 
 class LiveAsyncSessionBindQueryReasonCode(StrEnum):
     QUERYABLE = "QUERYABLE"
@@ -99,9 +105,11 @@ def _fail(
 async def _probe_with_session_maker(
     live_async_session_maker: _AsyncSessionMakerCls[AsyncSession],
 ) -> AcceptedS2TrainValLiveAsyncSessionBindQueryEnvelope:
-    session_cm = live_async_session_maker()
+    session_cm = loop_owned_session(live_async_session_maker)
     try:
         session = await session_cm.__aenter__()
+    except LoopResourceUnavailable:
+        raise
     except Exception as exc:
         raise _AsyncSessionNotObtained() from exc
     try:
@@ -115,6 +123,9 @@ async def _probe_with_session_maker(
 async def _probe_from_async_session(
     session: AsyncSession,
 ) -> AcceptedS2TrainValLiveAsyncSessionBindQueryEnvelope:
+    held = loop_bound_connection(session)
+    if held is not None:
+        return await _probe_from_async_connection(held)
     try:
         retrieved = session.get_bind()
     except Exception:

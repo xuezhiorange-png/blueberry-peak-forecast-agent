@@ -17,6 +17,8 @@ from sqlalchemy.exc import MissingGreenlet
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 
+from backend.app.db.loop_resources import LoopResourceUnavailable, loop_owned_session
+
 
 class LiveAsyncSessionConnectionReasonCode(StrEnum):
     CONNECTED = "CONNECTED"
@@ -94,9 +96,11 @@ def _fail(
 async def _obtain_with_session_maker(
     live_async_session_maker: _AsyncSessionMakerCls[AsyncSession],
 ) -> AcceptedS2TrainValLiveAsyncSessionConnectionEnvelope:
-    session_cm = live_async_session_maker()
+    session_cm = loop_owned_session(live_async_session_maker)
     try:
         session = await session_cm.__aenter__()
+    except LoopResourceUnavailable:
+        raise
     except Exception as exc:
         raise _AsyncSessionNotObtained() from exc
     try:
