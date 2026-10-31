@@ -54,6 +54,7 @@ QUANTITIES = re.compile(
     re.I,
 )
 RAW_PATH = re.compile(r"\.(?:xls[x]?|gz|parquet|bz2|zip)$", re.I)
+NUMBER = re.compile(r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?")
 
 
 def _git(repo: Path, *args: str) -> bytes:
@@ -123,13 +124,15 @@ def _business_object(value: object) -> bool:
     if isinstance(value, dict):
         for key, item in value.items():
             if (
+                key in {"farm_to_base", "base_members", "factory_aliases"}
+                and isinstance(item, (dict, list))
+                and item
+            ):
+                return True
+            if (
                 isinstance(key, str)
                 and QUANTITIES.search(key)
-                and (
-                    type(item) in {int, float}
-                    or isinstance(item, str)
-                    and re.fullmatch(r"-?\d+(?:\.\d+)?", item)
-                )
+                and (type(item) in {int, float} or isinstance(item, str) and NUMBER.fullmatch(item))
             ):
                 return True
         names = [
@@ -230,13 +233,17 @@ def text_reason(path: str, data: bytes) -> str | None:
         return "POSSIBLE_BUSINESS_LITERALS_REVIEW_REQUIRED"
     # Text/JS/Markdown are not a safe rename destination for a receipt table.
     lines = text.splitlines()
-    if (
-        lines
-        and len(lines) > 1
-        and any(QUANTITIES.search(word) for word in re.split(r"[,|\t]", lines[0]))
-    ):
-        if any(re.search(r"\d+\.\d+", line) for line in lines[1:]):
-            return "RENAMED_BUSINESS_TABLE_REVIEW_REQUIRED"
+    if len(lines) > 1 and suffix != ".py":
+        fields = re.split(r"[,|\t]", lines[0])
+        quantity_columns = [i for i, word in enumerate(fields) if QUANTITIES.search(word)]
+        if len(fields) > 1 and quantity_columns:
+            for line in lines[1:]:
+                cells = re.split(r"[,|\t]", line)
+                if any(
+                    i < len(cells) and NUMBER.fullmatch(cells[i].strip().strip("\"'"))
+                    for i in quantity_columns
+                ):
+                    return "RENAMED_BUSINESS_TABLE_REVIEW_REQUIRED"
     if suffix in {".ts", ".tsx", ".js", ".md", ".txt", ".html"}:
         if re.search(r'["\'](?:weight_kg|area_mu|actual_kg|total_kg)["\']\s*:\s*\d', text):
             return "POSSIBLE_BUSINESS_LITERALS_REVIEW_REQUIRED"
