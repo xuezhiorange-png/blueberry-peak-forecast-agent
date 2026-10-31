@@ -1,0 +1,375 @@
+{
+  "open_prs": [
+    {
+      "headRefOid": "0e9eea47f1b7a4a5de907cb787a82e35c2c75846",
+      "isDraft": true,
+      "number": 722
+    },
+    {
+      "headRefOid": "b0b6f8c9e368317af8cd927db701315b6c961317",
+      "isDraft": true,
+      "number": 720
+    },
+    {
+      "headRefOid": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+      "isDraft": true,
+      "number": 719
+    },
+    {
+      "headRefOid": "5b5f01683e47c32e0cae45b791e9d0d41d8e66c2",
+      "isDraft": true,
+      "number": 690
+    },
+    {
+      "headRefOid": "23aad6d31b24249439f955816b5ce151c457b85e",
+      "isDraft": true,
+      "number": 610
+    },
+    {
+      "headRefOid": "13d78b18819fb2e42d724af01ac42f8a9ae2e034",
+      "isDraft": true,
+      "number": 576
+    },
+    {
+      "headRefOid": "98de1d21f6b27da2e10fa33f5883b07f711d7a58",
+      "isDraft": true,
+      "number": 549
+    },
+    {
+      "headRefOid": "ff2b138d553b702c9098811b1640f657bcab2eec",
+      "isDraft": true,
+      "number": 271
+    },
+    {
+      "headRefOid": "1cc01dde3e6ab3ed46f7f6fd4ac0b9eac951e3d5",
+      "isDraft": true,
+      "number": 267
+    },
+    {
+      "headRefOid": "c5f4c03c46da50e3f16bf4e3043b26bbc5537d51",
+      "isDraft": true,
+      "number": 165
+    },
+    {
+      "headRefOid": "943ed7f3e08c66cd8e6396e0118b3d9bb3ae16c4",
+      "isDraft": true,
+      "number": 164
+    },
+    {
+      "headRefOid": "fb6ef6ce75d9575056f75d77a72452cf2cca9230",
+      "isDraft": true,
+      "number": 163
+    },
+    {
+      "headRefOid": "1590efac7b535dee8bf2c633b4d36710b681e082",
+      "isDraft": true,
+      "number": 162
+    }
+  ],
+  "release_count": 23,
+  "releases": [
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 426343026,
+      "prerelease": false,
+      "tag": "v0.21.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 416386990,
+      "prerelease": false,
+      "tag": "v0.18.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 408106332,
+      "prerelease": false,
+      "tag": "v0.17.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 405980150,
+      "prerelease": false,
+      "tag": "v0.16.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 404887964,
+      "prerelease": false,
+      "tag": "v0.15.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 404887599,
+      "prerelease": false,
+      "tag": "v0.14.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 404887286,
+      "prerelease": false,
+      "tag": "v0.13.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 401658133,
+      "prerelease": false,
+      "tag": "v0.11.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 401584494,
+      "prerelease": false,
+      "tag": "v0.10.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 397495645,
+      "prerelease": false,
+      "tag": "v0.9.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 397211955,
+      "prerelease": false,
+      "tag": "v0.8.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 394177324,
+      "prerelease": false,
+      "tag": "v0.7.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 392274366,
+      "prerelease": false,
+      "tag": "v0.6.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 391532810,
+      "prerelease": false,
+      "tag": "v0.5.3"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 389643891,
+      "prerelease": false,
+      "tag": "v0.5.2"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 389593655,
+      "prerelease": false,
+      "tag": "v0.5.1"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 389551726,
+      "prerelease": false,
+      "tag": "v0.5.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 388085177,
+      "prerelease": false,
+      "tag": "v0.4.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 387422261,
+      "prerelease": false,
+      "tag": "v0.3.1"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 387192569,
+      "prerelease": false,
+      "tag": "v0.3.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 365398279,
+      "prerelease": true,
+      "tag": "v0.3.0-plan"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 364905699,
+      "prerelease": false,
+      "tag": "v0.2.0"
+    },
+    {
+      "asset_count": 0,
+      "draft": false,
+      "id": 356384558,
+      "prerelease": false,
+      "tag": "v0.1.0"
+    }
+  ],
+  "remote_metadata_only": true,
+  "source_content_read": false,
+  "tags": [
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.1.0",
+      "tag_object": "235bde1407bdd0b86f2b31ad75ba1c3b8dc5ba61",
+      "target_commit": "235bde1407bdd0b86f2b31ad75ba1c3b8dc5ba61"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.10.0",
+      "tag_object": "8da7deba6ef8de3a825dabce424e554c9bc2bb2e",
+      "target_commit": "327a942815da4fbb9424f8996f6ffa158a738d2e"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.11.0",
+      "tag_object": "448b13d8ee7b4243ea808c307269f29e080c969f",
+      "target_commit": "fb99dabcf4257886a7e6b47df5c455d43d9d0205"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.13.0",
+      "tag_object": "c684c4a7ebfc415017c32036ca2d2b22342af975",
+      "target_commit": "837bb5cf9674ca2f5bdbb2f082dc9092e86e9ca0"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.14.0",
+      "tag_object": "c58e859b2021c48e219c93ecbf2e267e933ecc16",
+      "target_commit": "d936f42096bd8652624e1bbc636ec021c156e698"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.15.0",
+      "tag_object": "92506bf6d0b913144a604d78fb2fbea89fca070b",
+      "target_commit": "b69e526a7a6d7c40bd22351cf16bad6c8befea14"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.16.0",
+      "tag_object": "51b09269a2401cd797372867ef5c67260e39e8e4",
+      "target_commit": "2eb88a198fa2247ce813f8dac7bf7b41b8fdee32"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.17.0",
+      "tag_object": "3442d9fd8dbecf14eb34e8409d79b063a30af52b",
+      "target_commit": "1b218edc74ff29091c07607ddbcdba0c10577398"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.18.0",
+      "tag_object": "51965e7311ed3e5755bc08feb1149c237d3f214d",
+      "target_commit": "b6ac2e658edbace357c575bb42ee46b03bb863b9"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.2.0",
+      "tag_object": "cfbffbc4b1332484963c6948b140041bc4a240e3",
+      "target_commit": "cfbffbc4b1332484963c6948b140041bc4a240e3"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.21.0",
+      "tag_object": "95a495c53e62d25cc8764a1fcb18a2195fe0caa1",
+      "target_commit": "3bf2e172822f8b375cf30a0e2c0fcb96ebade722"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.3.0",
+      "tag_object": "404e50b1053b8fe6a429468e90384a5a747459d9",
+      "target_commit": "043f8f3e4e867b5d5f82437f7f8c9caa1c8d2fc6"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.3.0-plan",
+      "tag_object": "7a42eecd9b54b8fd12c195e581889ee094ce51c8",
+      "target_commit": "7a42eecd9b54b8fd12c195e581889ee094ce51c8"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.3.1",
+      "tag_object": "e58c8c0d90bb5b673b932949352da358a386b91b",
+      "target_commit": "80724b0171107c8b2bdeeea17ea4a8a9457903ec"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.4.0",
+      "tag_object": "5b307ddfb29c597813845f3aa5cd7d9d077e89f7",
+      "target_commit": "74293797aad2e057edd484ec6757cc54f4542461"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.5.0",
+      "tag_object": "88342378df683b66933d3deb618917a70aadb5fe",
+      "target_commit": "88342378df683b66933d3deb618917a70aadb5fe"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.5.1",
+      "tag_object": "6d6b243d1d12476e9b8e3519c37dbc4c0700de35",
+      "target_commit": "309327bc5c2045e557a044f00a6a7c22c4c31cd7"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.5.2",
+      "tag_object": "d15d6fcf2395cc201fef8818984e12971dd8f5df",
+      "target_commit": "6ad820882efe469f99d0723bb05d02e143cdec58"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.5.3",
+      "tag_object": "01d6ad825e99decf29c111d89a349d9cf301673b",
+      "target_commit": "c0daf23b3d8d5c3b43733824b95024c44b9c220b"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.6.0",
+      "tag_object": "ebc2505d80951f88061dc597d62568fa6abb2e30",
+      "target_commit": "bfcf2009423b5db8b0d2316c35023db202783dc5"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.7.0",
+      "tag_object": "10c170062a01f5b1393408d9cecd775fc6ac6c88",
+      "target_commit": "3c0ae295dfbd327fcbc9dcd92dea7511b5030e8b"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.8.0",
+      "tag_object": "bd2ef1a7df5a4515ef87a002229e3049840c626c",
+      "target_commit": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f"
+    },
+    {
+      "historical_workbook_tree_entries": 2,
+      "tag": "v0.9.0",
+      "tag_object": "c3d38180e74b178672c723cfd042eaf81e651adc",
+      "target_commit": "8e886b45984a358125d00e80f4f5d662fab3d8e9"
+    }
+  ]
+}
