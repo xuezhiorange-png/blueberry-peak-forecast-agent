@@ -12,6 +12,8 @@ import re
 import subprocess
 from pathlib import Path, PurePosixPath
 
+from backend.app.core.historical_code_identity import read_code, registered
+
 HISTORICAL_COMMIT = "320f2046e3105b1b55da9cb037892571110b584a"
 ROOT = Path(__file__).resolve().parents[2]
 AUTHORIZED_HISTORY_PATHS = frozenset(
@@ -83,6 +85,10 @@ def historical_bytes(relative: str, commit: str, *, root: Path = ROOT) -> bytes:
     validated_path(relative)
     if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
         raise AssertionError("Historical commit must be a fixed full SHA")
+    # Reviewed code receives additional Blob+SHA256 checks. No automatic
+    # clean-graph fallback; unregistered/non-code evidence keeps its old path.
+    if registered(commit, relative):
+        return read_code(commit, relative, repo=root)
     exists = subprocess.run(
         ["git", "cat-file", "-e", commit + "^{commit}"],
         cwd=root,
