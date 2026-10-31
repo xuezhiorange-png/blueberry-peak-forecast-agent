@@ -1,0 +1,124 @@
+{
+  "pull_requests": [
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "a1ecc50cd2aab1d33a46beeb8bd10799cb461101",
+      "draft": true,
+      "head_sha": "1590efac7b535dee8bf2c633b4d36710b681e082",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 162,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/162"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "a1ecc50cd2aab1d33a46beeb8bd10799cb461101",
+      "draft": true,
+      "head_sha": "fb6ef6ce75d9575056f75d77a72452cf2cca9230",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 163,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/163"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "a1ecc50cd2aab1d33a46beeb8bd10799cb461101",
+      "draft": true,
+      "head_sha": "943ed7f3e08c66cd8e6396e0118b3d9bb3ae16c4",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 164,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/164"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "a1ecc50cd2aab1d33a46beeb8bd10799cb461101",
+      "draft": true,
+      "head_sha": "c5f4c03c46da50e3f16bf4e3043b26bbc5537d51",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 165,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/165"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "3bd7a24033d41d69197cb58cbf70bca477e679d6",
+      "draft": true,
+      "head_sha": "1cc01dde3e6ab3ed46f7f6fd4ac0b9eac951e3d5",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 267,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/267"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "f07e68387ba7f0b9effb0246a0d2ab3d96e27fa0",
+      "draft": true,
+      "head_sha": "ff2b138d553b702c9098811b1640f657bcab2eec",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 271,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/271"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "458f3e92a8f773f459ddcba0e8af17175dfafbee",
+      "draft": true,
+      "head_sha": "98de1d21f6b27da2e10fa33f5883b07f711d7a58",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 549,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/549"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "76c9fb0b8b734bcc90907e1c631d25f4cf200e04",
+      "draft": true,
+      "head_sha": "13d78b18819fb2e42d724af01ac42f8a9ae2e034",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 576,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/576"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "80724b0171107c8b2bdeeea17ea4a8a9457903ec",
+      "draft": true,
+      "head_sha": "23aad6d31b24249439f955816b5ce151c457b85e",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 610,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/610"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "b69e526a7a6d7c40bd22351cf16bad6c8befea14",
+      "draft": true,
+      "head_sha": "5b5f01683e47c32e0cae45b791e9d0d41d8e66c2",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 690,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/690"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "c35524174865785164fe4529f35067037ccddc2a",
+      "draft": true,
+      "head_sha": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 719,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/719"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "eacc86d16c635136ac24461af2e8657dd5e7c23d",
+      "draft": true,
+      "head_sha": "b0b6f8c9e368317af8cd927db701315b6c961317",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 720,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/720"
+    },
+    {
+      "action": "REVIEW_BASE_HEAD_AND_FIXED_SHA_BEFORE_ANY_HISTORY_CHANGE",
+      "base_sha": "b0b6f8c9e368317af8cd927db701315b6c961317",
+      "draft": true,
+      "head_sha": "0e9eea47f1b7a4a5de907cb787a82e35c2c75846",
+      "metadata_impact": "INTRODUCTION_ANCESTRY_REACHABLE",
+      "pr_number": 722,
+      "url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/pull/722"
+    }
+  ],
+  "real_history_rewrite_performed": false,
+  "scope": "Open PR metadata before this task PR; no titles, bodies or raw contents copied.",
+  "snapshot_base": "e2d0ffa233483821e4fed3d429e317510dfcfcc1"
+}
