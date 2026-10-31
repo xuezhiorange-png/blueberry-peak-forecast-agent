@@ -1,0 +1,56 @@
+{
+  "clean_repository_has_private_blob": false,
+  "commit_mapping": [
+    {
+      "content_sha256_unchanged": true,
+      "expected_content_sha256": "dc6df7067c205969bcac2ecd8ea3a344c5404dfed7b9263d59040fc47d5b8aea",
+      "new_code_blob": "aabeed0d94c5ebec104430c248490d0853313b9b",
+      "new_commit": "b8e91d5724363463fe6ff1fa90e8b1f36d5d1d46",
+      "new_tree": "a98edb14d92bd5d56dc2505e28a5900356652e82",
+      "old_code_blob": "aabeed0d94c5ebec104430c248490d0853313b9b",
+      "old_commit": "8220588fc3abd54e404c2eb1fa569c188d26ca44",
+      "old_tree": "a6806c21f70ae5bd0a153ad31eded7a818db2865"
+    },
+    {
+      "content_sha256_unchanged": true,
+      "expected_content_sha256": "89696c7998cf413bd1c02357e4c13cd4ff8efb31a96f2d4d1898053f10d1dd88",
+      "new_code_blob": "835bc8e72057419d101199b951d0b6a442e3bfd6",
+      "new_commit": "64cd703af8053c35a0a08a4f48e1f22df9421c6f",
+      "new_tree": "da5d0cf3d2e69dd3d2d3dee273b58ba3c93a50c1",
+      "old_code_blob": "835bc8e72057419d101199b951d0b6a442e3bfd6",
+      "old_commit": "0f7e47ec78f143d4958be8fcee1e6bca02d2eea5",
+      "old_tree": "26b4cb13a47aaf80ed68cbdb01957e7330693384"
+    },
+    {
+      "content_sha256_unchanged": true,
+      "expected_content_sha256": "89696c7998cf413bd1c02357e4c13cd4ff8efb31a96f2d4d1898053f10d1dd88",
+      "new_code_blob": "835bc8e72057419d101199b951d0b6a442e3bfd6",
+      "new_commit": "ae58f779e08d1259210dbb3c12552ac9c96794c5",
+      "new_tree": "da5d0cf3d2e69dd3d2d3dee273b58ba3c93a50c1",
+      "old_code_blob": "835bc8e72057419d101199b951d0b6a442e3bfd6",
+      "old_commit": "bdc700ef17be7a22a57eb17359da5bae56c30455",
+      "old_tree": "da5d0cf3d2e69dd3d2d3dee273b58ba3c93a50c1"
+    }
+  ],
+  "correct_mapping_verified": true,
+  "data_class": "SYNTHETIC_ONLY",
+  "mapping_status": "SYNTHETIC_REHEARSAL_ONLY_NOT_A_REAL_AUTHORITY",
+  "old_commit_locator_resolves_in_clean": false,
+  "old_history_reaches_private_blob": true,
+  "old_main_tree_has_private_path": false,
+  "real_migration_authorized": false,
+  "real_repository_history_rewritten": false,
+  "tag_mapping": [
+    {
+      "new_object": "9fd52c43fe4f4ac655ebb90791be19fb76ec31c2",
+      "old_object": "d0205aa5575ef892c41d1068367ccced9923b17d",
+      "tag": "SYNTHETIC_ONLY_V1"
+    },
+    {
+      "new_object": "4c9498616144262dafbf71de793d0910521412bc",
+      "old_object": "6248ddc9f0028f5d9b1dc566bd9dee9c41cc5601",
+      "tag": "SYNTHETIC_ONLY_V2"
+    }
+  ],
+  "wrong_mapping_rejected": true
+}
