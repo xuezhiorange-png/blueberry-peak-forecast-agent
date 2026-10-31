@@ -284,3 +284,20 @@ def test_known_legacy_blob_rename_is_rejected_without_opening(repo, monkeypatch)
     assert out["status"] == "REVIEW_REQUIRED"
     assert out["violations"][0]["reason"] == "HISTORICAL_WORKBOOK_REINTRODUCTION"
     assert git(root, "cat-file", "-e", blob, check=False).returncode != 0
+
+
+@pytest.mark.parametrize("suffix", [".txt", ".md", ".yaml", ".html"])
+@pytest.mark.parametrize("number", ["42", '"42"', "0", "42.123456", "4.2e1"])
+def test_renamed_csv_with_integer_decimal_or_exponent_weights_requires_review(repo, suffix, number):
+    root, base = repo
+    commit(root, "renamed" + suffix, f"date,quantity_kg\n2040-01-01,{number}\n".encode())
+    assert gate.inspect(root, base)["status"] == "REVIEW_REQUIRED"
+
+
+def test_new_exact_member_mapping_requires_review_not_confirmed_leak(repo):
+    root, base = repo
+    commit(root, "mapping.json", b'{"farm_to_base":{"SYNTHETIC_LABEL":"SYNTHETIC_OTHER_LABEL"}}')
+    out = gate.inspect(root, base)
+    assert out["status"] == "REVIEW_REQUIRED"
+    assert out["violations"][0]["reason"] == "POSSIBLE_BUSINESS_LITERALS_REVIEW_REQUIRED"
+    assert "SYNTHETIC_OTHER_LABEL" not in json.dumps(out)
