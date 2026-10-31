@@ -1,0 +1,3298 @@
+{
+  "capabilities": [
+    {
+      "limit": "24_PASSED_ONE_HISTORICAL_AUDIT_ASSERTION_BLOCKED",
+      "module": "etl.history normalization/schema/fingerprint/synthetic_publication",
+      "status": "EXECUTED_WITH_INDEPENDENT_SYNTHETIC_DATA"
+    },
+    {
+      "limit": "ORIGINAL_FULL_RESEARCH_CONTRACT_NOT_EXPORTED",
+      "module": "research.v019_daily_curve",
+      "status": "EXECUTED_PURE_SYNTHETIC_MASS_AND_H7_PREFIX_CHECK"
+    },
+    {
+      "limit": "REAL_FROZEN_FIT_PRIVATE_MODEL_AND_AUTHORIZED_SOURCE_REQUIRED",
+      "module": "rolling_forecast",
+      "status": "NOT_EXPORTED_NOT_VERIFIED"
+    },
+    {
+      "limit": "SYNTHETIC_PACKAGE_AND_FROZEN_CONTRACT_CLEARANCE_NOT_COMPLETED",
+      "module": "research.v021_cycle_features/structure_scenarios/evaluation_readiness",
+      "status": "NOT_EXPORTED_NOT_VERIFIED"
+    },
+    {
+      "limit": "NO_NEW_GRAPH_FALLBACK_ACTIVATED",
+      "module": "local_auth/MCP/forecast historical contracts",
+      "status": "BLOCKED_ORIGINAL_COMMIT_AND_NON_CODE_DEPENDENCIES"
+    },
+    {
+      "limit": "DATABASE_SCHEMA_CONFIG_AND_TEST_PROFILE_NOT_IN_CANDIDATE",
+      "module": "PostgreSQL migrations/application persistence",
+      "status": "NOT_EXPORTED_NOT_RUN"
+    },
+    {
+      "limit": "PUBLIC_LITERAL_REVIEW_AND_HISTORICAL_EVIDENCE_NOT_CLEARED",
+      "module": "frontend/Dashboard",
+      "status": "NOT_EXPORTED_NOT_RUN"
+    }
+  ],
+  "fixed_identity_consumers": [
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": ".github/workflows/ci.yml"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/app/etl/history/privacy_boundary.py"
+    },
+    {
+      "class": "SYNTHETIC_GIT_REHEARSAL_ONLY",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/app/etl/history/synthetic_migration.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/app/maturity/service.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/app/s4_candidate_04_controlled_real_validation.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/research/v019_accuracy_study.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/research/v019_origin_cli.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/research/v019_owner_replay.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/research/v019_real_training_cli.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/research/v019_stability_cli.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/research/v021_readiness_cli.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/acceptance_s6/evidence.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/agronomic_history/test_v0_20_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/agronomic_history/test_v0_21_cycle_features.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/agronomic_history/test_v0_21_evaluation_readiness.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/agronomic_history/test_v0_21_scope_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/agronomic_history/test_v0_21_structure_scenarios.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/agronomic_history/v0_20_assets.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/agronomic_history/v0_21_cycle_fixture.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/area_yield/test_v0_19_owner_protocol_c0_preflight.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/area_yield/test_v0_19_replay_preparation.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/area_yield/test_v0_19_retrospective_approval_package.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/area_yield/test_v0_19_retrospective_research_entry.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/area_yield/test_v0_19_s1_protocol.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/area_yield/test_v0_19_s2_daily_curve.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/area_yield/test_v0_19_s3_synthetic_validation.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/area_yield/test_v0_19_scope_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/business_access/test_contract.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/ci/test_canary_parallelization.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/ci/test_historical_workbook_distribution.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/ci/test_public_increment.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/e2e/test_v0_17_s6_evidence_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/build_v0_17_version_closeout.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/build_v0_18_approval_provenance_r2.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/generate_v0_18_s4_evidence.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_attribution_operator.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_17_s3_read_access.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_approval_provenance_r2.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_governance_exception_proposal.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s1_local_auth_implementation_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s5_cleanup_correction_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s6_acceptance_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_version_closeout.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/historical_source.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/integration/test_asyncpg_cross_loop_probes.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/integration/test_asyncpg_resource_lifecycle.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/local_auth/test_historical_source.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/local_auth/test_preauth_fix_evidence_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/local_auth/test_r5_eccodes_environment.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/local_auth/test_runtime_evidence_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/local_auth/test_simple_admin_decision_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/mcp/test_v0_18_s3_contract.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/residual_model/test_s3_b_quantile_semantics_remediation_authorization.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/residual_model/test_s3_b_quantile_semantics_remediation_implementation_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/revoke_read_race/test_evidence_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/rolling_forecast/test_historical_kernel.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_connection.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_obtain.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_bind.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_obtain.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_query.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_query.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_async_session_run_sync_query.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_connection.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_obtain.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_session.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_accepted_s2_train_val_source_002_row_level_read_live_session_query.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_bindable_name.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_origin.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_persistence_schema.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_v0_2_live_postgres_read.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_v0_2_replay_identity_grain_identity_set.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_v0_2_replay_identity_grain_row_presence.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_incumbent_forecast_v0_2_sql_table_authority.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_live_accepted_s2_train_val_actuals_source.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s2_identity_alignment_harvest_source.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_contract.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_r1.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_bindability_and_registry_availability_authorization.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_bindability_and_registry_availability_contract.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_bindability_and_registry_availability_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_obtain.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_obtain_authorization.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_obtain_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_live_catalog_execution.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_r1.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/safe_pilot/cleanup_evidence.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/safe_pilot/evidence.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/safe_pilot/test_runner_cleanup.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/td03g_historical_source.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/test_td03e_warning_compatibility.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/test_td03f_historical_fixture_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "backend/tests/test_td03g_historical_compatibility.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "backend/tests/test_version_contract.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "docs/forecast-quality/s3-round-a-authorization-package/acceptance/01_changed_path_gate.sh"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "docs/forecast-quality/s3-round-a-authorization-package/acceptance/02_runtime_policy_audit.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "docs/forecast-quality/s3-round-a-authorization-package/acceptance/03_test_gate.sh"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "docs/forecast-quality/s3-round-a-authorization-package/acceptance/04_static_gate.sh"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "frontend/e2e/support/publish_option_b_client.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "frontend/src/test/dashboardGovernance.test.ts"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "scripts/audit_v0_15_strict_replay_cohort.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/audit_v0_9_s2_data_observability.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/ci/canary_plan.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/ci/check_public_increment.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/ci/check_workbook_distribution.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/run_area_curve_r2.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/run_area_yield_experiment.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/run_next_area_size_r1.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/run_v03_farm_total_baseline_evaluation_package.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/run_v03_farm_total_baseline_validation_scoring.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/run_v03_s4_c01_parameter_calibration.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/run_v0_13_s5_feature_value_closeout.py"
+    },
+    {
+      "class": "HISTORICAL_SOURCE_CONSUMER",
+      "isolated_status": "BLOCKED_ORIGINAL_HISTORY_OR_EVIDENCE_NOT_EXPORTED",
+      "repository_relative_path": "scripts/run_v0_16_s3_forecast_attribution.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/run_v0_9_s4_validation.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/scan_v03_s4_prospective_validation_authority.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/train_v0_8_canonical_area_yield_model.py"
+    },
+    {
+      "class": "CURRENT_WORKTREE_HASH_OR_RUNTIME_GIT_METADATA",
+      "isolated_status": "NOT_VERIFIED_IN_SUBSET",
+      "repository_relative_path": "scripts/train_v0_8_r2_stage_a.py"
+    }
+  ],
+  "historical_code_compatibility": "TD01E_OWNED_REHEARSAL_ONLY_NOT_ACTIVATED_HERE",
+  "historical_code_relocated_in_clean_candidate": false,
+  "inventory_reused_not_rescanned": true,
+  "non_code_dependencies": [
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py",
+        "backend/tests/local_auth/test_runtime_evidence_contract.py",
+        "backend/tests/mcp/test_v0_18_s3_contract.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": ".github/workflows/ci.yml",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/app/etl/history/privacy_boundary.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": "configs/base_registry_s1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/app/etl/history/privacy_boundary.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": "configs/factory_aliases.yaml",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/app/etl/history/privacy_boundary.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": "configs/production_plan.yaml",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "scripts/audit_v0_15_strict_replay_cohort.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": "configs/v0_5_area_forecast_experimental_prior_history_v1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/app/etl/history/privacy_boundary.py",
+        "scripts/audit_v0_15_strict_replay_cohort.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": "configs/v0_5_base_reference_registry_v1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/app/etl/history/privacy_boundary.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": "configs/v0_8_cross_season_identity_authority_r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/app/etl/history/privacy_boundary.py",
+        "scripts/audit_v0_15_strict_replay_cohort.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": "configs/v0_8_s4_three_season_area_authority_r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/app/etl/history/privacy_boundary.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": "configs/v0_8_s6_no_record_zero_semantics_r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "HISTORICAL_EXPOSURE_METADATA_ONLY"
+      ],
+      "dependency_class": "ORIGINAL_DATA_DO_NOT_READ",
+      "git_blob_oid": "3413dbbc284312e75a2df98992a6ab66cfa87dbd",
+      "path": "data/raw/2024_2025_receipts.xls",
+      "status": "BLOCKED_REAL_DATA_NOT_ADMITTED"
+    },
+    {
+      "consumers": [
+        "HISTORICAL_EXPOSURE_METADATA_ONLY"
+      ],
+      "dependency_class": "ORIGINAL_DATA_DO_NOT_READ",
+      "git_blob_oid": "a045348c4c72507ae367b4e30f267fcf19c490c1",
+      "path": "data/raw/2025_2026_receipts.xls",
+      "status": "BLOCKED_REAL_DATA_NOT_ADMITTED"
+    },
+    {
+      "consumers": [
+        "docs/forecast-quality/s3-round-a-authorization-package/acceptance/02_runtime_policy_audit.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/forecast-quality/s3-round-a-authorization-package/acceptance/01_changed_path_gate.sh",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "docs/forecast-quality/s3-round-a-authorization-package/acceptance/02_runtime_policy_audit.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/forecast-quality/s3-round-a-authorization-package/acceptance/02_runtime_policy_audit.py",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "docs/forecast-quality/s3-round-a-authorization-package/acceptance/02_runtime_policy_audit.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/forecast-quality/s3-round-a-authorization-package/acceptance/03_test_gate.sh",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "docs/forecast-quality/s3-round-a-authorization-package/acceptance/02_runtime_policy_audit.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/forecast-quality/s3-round-a-authorization-package/acceptance/04_static_gate.sh",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py",
+        "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-15/evidence/harvest-state-incremental-value-r1/exposed-oot-metrics.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_s1_protocol.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-15/v0.15.0-closeout.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-16/evidence/forecastops-monitoring-r1/point-quality-summary-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py",
+        "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-16/evidence/uncertainty-conformal-calibration-r1/coverage-summary-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "scripts/run_v0_16_s3_forecast_attribution.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-16/evidence/v0.16-s1-hierarchical-forecast-reconciliation-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "scripts/run_v0_16_s3_forecast_attribution.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-16/evidence/v0.16.0-version-plan-and-scope-freeze-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "scripts/run_v0_16_s3_forecast_attribution.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-16/v0.16-s1-hierarchical-forecast-reconciliation-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "scripts/run_v0_16_s3_forecast_attribution.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-16/v0.16.0-version-plan-and-scope-freeze.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/evidence/s6-cross-surface-r2/parity-matrix.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/evidence/v0.17-s2-decision-support-api-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_17_s3_read_access.py",
+        "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py",
+        "backend/tests/mcp/test_v0_18_s3_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/evidence/v0.17-s3-mcp-productization-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/e2e/test_v0_17_s6_evidence_contract.py",
+        "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py",
+        "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/e2e/test_v0_17_s6_evidence_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/evidence/v0.17-s6-selector-cancel-reopen-correction-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/evidence/v0.17.0-version-closeout-manifest-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py",
+        "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py",
+        "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/evidence/v0.17.0-version-closeout-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/evidence/v0.17.0-version-plan-and-product-scope-freeze-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/v0.17-s1-forecast-intelligence-service-read-api-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/v0.17-s2-decision-support-api-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/v0.17-s3-mcp-productization-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-17/v0.17.0-closeout.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/final-closeout-preauth-current/backend.xml",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/final-closeout-preauth-current/execution.log",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/final-closeout-preauth-current/main-canary.xml",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/final-closeout-preauth-current/owned-resources.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/final-closeout-preauth-current/pr-canary.xml",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/forecast-quality-roadmap-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_local_auth_implementation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s1_local_auth_implementation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s1-local-auth-implementation-contract-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s1-simplified-local-auth-plan-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/business_access/test_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s2-authorized-saved-run-discovery-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py",
+        "backend/tests/local_auth/test_preauth_fix_evidence_contract.py",
+        "backend/tests/mcp/test_v0_18_s3_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s3-mcp-service-account-safety-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py",
+        "backend/tests/safe_pilot/evidence.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s4-dashboard-authorized-business-flow-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py",
+        "backend/tests/safe_pilot/evidence.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s5-isolated-synthetic-safe-pilot-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/safe_pilot/cleanup_evidence.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s5-sigterm-cleanup-correction-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/acceptance_s6/evidence.py",
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py",
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py",
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s6_acceptance_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s6-business-and-security-acceptance-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/s6-business-security-r1/run/backend.xml",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18-roadmap-reassessment-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_governance_exception_proposal.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18.0-approval-provenance-r2.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18.0-closeout-github-snapshot-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18.0-final-closeout-github-snapshot.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18.0-final-closeout-preauth-github-snapshot.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18.0-final-closeout-preauth-update.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18.0-final-closeout-status.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_governance_exception_proposal.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18.0-governance-exception-proposal-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18.0-scope-freeze-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18.0-version-closeout-manifest-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_governance_exception_proposal.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/forecast-quality-improvement-roadmap-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s0/simplified-local-auth-scope-addendum-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/local_auth/test_r5_eccodes_environment.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s1/eccodes-environment-consistency-r5.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s1/identity-provider-bff-adaptation-review-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s1_local_auth_implementation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s1/local-auth-implementation-contract-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/generate_v0_18_s4_evidence.py",
+        "backend/tests/local_auth/test_r5_eccodes_environment.py",
+        "backend/tests/local_auth/test_r5_eccodes_environment.py",
+        "backend/tests/local_auth/test_runtime_evidence_contract.py",
+        "backend/tests/local_auth/test_runtime_evidence_contract.py",
+        "backend/tests/local_auth/test_simple_admin_decision_contract.py",
+        "backend/tests/mcp/test_v0_18_s3_contract.py",
+        "backend/tests/test_td03e_warning_compatibility.py",
+        "backend/tests/test_td03f_historical_fixture_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s1/local-auth-runtime-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/local_auth/test_r5_eccodes_environment.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s1/r5-dependency-audit.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s1/resource-grant-authority-review-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s1/s1-implementation-readiness-decision-matrix-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/local_auth/test_simple_admin_decision_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s1/simple-admin-d03-closure-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s1/simplified-local-auth-plan-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/safe_pilot/evidence.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s5/frontend-dependency-security-review-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/safe_pilot/cleanup_evidence.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s5/sigterm-owned-postgres-cleanup-correction-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/acceptance_s6/evidence.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/s6/business-and-security-acceptance-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/v0.18-roadmap-reassessment-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/v0.18.0-architecture-and-stage-plan.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/v0.18.0-business-usability-scope-freeze.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/build_v0_18_version_closeout.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/v0.18.0-closeout.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/v0.18.0-final-closeout-preauth-update.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/v0.18.0-final-closeout-status.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/forecast_intelligence/test_v0_18_governance_exception_proposal.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-18/v0.18.0-governance-exception-decision-proposal-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_retrospective_approval_package.py",
+        "backend/tests/area_yield/test_v0_19_s1_protocol.py",
+        "backend/tests/area_yield/test_v0_19_s1_protocol.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/evidence/v0.19-s1-model-baseline-peak-protocol-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_s2_daily_curve.py",
+        "backend/tests/area_yield/test_v0_19_s2_daily_curve.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/evidence/v0.19-s2-daily-curve-candidate-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_s2_daily_curve.py",
+        "backend/tests/area_yield/test_v0_19_s2_daily_curve.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/evidence/v0.19-s2-synthetic-structure-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_s3_synthetic_validation.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/evidence/v0.19-s3-offline-preparation-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_retrospective_approval_package.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/evidence/v0.19-s3-owner-scope-adapter-rebind-r2.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_replay_preparation.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/evidence/v0.19-s3-replay-preparation-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_retrospective_approval_package.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/evidence/v0.19-s3-retrospective-approval-package-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_retrospective_research_entry.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/evidence/v0.19-s3-retrospective-research-entry-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_s1_protocol.py",
+        "backend/tests/area_yield/test_v0_19_scope_contract.py",
+        "backend/tests/area_yield/test_v0_19_scope_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/evidence/v0.19.0-scope-freeze-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_s1_protocol.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/s1/model-baseline-and-historical-evidence-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_retrospective_approval_package.py",
+        "backend/tests/area_yield/test_v0_19_s1_protocol.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/s1/peak-metrics-and-experiment-protocol-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_s2_daily_curve.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/s2/daily-curve-candidate-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_s2_daily_curve.py",
+        "backend/tests/area_yield/test_v0_19_s2_daily_curve.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/s2/daily-curve-method-config-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_retrospective_approval_package.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/s3/owner-scope-adapter-rebind-r2.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_retrospective_approval_package.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/s3/retrospective-protocol-and-c0-approval-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_scope_contract.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_status.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-19/v0.19.0-version-plan-and-scope-freeze.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/agronomic_history/test_v0_20_contract.py",
+        "backend/tests/agronomic_history/v0_20_assets.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-20/evidence/v0.20.0-foundation-contract-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/agronomic_history/test_v0_21_scope_contract.py",
+        "backend/tests/agronomic_history/test_v0_21_scope_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-21/evidence/v0.21-s0-scope.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/agronomic_history/test_v0_21_cycle_features.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-21/evidence/v0.21-s1-cycle-features-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/agronomic_history/test_v0_21_structure_scenarios.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-21/evidence/v0.21-s2-structure-scenarios-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/agronomic_history/test_v0_21_evaluation_readiness.py",
+        "backend/tests/agronomic_history/test_v0_21_evaluation_readiness.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-21/evidence/v0.21-s3-evaluation-readiness-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/agronomic_history/test_v0_21_evaluation_readiness.py",
+        "backend/tests/agronomic_history/test_v0_21_evaluation_readiness.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-21/s3/examples/executed-scenarios.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/agronomic_history/test_v0_21_scope_contract.py",
+        "backend/tests/agronomic_history/test_v0_21_scope_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-21/stage-implementation-plan.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/agronomic_history/test_v0_21_scope_contract.py",
+        "backend/tests/agronomic_history/test_v0_21_scope_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-21/v0.21.0-version-plan.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/development-plan.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-completeness-pass-closeout-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-completeness-pass-closeout-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-completeness-pass-closeout-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-completeness-pass-observation-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-completeness-pass-observation-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-completeness-pass-observation-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-bindable-repository-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-bindable-repository-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-bindable-repository-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_authorization.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-forecast-port-envelope-handoff-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-forecast-port-envelope-handoff-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-live-origin-construction-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-live-origin-construction-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-live-origin-construction-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-default-catalog-live-origin-obtain-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-evaluation-instance-registry-available-closeout-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-evaluation-instance-registry-available-closeout-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-evaluation-instance-registry-available-closeout-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-catalog-no-versioned-closeout-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-catalog-no-versioned-closeout-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-catalog-no-versioned-closeout-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-content-for-reviewed-grains-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-content-for-reviewed-grains-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-content-for-reviewed-grains-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-no-versioned-flip-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-no-versioned-flip-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-no-versioned-flip-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-presence-package-independent-review-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-presence-package-independent-review-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-presence-package-independent-review-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-repository-presence-observation-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-repository-presence-observation-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-repository-presence-observation-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-incumbent-forecast-artifact-repository-presence-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-reviewed-grain-identity-set-closeout-authorization.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-reviewed-grain-identity-set-closeout-contract.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/evidence/s3-a2-reviewed-grain-identity-set-closeout-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-completeness-pass-closeout-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-completeness-pass-observation-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-coordinator-reviewed-live-origin-grain-identity-set-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-coordinator-reviewed-live-origin-grain-identity-set-observation-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-daily-rowset-amendment.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-default-catalog-bindable-repository-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-default-catalog-forecast-port-envelope-handoff-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-default-catalog-live-origin-construction-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-default-catalog-live-origin-obtain-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-evaluation-instance-registry-available-closeout-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-incumbent-forecast-artifact-catalog-no-versioned-closeout-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-incumbent-forecast-artifact-content-for-reviewed-grains-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-incumbent-forecast-artifact-no-versioned-flip-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-incumbent-forecast-artifact-presence-package-independent-review-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-incumbent-forecast-artifact-repository-presence-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-incumbent-forecast-artifact-repository-presence-observation-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/s3-reviewed-grain-identity-set-closeout-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-completeness-pass-closeout-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-completeness-pass-closeout-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-completeness-pass-closeout-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-completeness-pass-observation-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-completeness-pass-observation-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-completeness-pass-observation-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-observation-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-coordinator-reviewed-live-origin-grain-identity-set-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-default-catalog-bindable-repository-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-default-catalog-bindable-repository-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-default-catalog-bindable-repository-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_authorization.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-default-catalog-forecast-port-envelope-handoff-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_forecast_port_envelope_handoff_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-default-catalog-forecast-port-envelope-handoff-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-origin-construction-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-origin-construction-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-default-catalog-live-origin-construction-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-evaluation-instance-registry-available-closeout-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-evaluation-instance-registry-available-closeout-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-evaluation-instance-registry-available-closeout-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-catalog-no-versioned-closeout-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-catalog-no-versioned-closeout-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-catalog-no-versioned-closeout-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-content-for-reviewed-grains-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-content-for-reviewed-grains-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-content-for-reviewed-grains-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-no-versioned-flip-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-no-versioned-flip-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-no-versioned-flip-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-presence-package-independent-review-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-presence-package-independent-review-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-presence-package-independent-review-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-repository-presence-observation-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-repository-presence-observation-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-repository-presence-observation-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-incumbent-forecast-artifact-repository-presence-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-reviewed-grain-identity-set-closeout-authorization.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-reviewed-grain-identity-set-closeout-contract.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_r1.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-3/s3/workpapers/s3-a2-reviewed-grain-identity-set-closeout-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "scripts/audit_v0_15_strict_replay_cohort.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-8/evidence/s1-cross-season-identity-authority-application-and-canonical-dataset-rebuild-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "scripts/audit_v0_15_strict_replay_cohort.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-8/evidence/s4-user-confirmed-three-season-area-authority-application-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "scripts/audit_v0_15_strict_replay_cohort.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-8/r2c/frozen-shrinkage-model-and-2025-2026-benchmark-replay-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "scripts/audit_v0_15_strict_replay_cohort.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-8/s7/training-season-source-identity-closure-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_scope_contract.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-8/s9/scale-shape-error-decomposition-and-model-diagnosis-r1.md",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/agronomic_history/v0_20_assets.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-9/s1/biological-state-registry-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/agronomic_history/v0_20_assets.py"
+      ],
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "path": "docs/v0-9/s1/management-event-registry-r1.json",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_s2_daily_curve.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py",
+        "backend/tests/historical_source.py",
+        "backend/tests/local_auth/test_preauth_fix_evidence_contract.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": "pyproject.toml",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    },
+    {
+      "consumers": [
+        "backend/tests/area_yield/test_v0_19_s2_daily_curve.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py",
+        "backend/tests/forecast_intelligence/test_v0_18_final_closeout_preauth_update.py",
+        "backend/tests/historical_source.py",
+        "backend/tests/local_auth/test_preauth_fix_evidence_contract.py",
+        "backend/tests/local_auth/test_r5_eccodes_environment.py",
+        "backend/tests/local_auth/test_r5_eccodes_environment.py"
+      ],
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "path": "uv.lock",
+      "status": "BLOCKED_NON_CODE_SCOPE_NOT_APPROVED"
+    }
+  ],
+  "non_code_dependencies_count": 222,
+  "original_candidate_count": 1658,
+  "owner_decisions_reused": 9,
+  "owner_priority_paths": [
+    {
+      "decision": "D02",
+      "evidence_strength": "CURRENT_PUBLIC_STRUCTURE_ONLY",
+      "original_classification": "POSSIBLE_REAL_BUSINESS_INFORMATION",
+      "repository_relative_path": "configs/base_registry_s1.json",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D02",
+      "evidence_strength": "CURRENT_PUBLIC_STRUCTURE_ONLY",
+      "original_classification": "POSSIBLE_REAL_BUSINESS_INFORMATION",
+      "repository_relative_path": "configs/factory_aliases.yaml",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D06",
+      "evidence_strength": "HISTORICAL_ROLE_ONLY",
+      "original_classification": "FROZEN_HISTORICAL_EVIDENCE",
+      "repository_relative_path": "configs/v0_5_base_reference_registry_v1.json",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D03",
+      "evidence_strength": "CURRENT_PUBLIC_STRUCTURE_ONLY",
+      "original_classification": "POSSIBLE_REAL_BUSINESS_INFORMATION",
+      "repository_relative_path": "configs/v0_8_s4_three_season_area_authority_r1.json",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D03",
+      "evidence_strength": "CURRENT_PUBLIC_STRUCTURE_ONLY",
+      "original_classification": "POSSIBLE_REAL_BUSINESS_INFORMATION",
+      "repository_relative_path": "configs/v0_8_s6_no_record_zero_semantics_r1.json",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D07",
+      "evidence_strength": "GIT_METADATA_ONLY",
+      "original_classification": "COMPRESSED_CONTENT_NOT_INSPECTED",
+      "repository_relative_path": "backend/tests/fixtures/s3_a2_official_s2_partitions/test.content.gz",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D07",
+      "evidence_strength": "GIT_METADATA_ONLY",
+      "original_classification": "COMPRESSED_CONTENT_NOT_INSPECTED",
+      "repository_relative_path": "backend/tests/fixtures/s3_a2_official_s2_partitions/train.content.gz",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D07",
+      "evidence_strength": "GIT_METADATA_ONLY",
+      "original_classification": "COMPRESSED_CONTENT_NOT_INSPECTED",
+      "repository_relative_path": "backend/tests/fixtures/s3_a2_official_s2_partitions/validation.content.gz",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D07",
+      "evidence_strength": "GIT_METADATA_ONLY",
+      "original_classification": "COMPRESSED_CONTENT_NOT_INSPECTED",
+      "repository_relative_path": "backend/tests/harvest_state/golden/harvest_state_report_blocked.zip",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D07",
+      "evidence_strength": "GIT_METADATA_ONLY",
+      "original_classification": "COMPRESSED_CONTENT_NOT_INSPECTED",
+      "repository_relative_path": "backend/tests/harvest_state/golden/harvest_state_report_completed.zip",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D06",
+      "evidence_strength": "HISTORICAL_ROLE_ONLY",
+      "original_classification": "FROZEN_HISTORICAL_EVIDENCE",
+      "repository_relative_path": "docs/v0-15/evidence/base10-model-benchmark-r1/base-breadth-summary.json",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D06",
+      "evidence_strength": "HISTORICAL_ROLE_ONLY",
+      "original_classification": "FROZEN_HISTORICAL_EVIDENCE",
+      "repository_relative_path": "docs/v0-15/evidence/base10-model-benchmark-r1/s3-benchmark-contract.json",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D06",
+      "evidence_strength": "HISTORICAL_ROLE_ONLY",
+      "original_classification": "FROZEN_HISTORICAL_EVIDENCE",
+      "repository_relative_path": "docs/v0-19/evidence/v0.19-s1-model-baseline-peak-protocol-r1.json",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D06",
+      "evidence_strength": "HISTORICAL_ROLE_ONLY",
+      "original_classification": "FROZEN_HISTORICAL_EVIDENCE",
+      "repository_relative_path": "docs/v0-19/evidence/v0.19-s2-daily-curve-candidate-r1.json",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D06",
+      "evidence_strength": "HISTORICAL_ROLE_ONLY",
+      "original_classification": "FROZEN_HISTORICAL_EVIDENCE",
+      "repository_relative_path": "docs/v0-8/evidence/r2-stage-a-shrinkage-model-experiment-r1.json",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    },
+    {
+      "decision": "D06",
+      "evidence_strength": "HISTORICAL_ROLE_ONLY",
+      "original_classification": "FROZEN_HISTORICAL_EVIDENCE",
+      "repository_relative_path": "docs/v0-8/evidence/r2c-frozen-shrinkage-model-and-benchmark-replay-r1.json",
+      "review_state": "OWNER_REVIEW_REQUIRED"
+    }
+  ],
+  "owner_scope": {
+    "D02": "OWNER_PENDING",
+    "D03": "OWNER_PENDING",
+    "D06": "OWNER_PENDING"
+  },
+  "public_code_clearance": "EXPLICIT_LIMITED_CANDIDATES_ONLY",
+  "public_increment_baseline": {
+    "commit": "e2d0ffa233483821e4fed3d429e317510dfcfcc1",
+    "required_decisions": [
+      "D02",
+      "D03",
+      "D06"
+    ],
+    "status": "BLOCKED_PENDING_OWNER_SCOPE",
+    "whole_tree_retention_allowed": false
+  },
+  "source_002_read": false,
+  "unadmitted_identities": [
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py",
+      "source_class": "CODE",
+      "verification_status": "BLOCKED_NO_INDEPENDENT_MATCHING_HASH"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "repository_relative_path": "pyproject.toml",
+      "source_class": "NON_CODE_CONFIGURATION",
+      "verification_status": "BLOCKED_NON_CODE_NOT_ADMITTED"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "repository_relative_path": "uv.lock",
+      "source_class": "NON_CODE_CONFIGURATION",
+      "verification_status": "BLOCKED_NON_CODE_NOT_ADMITTED"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "repository_relative_path": ".github/workflows/ci.yml",
+      "source_class": "NON_CODE_CONFIGURATION",
+      "verification_status": "BLOCKED_NON_CODE_NOT_ADMITTED"
+    }
+  ],
+  "verified_historical_code_identities": 65
+}

@@ -1,0 +1,140 @@
+{
+  "all_objects_reachable": true,
+  "alternates_present": false,
+  "blocked_compressed_assets_present": false,
+  "file_count": 18,
+  "git_fsck": "PASS",
+  "git_objects": [
+    {
+      "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+      "type": "blob"
+    },
+    {
+      "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+      "type": "tree"
+    },
+    {
+      "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+      "type": "blob"
+    },
+    {
+      "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+      "type": "blob"
+    },
+    {
+      "oid": "27960265fc49013c516fa0d7e88513f1ae037296",
+      "type": "tree"
+    },
+    {
+      "oid": "2c2773e68552139132c112b70b8a727529886c9a",
+      "type": "tree"
+    },
+    {
+      "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+      "type": "tree"
+    },
+    {
+      "oid": "39e262578c37320033191af9fde0d466066c320f",
+      "type": "tree"
+    },
+    {
+      "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+      "type": "blob"
+    },
+    {
+      "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+      "type": "blob"
+    },
+    {
+      "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+      "type": "tree"
+    },
+    {
+      "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+      "type": "blob"
+    },
+    {
+      "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+      "type": "blob"
+    },
+    {
+      "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+      "type": "blob"
+    },
+    {
+      "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+      "type": "blob"
+    },
+    {
+      "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+      "type": "blob"
+    },
+    {
+      "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+      "type": "tree"
+    },
+    {
+      "oid": "bafbbcf2d7b416a4368bb280ac1d79e91c6544ce",
+      "type": "blob"
+    },
+    {
+      "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+      "type": "blob"
+    },
+    {
+      "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+      "type": "blob"
+    },
+    {
+      "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+      "type": "tree"
+    },
+    {
+      "oid": "c49d84578fee75eed2f1ad6d912441b5594f387f",
+      "type": "commit"
+    },
+    {
+      "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+      "type": "blob"
+    },
+    {
+      "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+      "type": "blob"
+    },
+    {
+      "oid": "c5314a8f1a9b37d0012e0a13e0d157a52f7a0da9",
+      "type": "tree"
+    },
+    {
+      "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+      "type": "blob"
+    },
+    {
+      "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+      "type": "tree"
+    },
+    {
+      "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+      "type": "blob"
+    },
+    {
+      "oid": "eb371caec4671f35d28e1b34f7d8496fc21717ae",
+      "type": "blob"
+    },
+    {
+      "oid": "f83f0b01c6b35d17e9fb0fcb5aa4fd5c860a28c0",
+      "type": "tree"
+    }
+  ],
+  "known_historical_xls_blobs_present": false,
+  "object_count": 30,
+  "original_commits_reachable": false,
+  "original_tags_copied": false,
+  "parent_count": 0,
+  "publication_approved": false,
+  "remote_count": 0,
+  "root_commit": "c49d84578fee75eed2f1ad6d912441b5594f387f",
+  "source_bytes_unchanged": true,
+  "status": "PASS",
+  "tag_count": 0
+}

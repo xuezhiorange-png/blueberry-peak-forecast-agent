@@ -1,0 +1,151 @@
+{
+  "entries": [
+    {
+      "git_blob_oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/__init__.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "b00b83fb0991ae074f25dcefa7c5831e4f313adb81c256f05b0b0b3ae896586b"
+    },
+    {
+      "git_blob_oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/app/__init__.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "01fedc22f12a680534e37cb3c0ae5a89deb7af5a30514170ec7b7a193a7a121c"
+    },
+    {
+      "git_blob_oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/app/etl/__init__.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "f87160211cbb9b869e6e24593a4d058eeee4e58eaa6fc7334aa01659f2b4ea0c"
+    },
+    {
+      "git_blob_oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/app/etl/history/__init__.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "d875200c1f04022a988a68c357d327aa14edfae448361a0ec6f2f2b2485f0cb6"
+    },
+    {
+      "git_blob_oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/app/etl/history/synthetic_publication.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "f0e49cf005a73adbeb79a2dfd551f7bfe9b021a9d5c536f31308d7bd1963ea15"
+    },
+    {
+      "git_blob_oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/app/etl/history/fingerprint.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "c585d1d01b05cdcca6f301b39cca5ccaa4a2a0137176b8bc13d00044cc85c405"
+    },
+    {
+      "git_blob_oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/app/etl/history/normalizer.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "4c0ba78ad2387be8c68b44b92394f9b7c209ed4e87791ef3c9ea19a0b775051a"
+    },
+    {
+      "git_blob_oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/app/etl/history/parser.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "1e951ad9c041600a3b8ff7a5e5369a67f96659d30ac49ae201be2ee14e0c0e8a"
+    },
+    {
+      "git_blob_oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/app/etl/history/schemas.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "e83d942ee794ab6124f518f2eecde74164237d23eb94d5a12991259b1e88b2a8"
+    },
+    {
+      "git_blob_oid": "bafbbcf2d7b416a4368bb280ac1d79e91c6544ce",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/tests/etl/test_synthetic_publication.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "SYNTHETIC_TEST_CODE",
+      "sha256": "ec8f2aae193333ee115e94e473ab3c8632db3d98312f8b38e35d557ee61b5da9"
+    },
+    {
+      "git_blob_oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/research/__init__.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "e664d82a82a737969bd8addc822b2ac75350106be5a459e2cd51f81b27eaa042"
+    },
+    {
+      "git_blob_oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "backend/research/v019_daily_curve.py",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "GENERIC_CODE",
+      "sha256": "8c7378d9768173faa1eb63dcd53b1eba31bf3febcbb7ea8f3e328c375c31baff"
+    },
+    {
+      "git_blob_oid": "eb371caec4671f35d28e1b34f7d8496fc21717ae",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "pyproject.toml",
+      "review_basis": "EXPLICIT_CURRENT_CODE_REVIEW_NO_BUSINESS_LITERAL_FOUND",
+      "role": "BUILD_METADATA",
+      "sha256": "c9210aeadcf68e6ded852d778e380737bc644e3a3a5766c64e9d412654c384df"
+    },
+    {
+      "git_blob_oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "docs/tech-debt/td01c-synthetic-example/SYNTHETIC_ONLY-manifest.json",
+      "review_basis": "EXACT_REGENERATION_REQUIRED_BEFORE_READ",
+      "role": "TD01C_VERIFIED_SYNTHETIC",
+      "sha256": "54898b2d5cd84fc5d7fb66295ffdeb2360276eeb98c9fc5f430756a9203a3861"
+    },
+    {
+      "git_blob_oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "docs/tech-debt/td01c-synthetic-example/SYNTHETIC_ONLY_2039_2040.csv",
+      "review_basis": "EXACT_REGENERATION_REQUIRED_BEFORE_READ",
+      "role": "TD01C_VERIFIED_SYNTHETIC",
+      "sha256": "2c3bf457df5a672bd95e9f2bb96cedf5095a8063376bb5b1b3d7ce62f8430d8b"
+    },
+    {
+      "git_blob_oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "docs/tech-debt/td01c-synthetic-example/SYNTHETIC_ONLY_2039_2040.xlsx",
+      "review_basis": "EXACT_REGENERATION_REQUIRED_BEFORE_READ",
+      "role": "TD01C_VERIFIED_SYNTHETIC",
+      "sha256": "509474a4bfabfe98d63fed7879a86146d404d4814a150c2e679f8a2935d1cc64"
+    },
+    {
+      "git_blob_oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "docs/tech-debt/td01c-synthetic-example/SYNTHETIC_ONLY_2040_2041.csv",
+      "review_basis": "EXACT_REGENERATION_REQUIRED_BEFORE_READ",
+      "role": "TD01C_VERIFIED_SYNTHETIC",
+      "sha256": "7e149480a6eef42721044136d8206ac430fd38515662347ad2ae28604ff4a5c9"
+    },
+    {
+      "git_blob_oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+      "publication_status": "REHEARSAL_CANDIDATE_ONLY",
+      "repository_relative_path": "docs/tech-debt/td01c-synthetic-example/SYNTHETIC_ONLY_2040_2041.xlsx",
+      "review_basis": "EXACT_REGENERATION_REQUIRED_BEFORE_READ",
+      "role": "TD01C_VERIFIED_SYNTHETIC",
+      "sha256": "405f5b21893c4d62a3ac85721862cd1f0ad372cf5feb5757c673110fc92d93b5"
+    }
+  ],
+  "reviewed_base_commit": "bd79c8a38c4d3dc987368aed4ce1278eb6121506",
+  "schema": "TD01F_EXPLICIT_CANDIDATES_R1",
+  "scope": "LIMITED_LOCAL_FEASIBILITY_NOT_WHOLE_PROJECT_PUBLICATION_APPROVAL"
+}
