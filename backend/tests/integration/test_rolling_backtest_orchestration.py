@@ -1722,42 +1722,44 @@ async def _build_real_orchestration_command(
         semantic_input_signature=task8_forecast_row.source_signature,
         canonical_payload_hash=task8_forecast_row.source_signature,
     )
-    for prediction_date, daily_payload in sorted(task8["daily_predictions_by_date"].items()):
-        daily_row = await session.get(MaturityDailyPredictionModel, daily_payload["id"])
-        assert daily_row is not None
-        daily_hash = _task8_daily_prediction_payload_hash(
-            daily_row,
-            forecast_source_signature=task8_forecast_row.source_signature,
-        )
-        source_role = f"task8_daily_prediction:{prediction_date.isoformat()}"
-        identity_items.append(
-            _make_identity(
-                source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
-                source_role=source_role,
-                schema_version="task8-maturity-v1",
-                semantic_payload_hash=daily_hash,
-                input_signature=task8_forecast_row.source_signature,
-                canonical_payload_hash=daily_hash,
-                business_version="task8-v1",
-                persistent_reference=PersistentUpstreamReference(
-                    reference_type="database_row_id",
-                    reference_value=daily_row.id,
-                ),
+    # This loop performs fresh I/O; the earlier session scope has exited.
+    async with AsyncSessionMaker() as session:
+        for prediction_date, daily_payload in sorted(task8["daily_predictions_by_date"].items()):
+            daily_row = await session.get(MaturityDailyPredictionModel, daily_payload["id"])
+            assert daily_row is not None
+            daily_hash = _task8_daily_prediction_payload_hash(
+                daily_row,
+                forecast_source_signature=task8_forecast_row.source_signature,
             )
-        )
-        daily_audits.append(
-            AvailabilityAuditPersistenceCommand(
-                source_role=source_role,
-                snapshot=Task8DailyPredictionAvailabilitySnapshot(
+            source_role = f"task8_daily_prediction:{prediction_date.isoformat()}"
+            identity_items.append(
+                _make_identity(
                     source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
-                    prediction_date=prediction_date,
-                    created_at=daily_payload["created_at"],
-                    parent_authority=forecast_parent,
-                ),
-                forecast_cutoff_at=forecast_cutoff_at,
-                resolved_identity=identity_items[-1],
+                    source_role=source_role,
+                    schema_version="task8-maturity-v1",
+                    semantic_payload_hash=daily_hash,
+                    input_signature=task8_forecast_row.source_signature,
+                    canonical_payload_hash=daily_hash,
+                    business_version="task8-v1",
+                    persistent_reference=PersistentUpstreamReference(
+                        reference_type="database_row_id",
+                        reference_value=daily_row.id,
+                    ),
+                )
             )
-        )
+            daily_audits.append(
+                AvailabilityAuditPersistenceCommand(
+                    source_role=source_role,
+                    snapshot=Task8DailyPredictionAvailabilitySnapshot(
+                        source_type=AvailabilitySourceType.TASK8_DAILY_PREDICTION,
+                        prediction_date=prediction_date,
+                        created_at=daily_payload["created_at"],
+                        parent_authority=forecast_parent,
+                    ),
+                    forecast_cutoff_at=forecast_cutoff_at,
+                    resolved_identity=identity_items[-1],
+                )
+            )
 
     identities = tuple(identity_items)
 
