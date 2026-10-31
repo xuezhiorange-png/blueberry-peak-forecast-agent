@@ -45,6 +45,7 @@ from backend.tests.s3_daily_rowset.test_s3_a2_live_catalog_execution import (
     _patch_official_counts,
     _session_maker_with_rows,
 )
+from backend.tests.td03g_historical_source import source_blob
 
 CLASSIFIER_MODULE = Path(
     "backend/app/s3_daily_rowset/s3_a2_evaluation_instance_registry_available_closeout.py"
@@ -113,7 +114,7 @@ FORBIDDEN_PROSE_TOKENS = (
 
 
 def _git_blob(path: Path) -> str:
-    return subprocess.check_output(["git", "hash-object", str(path)], text=True).strip()
+    return source_blob(path)
 
 
 def _assert_harvest_replay_and_provider_remain_empty() -> None:

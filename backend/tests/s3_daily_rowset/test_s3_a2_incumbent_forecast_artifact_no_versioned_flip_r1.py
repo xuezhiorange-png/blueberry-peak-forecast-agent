@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import patch
@@ -65,6 +64,7 @@ from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
     assert_forecast_artifact_py_historical_blob_pinned,
 )
 from backend.tests.s3_daily_rowset.s3_a2_handoff_test_helpers import patch_handoff_disabled
+from backend.tests.td03g_historical_source import source_blob
 
 IncumbentForecastArtifactNoVersionedFlipClassifier = (
     no_versioned_flip.IncumbentForecastArtifactNoVersionedFlipClassifier
@@ -235,7 +235,7 @@ FORBIDDEN_PROSE_TOKENS = (
 
 
 def _git_blob(path: Path) -> str:
-    return subprocess.check_output(["git", "hash-object", str(path)], text=True).strip()
+    return source_blob(path)
 
 
 def _assert_harvest_replay_and_provider_remain_empty() -> None:

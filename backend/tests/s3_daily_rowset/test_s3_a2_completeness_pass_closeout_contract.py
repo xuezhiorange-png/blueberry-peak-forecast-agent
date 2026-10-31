@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -38,6 +37,7 @@ from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
 from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
     assert_forecast_artifact_py_historical_blob_pinned,
 )
+from backend.tests.td03g_historical_source import source_blob
 
 TEST_CATALOG_ARTIFACT_PY_BLOB = "af59a9f1d291ab32eff23684aca477f0e4a852cd"
 CATALOG_ARTIFACT_PY_BLOB = "8196cb7dca33df8708f78789bd2eb9e8243b8354"
@@ -86,7 +86,7 @@ FORBIDDEN_PROSE_TOKENS = (
 
 
 def _git_blob(path: str) -> str:
-    return subprocess.check_output(["git", "hash-object", path], text=True).strip()
+    return source_blob(path)
 
 
 def test_frozen_python_blobs_unchanged() -> None:

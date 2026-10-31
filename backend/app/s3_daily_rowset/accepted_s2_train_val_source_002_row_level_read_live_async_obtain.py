@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 
+from backend.app.db.loop_resources import LoopResourceUnavailable, loop_owned_session
 from backend.app.s2_materialized_dataset.lane_d.hashing import content_sha256
 from backend.app.s2_materialized_dataset.lane_d.service import (
     S2MaterializedDatasetModel,
@@ -181,9 +182,11 @@ def _one_partition(
 async def _obtain_with_session_maker(
     live_async_session_maker: _AsyncSessionMakerCls[AsyncSession],
 ) -> AcceptedS2TrainValLiveAsyncObtainEnvelope:
-    session_cm = live_async_session_maker()
+    session_cm = loop_owned_session(live_async_session_maker)
     try:
         session = await session_cm.__aenter__()
+    except LoopResourceUnavailable:
+        raise
     except Exception as exc:
         raise _AsyncSessionNotObtained() from exc
     try:

@@ -215,9 +215,9 @@ def test_controlled_default_probe_cross_loop_diagnostic(monkeypatch):
     import os
 
     from backend.app.db import session as application_db
-    from backend.app.s3_daily_rowset import (
-        accepted_s2_train_val_source_002_row_level_read_live_async_session_query as query,
-    )
+    from backend.tests.td03g_historical_source import frozen_query_module
+
+    query = frozen_query_module(monkeypatch)
 
     assert os.environ.get("RUN_POSTGRES_INTEGRATION") == "1"
     assert_safe_postgres_test_identity()
