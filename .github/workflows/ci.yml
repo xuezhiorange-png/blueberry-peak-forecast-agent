@@ -97,6 +97,9 @@ jobs:
           python scripts/ci/log_worker_identity.py \
             >> "$GITHUB_STEP_SUMMARY" || true
 
+      - name: Reject historical business workbook metadata
+        run: python scripts/ci/check_workbook_distribution.py --repo . --tree HEAD
+
       - name: Ruff lint
         run: ruff check .
 
@@ -1556,6 +1559,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Verify synthetic workbook context exclusions
+        run: |
+          python scripts/ci/check_workbook_distribution.py --repo . --tree HEAD \
+            --docker-synthetic-probe --report reports/security/workbook-distribution.json
+
       - name: Docker Compose config
         run: docker compose config
 
@@ -1593,6 +1601,14 @@ jobs:
         with:
           name: environment-consistency
           path: reports/environment/docker-postgres.json
+          if-no-files-found: error
+
+      - name: Upload synthetic workbook guard receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workbook-distribution-guard
+          path: reports/security/workbook-distribution.json
           if-no-files-found: error
 
   # ----------------------------------------------------------------

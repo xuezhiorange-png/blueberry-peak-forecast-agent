@@ -1,0 +1,2 @@
+# Business workbook names never belong in a source distribution.
+global-exclude 2024_2025_receipts.xls 2025_2026_receipts.xls
