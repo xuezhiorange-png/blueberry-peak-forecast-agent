@@ -59,12 +59,12 @@ import os
 import asyncpg
 import pytest
 
-from backend.tests.concurrency_isolation_helpers import (
+from backend.tests.db.concurrency import (
     ISOLATED_JOB_NAME,
     assert_safe_concurrency_isolated_db_name,
     resolve_concurrency_isolated_db_name,
 )
-from backend.tests.postgres_test_support import assert_safe_postgres_test_identity
+from backend.tests.db.profile import assert_safe_postgres_test_identity
 
 # Mark this file ``postgres_concurrency`` so the ``postgres-concurrency``
 # CI job's ``-m postgres_concurrency`` selector **includes** it. The

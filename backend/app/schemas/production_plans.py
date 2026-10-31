@@ -2,16 +2,32 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    TypeAdapter,
+    WithJsonSchema,
+    model_validator,
+)
 
 from backend.app.planning.json_types import canonical_decimal_string
+
+# Keep the existing Decimal JSON schema (including its string pattern) while
+# using the supported V2 serializer. Python-mode dumps still contain Decimal.
+CanonicalDecimal = Annotated[
+    Decimal,
+    PlainSerializer(canonical_decimal_string, when_used="json"),
+    WithJsonSchema(TypeAdapter(Decimal).json_schema(mode="serialization"), mode="serialization"),
+]
 
 
 class ProductionPlanBaseModel(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
-        json_encoders={Decimal: canonical_decimal_string},
     )
 
 
@@ -20,16 +36,16 @@ class ProductionPlanCreate(ProductionPlanBaseModel):
     subfarm_id: int | None = None
     season_id: int
     variety_id: int
-    planted_area_mu: Decimal
-    expected_yield_kg_per_mu: Decimal
-    marketable_rate: Decimal
-    tree_age_years: Decimal | None = None
+    planted_area_mu: CanonicalDecimal
+    expected_yield_kg_per_mu: CanonicalDecimal
+    marketable_rate: CanonicalDecimal
+    tree_age_years: CanonicalDecimal | None = None
     pruning_date: date | None = None
     flowering_start_date: date | None = None
     flowering_peak_date: date | None = None
     flowering_end_date: date | None = None
     first_pick_date: date | None = None
-    expected_total_marketable_kg: Decimal | None = None
+    expected_total_marketable_kg: CanonicalDecimal | None = None
     version: int
     effective_from: date
     effective_to: date | None = None
@@ -67,18 +83,18 @@ class ProductionPlanRead(ProductionPlanBaseModel):
     variety_id: int
     variety_code: str
     variety_name: str
-    planted_area_mu: Decimal
-    expected_yield_kg_per_mu: Decimal
-    marketable_rate: Decimal
-    tree_age_years: Decimal | None
+    planted_area_mu: CanonicalDecimal
+    expected_yield_kg_per_mu: CanonicalDecimal
+    marketable_rate: CanonicalDecimal
+    tree_age_years: CanonicalDecimal | None
     pruning_date: date | None
     flowering_start_date: date | None
     flowering_peak_date: date | None
     flowering_end_date: date | None
     first_pick_date: date | None
-    expected_total_marketable_kg: Decimal | None
-    derived_total_marketable_kg: Decimal
-    total_difference_kg: Decimal | None
+    expected_total_marketable_kg: CanonicalDecimal | None
+    derived_total_marketable_kg: CanonicalDecimal
+    total_difference_kg: CanonicalDecimal | None
     version: int
     effective_from: date
     effective_to: date | None

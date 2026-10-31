@@ -41,7 +41,7 @@ from __future__ import annotations
 
 import pytest
 
-from backend.tests.postgres_test_support import (
+from backend.tests.db.profile import (
     DEFAULT_TEST_APP_ENV,
     DEFAULT_TEST_DB_HOST,
     DEFAULT_TEST_DB_NAME,

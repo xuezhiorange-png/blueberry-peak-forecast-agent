@@ -328,7 +328,7 @@ jobs:
           import os
           import sys
 
-          from backend.tests.migration_isolation_helpers import (
+          from backend.tests.db.migration import (
               assert_safe_isolated_db_name,
               resolve_isolated_db_name,
           )
@@ -618,7 +618,7 @@ jobs:
           python - <<'PY' >> "$GITHUB_ENV"
           import os
 
-          from backend.tests.migration_isolation_helpers import (
+          from backend.tests.db.migration import (
               assert_safe_isolated_db_name,
               resolve_isolated_db_name,
           )
@@ -1338,7 +1338,7 @@ jobs:
           import os
           import sys
 
-          from backend.tests.concurrency_isolation_helpers import (
+          from backend.tests.db.concurrency import (
               assert_safe_concurrency_isolated_db_name,
               resolve_concurrency_isolated_db_name,
           )
@@ -1707,7 +1707,7 @@ jobs:
           python - <<'PY' >> "$GITHUB_ENV"
           import os
 
-          from backend.tests.migration_isolation_helpers import (
+          from backend.tests.db.migration import (
               assert_safe_isolated_db_name,
               resolve_isolated_db_name,
           )
@@ -1860,7 +1860,7 @@ jobs:
           import sys
 
           import asyncpg
-          from backend.tests.migration_isolation_helpers import (
+          from backend.tests.db.migration import (
               assert_safe_isolated_db_name,
               resolve_isolated_db_name,
           )
@@ -2151,7 +2151,7 @@ jobs:
         run: |
           python - <<'PY' >> "$GITHUB_ENV"
           import os
-          from backend.tests.migration_isolation_helpers import (
+          from backend.tests.db.migration import (
               assert_safe_isolated_db_name,
               resolve_isolated_db_name,
           )
@@ -2472,7 +2472,7 @@ jobs:
           import asyncio
           import os
           import asyncpg
-          from backend.tests.migration_isolation_helpers import (
+          from backend.tests.db.migration import (
               assert_safe_isolated_db_name,
               resolve_isolated_db_name,
           )

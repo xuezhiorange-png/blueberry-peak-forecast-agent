@@ -41,13 +41,13 @@ from __future__ import annotations
 
 import pytest
 
-from backend.tests.migration_isolation_helpers import (
+from backend.tests.db.migration import (
     ISOLATED_DB_NAME_PREFIX,
     MAX_ISOLATED_DB_NAME_LEN,
     assert_safe_isolated_db_name,
     resolve_isolated_db_name,
 )
-from backend.tests.postgres_test_support import FORBIDDEN_DATABASE_NAMES
+from backend.tests.db.profile import FORBIDDEN_DATABASE_NAMES
 
 # Mark this file ``postgres`` so the ``unit-contract-golden`` job's
 # ``-m "not integration and not postgres and not postgres_concurrency"``

@@ -1,0 +1,161 @@
+{
+  "task_id": "BLUEBERRY_TECH_DEBT_TD03E_WARNING_COMPATIBILITY_CLEANUP_R1",
+  "base_main_sha": "a3d0ea9b7a0faac273cd9f6504257c90f429ccc1",
+  "baseline": {
+    "run_id": 41060495299,
+    "job_id": 124078707580,
+    "head_sha": "5e8be627de1919d18d04e37f909197a1cbdb9767",
+    "main_tree_equal": true,
+    "counts": {
+      "passed": 10485,
+      "skipped": 21,
+      "deselected": 1033,
+      "warnings": 406
+    },
+    "warning_categories": {
+      "PytestAssertRewriteWarning": 1,
+      "PydanticDeprecatedSince20": 276,
+      "DeprecationWarning": 7,
+      "PytestWarning": 15,
+      "UserWarning": 104,
+      "StarletteDeprecationWarning": 3
+    },
+    "log_sha256": "4c49fe663c6a925b6c66502d68766f3af2c8d4f4337f4d8f66b66f46cdef1519",
+    "attribution_limit": "Grouped module counts do not establish individual test nodeids.",
+    "run_url": "https://github.com/xuezhiorange-png/blueberry-peak-forecast-agent/actions/runs/41060495299/job/124078707580",
+    "tree_sha": "5f7d285502c05de73020b15270c7a8dbe126027d",
+    "main_push_run_id": 41071330963,
+    "main_push_conclusion": "success",
+    "main_push_golden_executed": false
+  },
+  "classification": [
+    {
+      "category": "PydanticDeprecatedSince20",
+      "before": 276,
+      "defect_occurrences_targeted": 276,
+      "expected_retained": 0,
+      "unresolved": 0,
+      "sources": [
+        "backend/app/schemas/production_plans.py"
+      ],
+      "root_cause": "Inherited json_encoders schema generation is deprecated; repeated FastAPI schema construction multiplies occurrences.",
+      "change": "JSON-only PlainSerializer with unchanged canonical_decimal_string and Decimal serialization schema."
+    },
+    {
+      "category": "UserWarning",
+      "before": 104,
+      "defect_occurrences_targeted": 0,
+      "expected_retained": 101,
+      "unresolved": 3,
+      "sources": [
+        "backend/tests/core_forecast/test_metrics.py",
+        "backend/app/api/local_auth.py",
+        "backend/app/api/local_auth_admin.py"
+      ],
+      "root_cause": "101 intentional malformed model_construct serializer diagnostics; three duplicate Operation IDs on multi-method auth/admin routes.",
+      "change": "Retain diagnostics and original negative-path assertions. No unreviewed operation ID renaming or API redesign."
+    },
+    {
+      "category": "PytestWarning",
+      "before": 15,
+      "defect_occurrences_targeted": 15,
+      "expected_retained": 0,
+      "unresolved": 0,
+      "sources": [
+        "backend/tests/actual_harvest_import/test_commit_contract.py",
+        "backend/tests/actual_harvest_import/test_i7_label_snapshot.py",
+        "backend/tests/residual_model/test_state_matrix.py"
+      ],
+      "root_cause": "Module-level asyncio marker inherited by synchronous tests.",
+      "change": "Remove only module asyncio marker; existing auto mode and session loop policy keep true coroutines unchanged."
+    },
+    {
+      "category": "DeprecationWarning",
+      "before": 7,
+      "defect_occurrences_targeted": 4,
+      "expected_retained": 0,
+      "unresolved": 3,
+      "sources": [
+        "backend/tests/postgres_test_support.py",
+        "backend/tests/migration_isolation_helpers.py",
+        "backend/tests/concurrency_isolation_helpers.py",
+        "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_persistence_schema.py",
+        "backend/tests/trial/test_forecast_evidence.py"
+      ],
+      "root_cause": "Three legacy shim imports and four untyped raw SQL datetime bindings through sqlite3 default adapter.",
+      "change": "Migrate unfrozen DB shim consumers and two trial raw-SQL datetime binds. Preserve the V0.18-pinned safety consumer (one warning) and schema probe (two warnings) byte-for-byte; no old hashes or contracts adapted."
+    },
+    {
+      "category": "StarletteDeprecationWarning",
+      "before": 3,
+      "defect_occurrences_targeted": 3,
+      "expected_retained": 0,
+      "unresolved": 0,
+      "sources": [
+        "backend/app/api/residual_model.py"
+      ],
+      "root_cause": "Deprecated HTTP_422_UNPROCESSABLE_ENTITY alias. An additional production-plan alias occurrence was reproduced by isolated PostgreSQL regression.",
+      "change": "Use HTTP_422_UNPROCESSABLE_CONTENT (same integer 422) at all 30 occurrences in the six owning API modules; AST comparisons allow only that attribute rename."
+    },
+    {
+      "category": "PytestAssertRewriteWarning",
+      "before": 1,
+      "defect_occurrences_targeted": 1,
+      "expected_retained": 0,
+      "unresolved": 0,
+      "sources": [
+        "backend/tests/conftest.py",
+        "backend/tests/forecast_quality/authority_loader_fixture.py"
+      ],
+      "root_cause": "Ordinary import precedes local plugin assertion-rewrite registration.",
+      "change": "Register assertion rewriting in root conftest before first import, without registering another global fixture plugin."
+    }
+  ],
+  "pre_ci_checks": {
+    "new_compatibility_tests_passed": 49,
+    "isolated_postgres_tests_passed": 26,
+    "postgres_server": "16.15 (Homebrew)",
+    "owned_postmaster_stopped": true,
+    "original_local_nodeids_preserved": 11536,
+    "true_coroutines_preserved": 2529,
+    "synchronous_marker_corrections": 15,
+    "original_assertions_preserved": 460,
+    "original_skip_xfail_marks_preserved": true,
+    "ruff": "pass",
+    "format": "pass",
+    "strict_mypy_source_files": 637,
+    "related_regression_tests_passed": 449,
+    "related_warning_as_error_subset_passed": 406,
+    "first_full_local_golden": "Not accepted: host disk full / temp creation failures; subprocess pytest missing from PATH; V0.18 source pin mismatches identified and restored. The failed log/JUnit are retained.",
+    "affected_full_local_golden_cases_rechecked_passed": 226
+  },
+  "final_ci_results_location": "Final exact-head run and measured before/after ledger are attached to the Draft PR receipt; this pre-CI evidence does not predeclare CI success.",
+  "guards": {
+    "dependency_versions_changed": false,
+    "prediction_math_changed": false,
+    "business_semantics_changed": false,
+    "frozen_evidence_changed": false,
+    "td03b_lifecycle_changed": false,
+    "ci_events_matrices_selectors_thresholds_changed": false,
+    "global_warning_ignores_added": false,
+    "skip_xfail_added": false,
+    "real_business_data_read": false,
+    "xls_retracked": false,
+    "ready_authorized": false,
+    "merge_authorized": false,
+    "deploy_authorized": false,
+    "v0_22_started": false
+  },
+  "compatibility_blockers": [
+    {
+      "source": "backend/tests/safety/test_dev_db_protection.py",
+      "sha256": "f3e21bd3f65407c5762e62798d51fb207eda2bf8976d41fd1b4189089b997421",
+      "retained_warnings": 1
+    },
+    {
+      "source": "backend/tests/s3_daily_rowset/test_incumbent_forecast_replay_identity_persistence_schema.py",
+      "sha256": "e95f570b8efcc6c1f0880d22a6b6018a77d10feb3d59d39153b18662f76227eb",
+      "retained_warnings": 2
+    }
+  ]
+}
