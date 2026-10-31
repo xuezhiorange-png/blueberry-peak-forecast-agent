@@ -1,0 +1,336 @@
+{
+  "base_main_sha": "1086c5f8ae983e16cef7c09f78ea68c25a73db48",
+  "counts": {
+    "branch_count": 719,
+    "exposed_branches": 709,
+    "exposed_releases": 23,
+    "exposed_tags": 23,
+    "release_assets": 0,
+    "tag_count": 23
+  },
+  "current_main_contains_workbooks": false,
+  "historical_exposure_eliminated": false,
+  "historical_workbook_downloaded": false,
+  "introductions": [
+    {
+      "ancestor_of_base_main": false,
+      "commit": "6f9912f36a29aca6fef0de028cc3c9fd7caceaae",
+      "parents": [
+        "c8543965f67136c27b7502eed9510f0be845f426"
+      ],
+      "publicly_reachable": true,
+      "recorded_committer_time": "2026-06-20T02:00:53+08:00"
+    },
+    {
+      "ancestor_of_base_main": true,
+      "commit": "2dfddc1eaa41d81cc249cae1358e5db7167fd318",
+      "parents": [
+        "c8543965f67136c27b7502eed9510f0be845f426"
+      ],
+      "publicly_reachable": true,
+      "recorded_committer_time": "2026-06-20T02:22:51+08:00"
+    }
+  ],
+  "measurement_limits": [
+    "Recorded Git commit time is not independently proven first-publication time.",
+    "No archive, workbook or release asset body was fetched to assess exposure.",
+    "Automatically generated source archives are not independent release assets.",
+    "The new TD01B branch is outside this pre-development snapshot."
+  ],
+  "observed_at_utc": "2026-10-31T07:34:18.348359+00:00",
+  "observed_refs_reaching_introduction_history": 742,
+  "predecessor_main_ci": {
+    "conclusion": "success",
+    "event": "push",
+    "head_sha": "1086c5f8ae983e16cef7c09f78ea68c25a73db48",
+    "id": 41179040429,
+    "status": "completed"
+  },
+  "publication_authority_status": "PUBLICATION_AUTHORITY_NOT_PROVEN",
+  "raw_workbook_content_read": false,
+  "ref_inventory": {
+    "path": "td01b-public-ref-exposure-r1.csv",
+    "rows": 742,
+    "sha256": "2ee716764c8a67d27447bb018eb0e02c88cf73743f9dfa42abc71c881621eeb6"
+  },
+  "releases": [
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 356384558,
+      "prerelease": false,
+      "published_at": "2026-07-19T16:30:46Z",
+      "resolved_commit": "235bde1407bdd0b86f2b31ad75ba1c3b8dc5ba61",
+      "tag": "v0.1.0",
+      "target_commitish": "release/v0.1.0"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 401584494,
+      "prerelease": false,
+      "published_at": "2026-10-02T06:25:21Z",
+      "resolved_commit": "327a942815da4fbb9424f8996f6ffa158a738d2e",
+      "tag": "v0.10.0",
+      "target_commitish": "327a942815da4fbb9424f8996f6ffa158a738d2e"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 401658133,
+      "prerelease": false,
+      "published_at": "2026-10-02T08:43:34Z",
+      "resolved_commit": "fb99dabcf4257886a7e6b47df5c455d43d9d0205",
+      "tag": "v0.11.0",
+      "target_commitish": "fb99dabcf4257886a7e6b47df5c455d43d9d0205"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 404887286,
+      "prerelease": false,
+      "published_at": "2026-10-06T15:32:36Z",
+      "resolved_commit": "837bb5cf9674ca2f5bdbb2f082dc9092e86e9ca0",
+      "tag": "v0.13.0",
+      "target_commitish": "main"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 404887599,
+      "prerelease": false,
+      "published_at": "2026-10-06T15:32:59Z",
+      "resolved_commit": "d936f42096bd8652624e1bbc636ec021c156e698",
+      "tag": "v0.14.0",
+      "target_commitish": "main"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 404887964,
+      "prerelease": false,
+      "published_at": "2026-10-06T15:33:24Z",
+      "resolved_commit": "b69e526a7a6d7c40bd22351cf16bad6c8befea14",
+      "tag": "v0.15.0",
+      "target_commitish": "main"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 405980150,
+      "prerelease": false,
+      "published_at": "2026-10-07T17:04:58Z",
+      "resolved_commit": "2eb88a198fa2247ce813f8dac7bf7b41b8fdee32",
+      "tag": "v0.16.0",
+      "target_commitish": "2eb88a198fa2247ce813f8dac7bf7b41b8fdee32"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 408106332,
+      "prerelease": false,
+      "published_at": "2026-10-09T16:24:10Z",
+      "resolved_commit": "1b218edc74ff29091c07607ddbcdba0c10577398",
+      "tag": "v0.17.0",
+      "target_commitish": "1b218edc74ff29091c07607ddbcdba0c10577398"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 416386990,
+      "prerelease": false,
+      "published_at": "2026-10-18T10:38:04Z",
+      "resolved_commit": "b6ac2e658edbace357c575bb42ee46b03bb863b9",
+      "tag": "v0.18.0",
+      "target_commitish": "main"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 364905699,
+      "prerelease": false,
+      "published_at": "2026-08-04T13:46:41Z",
+      "resolved_commit": "cfbffbc4b1332484963c6948b140041bc4a240e3",
+      "tag": "v0.2.0",
+      "target_commitish": "release/v0.2.0"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 426343026,
+      "prerelease": false,
+      "published_at": "2026-10-28T06:52:01Z",
+      "resolved_commit": "3bf2e172822f8b375cf30a0e2c0fcb96ebade722",
+      "tag": "v0.21.0",
+      "target_commitish": "3bf2e172822f8b375cf30a0e2c0fcb96ebade722"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 387192569,
+      "prerelease": false,
+      "published_at": "2026-09-11T16:40:05Z",
+      "resolved_commit": "043f8f3e4e867b5d5f82437f7f8c9caa1c8d2fc6",
+      "tag": "v0.3.0",
+      "target_commitish": "043f8f3e4e867b5d5f82437f7f8c9caa1c8d2fc6"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 365398279,
+      "prerelease": true,
+      "published_at": "2026-08-05T09:02:10Z",
+      "resolved_commit": "7a42eecd9b54b8fd12c195e581889ee094ce51c8",
+      "tag": "v0.3.0-plan",
+      "target_commitish": "7a42eecd9b54b8fd12c195e581889ee094ce51c8"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 387422261,
+      "prerelease": false,
+      "published_at": "2026-09-12T01:58:38Z",
+      "resolved_commit": "80724b0171107c8b2bdeeea17ea4a8a9457903ec",
+      "tag": "v0.3.1",
+      "target_commitish": "80724b0171107c8b2bdeeea17ea4a8a9457903ec"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 388085177,
+      "prerelease": false,
+      "published_at": "2026-09-14T00:43:31Z",
+      "resolved_commit": "74293797aad2e057edd484ec6757cc54f4542461",
+      "tag": "v0.4.0",
+      "target_commitish": "74293797aad2e057edd484ec6757cc54f4542461"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 389551726,
+      "prerelease": false,
+      "published_at": "2026-09-16T00:04:46Z",
+      "resolved_commit": "88342378df683b66933d3deb618917a70aadb5fe",
+      "tag": "v0.5.0",
+      "target_commitish": "88342378df683b66933d3deb618917a70aadb5fe"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 389593655,
+      "prerelease": false,
+      "published_at": "2026-09-16T02:15:01Z",
+      "resolved_commit": "309327bc5c2045e557a044f00a6a7c22c4c31cd7",
+      "tag": "v0.5.1",
+      "target_commitish": "main"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 389643891,
+      "prerelease": false,
+      "published_at": "2026-09-16T04:45:27Z",
+      "resolved_commit": "6ad820882efe469f99d0723bb05d02e143cdec58",
+      "tag": "v0.5.2",
+      "target_commitish": "main"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 391532810,
+      "prerelease": false,
+      "published_at": "2026-09-18T14:18:21Z",
+      "resolved_commit": "c0daf23b3d8d5c3b43733824b95024c44b9c220b",
+      "tag": "v0.5.3",
+      "target_commitish": "c0daf23b3d8d5c3b43733824b95024c44b9c220b"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 392274366,
+      "prerelease": false,
+      "published_at": "2026-09-20T01:24:09Z",
+      "resolved_commit": "bfcf2009423b5db8b0d2316c35023db202783dc5",
+      "tag": "v0.6.0",
+      "target_commitish": "main"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 394177324,
+      "prerelease": false,
+      "published_at": "2026-09-22T22:59:08Z",
+      "resolved_commit": "3c0ae295dfbd327fcbc9dcd92dea7511b5030e8b",
+      "tag": "v0.7.0",
+      "target_commitish": "main"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 397211955,
+      "prerelease": false,
+      "published_at": "2026-09-26T11:33:57Z",
+      "resolved_commit": "a3f36b7b5461a10276a5887ff3c6e591883ecb4f",
+      "tag": "v0.8.0",
+      "target_commitish": "main"
+    },
+    {
+      "assets": [],
+      "current_tree_exposed": true,
+      "draft": false,
+      "id": 397495645,
+      "prerelease": false,
+      "published_at": "2026-09-27T03:30:57Z",
+      "resolved_commit": "8e886b45984a358125d00e80f4f5d662fab3d8e9",
+      "tag": "v0.9.0",
+      "target_commitish": "main"
+    }
+  ],
+  "remote_refs_snapshot_sha256": "c8c07d0dd65e33d0ec3ebdc3c88a7611f495e7400a16b078deed11e0eecd7cba",
+  "repository_visibility": "public",
+  "snapshot_scope": "BEFORE_DEVELOPMENT_PUBLIC_HEADS_AND_TAGS_ONLY",
+  "task_id": "BLUEBERRY_TECH_DEBT_TD01B_HISTORICAL_XLS_EXPOSURE_R1",
+  "total_workbook_bytes": 61036032,
+  "unassessed": [
+    "hidden PR refs",
+    "forks",
+    "prior clones",
+    "search or GitHub caches",
+    "third-party copies",
+    "unlisted historical assets"
+  ],
+  "workbooks": [
+    {
+      "bytes": 27880960,
+      "git_blob_id": "3413dbbc284312e75a2df98992a6ab66cfa87dbd",
+      "path": "data/raw/2024_2025_receipts.xls"
+    },
+    {
+      "bytes": 33155072,
+      "git_blob_id": "a045348c4c72507ae367b4e30f267fcf19c490c1",
+      "path": "data/raw/2025_2026_receipts.xls"
+    }
+  ]
+}
