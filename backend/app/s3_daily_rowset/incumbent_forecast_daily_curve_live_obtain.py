@@ -15,6 +15,7 @@ from sqlalchemy.exc import MissingGreenlet
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 
+from backend.app.db.loop_resources import LoopResourceUnavailable, loop_owned_session
 from backend.app.s3_daily_rowset.forecast_port import IncumbentDailyCurveProvider
 from backend.app.s3_daily_rowset.pit_visible_incumbent_daily_curve_loader import (
     build_pit_visible_incumbent_daily_curve_index,
@@ -120,9 +121,11 @@ async def _obtain_with_async_session_maker(
     *,
     materialization_grains: frozenset[tuple[str, str, str, str]],
 ) -> LiveIncumbentForecastDailyCurveObtainResult:
-    session_cm = live_async_session_maker()
+    session_cm = loop_owned_session(live_async_session_maker)
     try:
         session = await session_cm.__aenter__()
+    except LoopResourceUnavailable:
+        raise
     except Exception as exc:
         raise _AsyncSessionNotObtained() from exc
     try:

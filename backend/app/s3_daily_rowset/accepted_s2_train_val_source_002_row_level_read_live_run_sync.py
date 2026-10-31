@@ -14,6 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 from sqlalchemy.orm import Session
 
+from backend.app.db.loop_resources import LoopResourceUnavailable, loop_owned_session
+
 
 class NoAsyncSessionMaker(RuntimeError):
     """Configured AsyncSessionMaker is unavailable."""
@@ -39,9 +41,11 @@ async def _run_sync_with_session_maker(
     live_async_session_maker: _AsyncSessionMakerCls[AsyncSession],
     sync_fn: Callable[[Session], object],
 ) -> object:
-    session_cm = live_async_session_maker()
+    session_cm = loop_owned_session(live_async_session_maker)
     try:
         session = await session_cm.__aenter__()
+    except LoopResourceUnavailable:
+        raise
     except Exception as exc:
         raise AsyncSessionNotObtained() from exc
     try:

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -40,6 +39,7 @@ from backend.tests.s3_daily_rowset.conftest import DATASET_IDENTITY
 from backend.tests.s3_daily_rowset.s3_a2_frozen_blob_authority import (
     assert_forecast_artifact_py_historical_blob_pinned,
 )
+from backend.tests.td03g_historical_source import source_blob
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CONTRACT_DOC = REPO_ROOT / "docs/v0-3/s3/s3-completeness-pass-closeout-contract.md"
@@ -107,7 +107,7 @@ FORBIDDEN_THIS_GRANT_TOKENS = (
 
 
 def _git_blob(path: Path) -> str:
-    return subprocess.check_output(["git", "hash-object", str(path)], text=True).strip()
+    return source_blob(path)
 
 
 def test_grant_unique_flip_is_implementation_authorized() -> None:

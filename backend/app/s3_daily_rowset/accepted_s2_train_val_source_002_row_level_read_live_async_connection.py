@@ -13,7 +13,9 @@ import asyncio
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from backend.app.db.loop_resources import loop_owned_connection
 
 
 class LiveAsyncConnectionReasonCode(StrEnum):
@@ -74,14 +76,5 @@ def _fail(reason: LiveAsyncConnectionReasonCode) -> AcceptedS2TrainValLiveAsyncC
 
 
 async def _obtain_from_engine(live_async_engine: AsyncEngine) -> None:
-    connection: AsyncConnection | None = None
-    try:
-        connection = await live_async_engine.connect()
-        if connection is None:
-            raise RuntimeError("async connection not obtained")
-    finally:
-        if connection is not None:
-            try:
-                await connection.close()
-            except Exception:
-                pass
+    async with loop_owned_connection(live_async_engine):
+        pass

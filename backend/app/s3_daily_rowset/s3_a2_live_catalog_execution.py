@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker as _AsyncSessionMakerCls
 from sqlalchemy.orm import Session
 
+from backend.app.db.loop_resources import LoopResourceUnavailable, loop_owned_session
 from backend.app.s2_materialized_dataset.shared.contracts import MaterializableRow
 from backend.app.s3_daily_rowset.accepted_s2_identity_alignment_evidence import (
     AcceptedS2IdentityAlignmentEvidenceProducer,
@@ -288,9 +289,11 @@ def _bind_and_land_sync(session: Session) -> _BindAndLandOutcome:
 async def _bind_and_land_with_session_maker(
     live_async_session_maker: _AsyncSessionMakerCls[AsyncSession],
 ) -> _BindAndLandOutcome:
-    session_cm = live_async_session_maker()
+    session_cm = loop_owned_session(live_async_session_maker)
     try:
         session = await session_cm.__aenter__()
+    except LoopResourceUnavailable:
+        raise
     except Exception as exc:
         raise _AsyncSessionNotObtained() from exc
     try:
