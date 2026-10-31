@@ -28,6 +28,9 @@ REVISED_RUNTIME_SOURCES = {
     "backend/app/local_auth/service.py",
     "backend/app/api/local_auth_admin.py",
     "backend/tests/local_auth/test_runtime_evidence_contract.py",
+    # Its fixture now copies approved code/metadata instead of fetching the
+    # original commit's entire business-data history. Keep its original Hash.
+    "backend/tests/local_auth/test_historical_source.py",
 }
 
 

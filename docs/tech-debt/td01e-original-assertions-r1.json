@@ -1,0 +1,58 @@
+{
+  "baseline_commit": "38df347543c37315d5802e168afdc2eb9db4486b",
+  "code": {
+    "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py": {
+      "assertion_count": 26,
+      "assertions_sha256": "e699fbe1ab155c46f7da034a7b13de637c222a50859254cd83a5f323ac3fe8ba",
+      "baseline_git_blob_oid": "afc4f6cc21188a794d4d158c3c5967e3f26b8972",
+      "baseline_source_sha256": "e0a28c72241a67b2ca50d0dfe72c4099d144f297acf362a3ec94483416c6f57f",
+      "original_sha_literals": [
+        "08b185b4621bf517846c986841bb5579b6c37b35",
+        "89641834ab7a0bd902a23f9243325da5c163d518"
+      ],
+      "test_signatures_sha256": "19af68501f6e8daf80fd71fa0e92854d724079ad72011dd65842119e933f9aed"
+    },
+    "backend/tests/historical_source.py": {
+      "assertion_count": 0,
+      "assertions_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "baseline_git_blob_oid": "477e3d5cf072257ef1886a3b978936a0d57d3805",
+      "baseline_source_sha256": "245517ac71f58cc5dab4e7c5b4ceca5fde64dc75860cb6929354098d8b99eb96",
+      "original_sha_literals": [
+        "320f2046e3105b1b55da9cb037892571110b584a"
+      ],
+      "test_signatures_sha256": "1c577736894e51adca73e69af8ca2ae4afd98a11edc7f226e671abbf9ecd218e"
+    },
+    "backend/tests/local_auth/test_historical_source.py": {
+      "assertion_count": 5,
+      "assertions_sha256": "eca429608380a2ac0a4aaa3c3113928e5d6c0cbcccd0405a0ea3d7702b622d10",
+      "baseline_git_blob_oid": "e6e5eee52f958399bb6460e66b3d969ca5b77138",
+      "baseline_source_sha256": "9136680e3172fc7572b96568868841fa433a0a6f4432844cac770b2f049ef1f0",
+      "original_sha_literals": [],
+      "test_signatures_sha256": "1fb77ffdaa56ac9d06e8810dd0b2d787479647a12bad39389b42cd07f13e7b44"
+    },
+    "backend/tests/local_auth/test_preauth_fix_evidence_contract.py": {
+      "assertion_count": 40,
+      "assertions_sha256": "d8f7866d3815c33932d46c875d1bc428cb0536da2ea9f0b5979f899da4745e6c",
+      "baseline_git_blob_oid": "d207dbc394c59d63c220e5fb024478122dfbb5c2",
+      "baseline_source_sha256": "e6b5f77df12b581f966c1d82d9fc09c3098ad2e89c8912c62520e1a071002edf",
+      "original_sha_literals": [
+        "35d4c982c39c8737d8f43b949f2228a7c0cc9ddb08cffdd350aedbffaf9bafdb",
+        "816d8299f007eab7da140fc5c7547d941c026f8f",
+        "f151f0e6aca3577c5ee959a220c16e9756179649"
+      ],
+      "test_signatures_sha256": "4cb627cfe1c896fe9964119e23a736ed78ea03ebf375e198f9a768314187c9f7"
+    },
+    "backend/tests/local_auth/test_runtime_evidence_contract.py": {
+      "assertion_count": 18,
+      "assertions_sha256": "f7ffba9efcce2f35d2ff3f06dbe4a0511578116558c0b8f62cf172877e868d78",
+      "baseline_git_blob_oid": "03d43785f0d2ea095e8cf37682ea0b1c050ca71d",
+      "baseline_source_sha256": "f33392552f2f32a92a38c42605a019f45526caa7c7d19d3ee8284998d9882d1e",
+      "original_sha_literals": [
+        "320f2046e3105b1b55da9cb037892571110b584a",
+        "e9812e82067dceae444ff0707ceeb2f560c1018e"
+      ],
+      "test_signatures_sha256": "5d62eb0d9aa8000dc504d2730745039a20ccab06a0a5a15eccc95b1e12856e0e"
+    }
+  },
+  "scope": "ASSERTION_FINGERPRINTS_NOT_SOURCE_ADMISSION"
+}

@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[3]
 BASE = "08b185b4621bf517846c986841bb5579b6c37b35"
 S4_DELIVERY = "89641834ab7a0bd902a23f9243325da5c163d518"
 APPROVED_EVOLVING_SOURCES = {
+    "backend/tests/historical_source.py",
+    "frontend/src/test/dashboardGovernance.test.ts",
     "frontend/vite.config.ts",
     "frontend/src/dashboard/pages/ReadPages.tsx",
     "frontend/e2e/dashboard.spec.ts",

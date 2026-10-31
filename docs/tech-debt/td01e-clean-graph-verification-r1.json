@@ -1,0 +1,16 @@
+{
+  "arbitrary_fallback_allowed": false,
+  "catalog_sha256": "80c60fe1b35204a8f3a819e3b84dd1ca3f2c469b7a71811b282c45ca3cbd6193",
+  "data_or_publication_authority_granted": false,
+  "identity_count": 65,
+  "mode": "CLEAN_GRAPH_REHEARSAL",
+  "old_commits_present": 0,
+  "original_code_bytes_unchanged": true,
+  "original_expected_sha256_unchanged": true,
+  "real_history_rewrite_ready": false,
+  "registered_code_blobs_only": true,
+  "result_sha256": "bf4d86d4fb3261ab5a3180e40b729b2875073ec47c7f27e3c02eb55c2398d5cc",
+  "synthetic_git_commit": "ea77158efdf68c91907d367472760af526996d2c",
+  "synthetic_git_tree": "325e8ae52b49b741d339b6079ae6fb9969bd6384",
+  "verified_git_blob_identity": true
+}
