@@ -1,15 +1,14 @@
 """Negative integrity tests; no authentication, network or business database."""
 
 import hashlib
-import subprocess
 from pathlib import Path
 
 import pytest
 
+from backend.app.core.historical_code_identity import current_code_fixture
 from backend.tests.historical_source import (
     AUTHORIZED_HISTORY_PATHS,
     HISTORICAL_COMMIT,
-    ROOT,
     historical_bytes,
     source_bytes,
     verified_source,
@@ -46,16 +45,15 @@ def test_missing_blob_fails() -> None:
 
 
 def test_current_runtime_edit_does_not_rewrite_historical_hash(tmp_path: Path) -> None:
-    # Separate test-only repository; never modify the real worktree.
-    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
-    subprocess.run(["git", "fetch", "-q", str(ROOT), HISTORICAL_COMMIT], cwd=tmp_path, check=True)
     path = "backend/app/main.py"
-    original = historical_bytes(path, HISTORICAL_COMMIT)
-    candidate = tmp_path / path
-    candidate.parent.mkdir(parents=True)
-    candidate.write_bytes(b"authorized future runtime content\n")
-    assert source_bytes(path, root=tmp_path) == original
-    assert hashlib.sha256(candidate.read_bytes()).digest() != hashlib.sha256(original).digest()
+    # Exact code and Commit/Tree metadata only; never fetch business history.
+    with current_code_fixture(HISTORICAL_COMMIT, path) as tmp_path:
+        original = historical_bytes(path, HISTORICAL_COMMIT)
+        candidate = tmp_path / path
+        candidate.parent.mkdir(parents=True)
+        candidate.write_bytes(b"authorized future runtime content\n")
+        assert source_bytes(path, root=tmp_path) == original
+        assert hashlib.sha256(candidate.read_bytes()).digest() != hashlib.sha256(original).digest()
 
 
 def test_frozen_document_tampering_still_fails(tmp_path: Path) -> None:

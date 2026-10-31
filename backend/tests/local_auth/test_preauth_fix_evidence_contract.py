@@ -18,6 +18,7 @@ EVOLVED_ROUND_SOURCES = {
 }
 # These two authorized test adaptations do not rewrite their delivery evidence.
 ADAPTED_TEST_SOURCES = {
+    "backend/tests/historical_source.py",
     "backend/tests/business_access/test_contract.py",
     "backend/tests/mcp/test_v0_18_s3_contract.py",
     "backend/tests/local_auth/test_preauth_fix_evidence_contract.py",

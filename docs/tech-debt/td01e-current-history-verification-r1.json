@@ -1,0 +1,12 @@
+{
+  "arbitrary_fallback_allowed": false,
+  "catalog_sha256": "80c60fe1b35204a8f3a819e3b84dd1ca3f2c469b7a71811b282c45ca3cbd6193",
+  "data_or_publication_authority_granted": false,
+  "identity_count": 65,
+  "mode": "CURRENT_HISTORY",
+  "original_code_bytes_unchanged": true,
+  "original_expected_sha256_unchanged": true,
+  "real_history_rewrite_ready": false,
+  "result_sha256": "1364b12cec6cd65f4ca9597c061d619b847693d1673cd78501d6448319c9105e",
+  "verified_git_blob_identity": true
+}

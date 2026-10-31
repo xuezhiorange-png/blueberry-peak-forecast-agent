@@ -1,0 +1,1131 @@
+{
+  "entries": [
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "4d946c02acff3a257817e714ad824f9b311d42ec",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "4d946c02acff3a257817e714ad824f9b311d42ec",
+      "original_source_sha256": "e39d3d64c9619feabf91d9d696954f7c01fb9d0f5176c3a6d9f0c8a296f53951",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_query.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "97be63307d002d6878649cd241ff94f5149e0f8a",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "97be63307d002d6878649cd241ff94f5149e0f8a",
+      "original_source_sha256": "c079d17d58899622e3c452693dceda06bfa8fa6480da7edc7af2e6573851ff4b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/s3_a2_default_catalog_live_origin_obtain.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "7b108973384f6a5dcff5bfc17126107f0c9f88b2",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "7b108973384f6a5dcff5bfc17126107f0c9f88b2",
+      "original_source_sha256": "73f94c070f474cde7fb66278dba642052d77a59ad1e736070e48294e1496b3f3",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_r1.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "c24c748476b8b98e31d57e3e9b30998cd4343d86",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "c24c748476b8b98e31d57e3e9b30998cd4343d86",
+      "original_source_sha256": "f98893c5681ce2e1c262e6d833092c84f3867da8987cb44f58472a8f166459a9",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_authorization.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "a407032430cb8866be5de13220464768366fca0c",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "a407032430cb8866be5de13220464768366fca0c",
+      "original_source_sha256": "90263cfbfee395ebe0dcfe5e7211af62c50af15cddf3772058e3348975060de2",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "1d9ca027b67066d66e51874894aeab1a1d26bcda",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "1d9ca027b67066d66e51874894aeab1a1d26bcda",
+      "original_source_sha256": "9f1148f8efc71180570e832aba346388ec20a1ffd55d202d63171f8994bb0d06",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_authorization.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "12d9a22e64737ea66c99747bb5c6c764d751299f",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "12d9a22e64737ea66c99747bb5c6c764d751299f",
+      "original_source_sha256": "0f2cce6476a556618fffe05d561199aa489a319d58b9b8ebc6a5d573b9d6ac13",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "11c88c6c9831bbefb1ed902bd9c06cc68266e76d",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "11c88c6c9831bbefb1ed902bd9c06cc68266e76d",
+      "original_source_sha256": "11dd4590fc198c22442dd95be8538dd3ef57c67046e9197cfcca2aa7ec7a32aa",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_content_for_reviewed_grains_r1.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "bb6c7b87e82f1524dfe88ecd4b71c5ada84dba55",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "bb6c7b87e82f1524dfe88ecd4b71c5ada84dba55",
+      "original_source_sha256": "ba109867104f50544d15ab3a2c888f39350e1366769a7aa434ec121e722a2ae5",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_authorization.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "ac2c49eb2a0251f74cd85588e8b22fb45cf850e0",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "ac2c49eb2a0251f74cd85588e8b22fb45cf850e0",
+      "original_source_sha256": "4a488c4ebfa18744cb50baf926dd24d2b7ab88bfee80b17caaf0e7706791130e",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "1d3223f67ddac2492bfda871c2b0b0d0f722e1ff",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "1d3223f67ddac2492bfda871c2b0b0d0f722e1ff",
+      "original_source_sha256": "b81c8f2bfbfc74d29df22a6e13f557e042bdfb811c875e94b2f648fa6d5b1be5",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_no_versioned_flip_r1.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "9a5d05ae12b50c5fcc3e5c6e9fe8650fadd79e78",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "9a5d05ae12b50c5fcc3e5c6e9fe8650fadd79e78",
+      "original_source_sha256": "219f40ab86beb2bb1c73f0a4f540e220789efab1c2898eed3780c8d5ce875cfc",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_authorization.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "eb0a8807bbbf496335450e988bc19fb4ebf48f66",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "eb0a8807bbbf496335450e988bc19fb4ebf48f66",
+      "original_source_sha256": "5d4954c9b91fd8bcc2b3fae52926df7515b5ce19cfd86116fd816a2a479c171f",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "e4a6bc5a6f19c3b447c25004aae98982058f578e",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "e4a6bc5a6f19c3b447c25004aae98982058f578e",
+      "original_source_sha256": "05744cb2620498748aec6d7cce15b078fd6f99777668a9ae0ffb78bb3106135e",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_presence_package_independent_review_r1.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/td03g_historical_source.py",
+      "independent_authority": {
+        "document": "backend/tests/td03g_historical_source.py",
+        "expected_git_blob_oid": "a7a4cd0e4937c284b01cdedc76bc4bddbab38e7a",
+        "kind": "EXISTING_TEST_GIT_BLOB_PIN",
+        "symbol": "EXPECTED_BLOBS"
+      },
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "original_git_blob_oid": "a7a4cd0e4937c284b01cdedc76bc4bddbab38e7a",
+      "original_source_sha256": "173cc430fc9c8b99aec3c2bca778709ce4843ca5a0fd99e082f852422e2d3443",
+      "repository_relative_path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_GIT_BLOB"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s3-mcp-productization-r1.json",
+        "expected_sha256": "7ba4affe4c8cfe1b95a30b653e31dc51d72300df4a61d49e130bbe8e2ac49a5e",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/api/forecast_intelligence_decision.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "afb4f976f9ccab8d28b925410f089009d894274c",
+      "original_source_sha256": "7ba4affe4c8cfe1b95a30b653e31dc51d72300df4a61d49e130bbe8e2ac49a5e",
+      "repository_relative_path": "backend/app/api/forecast_intelligence_decision.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s2-decision-support-api-r1.json",
+        "expected_sha256": "2c11b3b450e07f04554bd7488ebf95f8bb49dd61f5858ab55ce76ca27ba7695d",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/api/forecast_intelligence_read.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "3a4b4027c7ee4456475344692092535692a84080",
+      "original_source_sha256": "2c11b3b450e07f04554bd7488ebf95f8bb49dd61f5858ab55ce76ca27ba7695d",
+      "repository_relative_path": "backend/app/api/forecast_intelligence_read.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s1-local-auth-implementation-contract-r1.json",
+        "expected_sha256": "f10bdcd0a63737ea01409a121d072bed8f7fb3f33ebfc11b6e59266b469f8cda",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/core/config.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "806072548ee67d289c8a76ee67fc2aa2e26acf6b",
+      "original_source_sha256": "f10bdcd0a63737ea01409a121d072bed8f7fb3f33ebfc11b6e59266b469f8cda",
+      "repository_relative_path": "backend/app/core/config.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s3-mcp-productization-r1.json",
+        "expected_sha256": "4820eccedf90ab409501551c02098a721833c37b523fa235bda96f30b5633939",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/main.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "d67d24b0d83b4a6d9aa966c0d08ee1c2709fd43c",
+      "original_source_sha256": "4820eccedf90ab409501551c02098a721833c37b523fa235bda96f30b5633939",
+      "repository_relative_path": "backend/app/main.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r1.json",
+        "expected_sha256": "fc10396338d7af315538527c437049e80d98ec5483885d48455b3d1907ffb949",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/mcp/forecast_intelligence_http.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "88f4ad640d7be923b98f6892522b8117f2675bb2",
+      "original_source_sha256": "fc10396338d7af315538527c437049e80d98ec5483885d48455b3d1907ffb949",
+      "repository_relative_path": "backend/app/mcp/forecast_intelligence_http.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r1.json",
+        "expected_sha256": "bb82233005191b230b806562483151b449c489f86a61facbec66ddbbb7936fca",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/mcp/forecast_intelligence_server.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "a15bf9582a3a6d63be4aaa992a776b8a476dd6a8",
+      "original_source_sha256": "bb82233005191b230b806562483151b449c489f86a61facbec66ddbbb7936fca",
+      "repository_relative_path": "backend/app/mcp/forecast_intelligence_server.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s1-local-auth-implementation-contract-r1.json",
+        "expected_sha256": "e9cca76e6de29f5f8008f20eabdc2d23ea099a7f3b419a6453183d205757d57c",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/models/__init__.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "6a03c0eb600058c80334b98851e0030d4584076a",
+      "original_source_sha256": "e9cca76e6de29f5f8008f20eabdc2d23ea099a7f3b419a6453183d205757d57c",
+      "repository_relative_path": "backend/app/models/__init__.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json",
+        "expected_sha256": "97647384de84cb248b9ed4d4cb29872bdb028b2a1a281a7ccbf142d2070f2a93",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/e2e/test_v0_17_s6_evidence_contract.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "24adbb7a87c81bc7a41ff5f88ff8682e9cdb767a",
+      "original_source_sha256": "97647384de84cb248b9ed4d4cb29872bdb028b2a1a281a7ccbf142d2070f2a93",
+      "repository_relative_path": "backend/tests/e2e/test_v0_17_s6_evidence_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json",
+        "expected_sha256": "ee40cc19a648e22bfcb8b9a836c50766f52cabadbd05944f82de5905c76c3f8e",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "c3e8885482c5ba250bd2c1b614417e374dfa7b18",
+      "original_source_sha256": "ee40cc19a648e22bfcb8b9a836c50766f52cabadbd05944f82de5905c76c3f8e",
+      "repository_relative_path": "backend/tests/e2e/test_v0_17_s6_route_lifecycle_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json",
+        "expected_sha256": "2cd45eb4527b5d6ec35369f00a4fb04af0606439e7bdeeb20105b957adedf106",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "eec73e57ea0bb1e3b6906ded977c1dca9152925b",
+      "original_source_sha256": "2cd45eb4527b5d6ec35369f00a4fb04af0606439e7bdeeb20105b957adedf106",
+      "repository_relative_path": "backend/tests/e2e/test_v0_17_s6_route_lifecycle_r2_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json",
+        "expected_sha256": "e88ddc461e11207f3e2c9b0105a0fbb3ce8e4b3b71223c3493d0649d82cf49a5",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/forecast_intelligence/test_v0_17_s1_service_read_api.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "4a858cbac252a15006b7f230bd160af5fd9aa166",
+      "original_source_sha256": "e88ddc461e11207f3e2c9b0105a0fbb3ce8e4b3b71223c3493d0649d82cf49a5",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_17_s1_service_read_api.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json",
+        "expected_sha256": "799a102bdaad793c8f7590dac1797bf9c0a5fa6c7cccaefe949042eac3219647",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/forecast_intelligence/test_v0_17_s3_read_access.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "38fbbbb54e97f59e59d7765ec01f49ff42441366",
+      "original_source_sha256": "799a102bdaad793c8f7590dac1797bf9c0a5fa6c7cccaefe949042eac3219647",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_17_s3_read_access.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17.0-version-closeout-r1.json",
+        "expected_sha256": "9a2056a02d5f5608bb8177a1873f42cf47d54a8bf965eea0d6926951423588fb",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "01f49ca31627f19a3038bba0e144f81ec100209e",
+      "original_source_sha256": "9a2056a02d5f5608bb8177a1873f42cf47d54a8bf965eea0d6926951423588fb",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_17_version_closeout.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json",
+        "expected_sha256": "1c11f0d8359a34fb2071b7eddcb65db61021e63eeedfcb91d67d67ae1724ab8e",
+        "field": [
+          "historical_source_sha256",
+          "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "292cdda3d7fd5291a3cea4489859057f8a4bbfe3",
+      "original_source_sha256": "1c11f0d8359a34fb2071b7eddcb65db61021e63eeedfcb91d67d67ae1724ab8e",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json",
+        "expected_sha256": "044329bd092dc4a08d9829c03cd6ad7cd06ce803e45ac74fccb5bde75ce3b0b1",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "fda194e64694659879e4eef970b56c7569b9b8b6",
+      "original_source_sha256": "044329bd092dc4a08d9829c03cd6ad7cd06ce803e45ac74fccb5bde75ce3b0b1",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s0_local_auth_scope_addendum_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s1-local-auth-implementation-contract-r1.json",
+        "expected_sha256": "bbe1d3362b53fcaddf0b078cd56e1373bf3fb631f699c6a76111752a3b6ac571",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/forecast_intelligence/test_v0_18_s1_local_auth_implementation_contract.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "7659f1b6ede41558841bbc5ca5ea2ebcdb1d6282",
+      "original_source_sha256": "bbe1d3362b53fcaddf0b078cd56e1373bf3fb631f699c6a76111752a3b6ac571",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s1_local_auth_implementation_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json",
+        "expected_sha256": "9fb4c206d1ed34ded35bc90bb73dbe74d75307a795c5e2cce55fbe6a0224b3af",
+        "field": [
+          "historical_source_sha256",
+          "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "e116809bcb9649971f51ccb803d1ddc6de8838bf",
+      "original_source_sha256": "9fb4c206d1ed34ded35bc90bb73dbe74d75307a795c5e2cce55fbe6a0224b3af",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json",
+        "expected_sha256": "460857ca809ecce32ac3ba720f406be57fd5346e2d157ca8ce315e4c42da0093",
+        "field": [
+          "historical_source_sha256",
+          "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "f2658b615464baeac2543a5f5f022d56dfa9cf8c",
+      "original_source_sha256": "460857ca809ecce32ac3ba720f406be57fd5346e2d157ca8ce315e4c42da0093",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s1_simplified_local_auth_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s0-simplified-local-auth-scope-addendum-r1.json",
+        "expected_sha256": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",
+        "field": [
+          "historical_source_sha256",
+          "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "7c4db12de21ae3ea43db10bd4beaca82311cc61b",
+      "original_source_sha256": "63881d7b7ef6968b24c2747a708c22bf1fa79b485840131a336c9b8d7e3727f1",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_scope_freeze.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json",
+        "expected_sha256": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/e2e/dashboard-cross-surface.spec.ts"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "879faffafce4a5315408cb2ed93097f0f101d9a7",
+      "original_source_sha256": "c038743be1c691808645fe16e3bbb5105f9f67e22f227fd0e8d94af24ccbe2b7",
+      "repository_relative_path": "frontend/e2e/dashboard-cross-surface.spec.ts",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r1.json",
+        "expected_sha256": "0eff5bb056c5a12993dd4d9853b3a454d43084f8793cb7d3aa4dccdc9f98aa5b",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/e2e/dashboard.spec.ts"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "7820435c491abf59dcbfcd6dd43bfba1fb932cce",
+      "original_source_sha256": "0eff5bb056c5a12993dd4d9853b3a454d43084f8793cb7d3aa4dccdc9f98aa5b",
+      "repository_relative_path": "frontend/e2e/dashboard.spec.ts",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-postmerge-route-lifecycle-correction-r2.json",
+        "expected_sha256": "4e59d9ef3c60c97dc3db1c8e1da32c7844d205fc8c9862c1e9d6b67d72bafd46",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/e2e/selector-cancel-reopen.spec.ts"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "238eb641e945c9ffc50d72b3b7ad45953bbbf31f",
+      "original_source_sha256": "4e59d9ef3c60c97dc3db1c8e1da32c7844d205fc8c9862c1e9d6b67d72bafd46",
+      "repository_relative_path": "frontend/e2e/selector-cancel-reopen.spec.ts",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r1.json",
+        "expected_sha256": "3e8653f41c859173549be38d4ff726c9390ac431723a61632a2ca47521167bd6",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/e2e/support/dashboard_api.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "f77a8e7c29df9a772f8ac1778eef78408f1f91ab",
+      "original_source_sha256": "3e8653f41c859173549be38d4ff726c9390ac431723a61632a2ca47521167bd6",
+      "repository_relative_path": "frontend/e2e/support/dashboard_api.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json",
+        "expected_sha256": "135595d63df1d1793436eab14647bda09131f361b9e3ecadc6f7be04e6079d3a",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/e2e/support/s6_api.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "d3fc7fcacf7b3d8d5abd2c0d2d21529d8216b032",
+      "original_source_sha256": "135595d63df1d1793436eab14647bda09131f361b9e3ecadc6f7be04e6079d3a",
+      "repository_relative_path": "frontend/e2e/support/s6_api.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json",
+        "expected_sha256": "75c2f1b88983348bdf333ce89cbfa68163f2ab52d3ccc51c8f0b4a41627d69f3",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/src/dashboard/api/client.ts"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "1cf4ee43f9d26006ce46b35c56e1fe5e8072d48f",
+      "original_source_sha256": "75c2f1b88983348bdf333ce89cbfa68163f2ab52d3ccc51c8f0b4a41627d69f3",
+      "repository_relative_path": "frontend/src/dashboard/api/client.ts",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json",
+        "expected_sha256": "31ea60ee4cff4aa69ea516cfd30205fb841ec11d238b7b59b389a9884e006c94",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/src/dashboard/app/Dashboard.tsx"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "a54387c4344098f68f62870c432835e62b01b091",
+      "original_source_sha256": "31ea60ee4cff4aa69ea516cfd30205fb841ec11d238b7b59b389a9884e006c94",
+      "repository_relative_path": "frontend/src/dashboard/app/Dashboard.tsx",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json",
+        "expected_sha256": "6d85a3910d611098769b6f95cb18a58f6c2ad8edd50b377085ca3d6a43437bac",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "7ef1b79980e6f3adb102420b7f76e15cbaa27cf0",
+      "original_source_sha256": "6d85a3910d611098769b6f95cb18a58f6c2ad8edd50b377085ca3d6a43437bac",
+      "repository_relative_path": "frontend/src/dashboard/components/AuthorizedSavedRunSelector.tsx",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json",
+        "expected_sha256": "4c1bc944810a291f2bd6b8468b9e0af56dddc8debbefa902ae741a74a4e6fb67",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/src/dashboard/components/presentation.tsx"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "d5529fcb91499eb4bea22be7e57de049ac0c6ea6",
+      "original_source_sha256": "4c1bc944810a291f2bd6b8468b9e0af56dddc8debbefa902ae741a74a4e6fb67",
+      "repository_relative_path": "frontend/src/dashboard/components/presentation.tsx",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/s6-cross-surface-r2/historical-r1/docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r1.json",
+        "expected_sha256": "d93a66e6073d00262a4d6e6a555529d397e32f61e22f019b5d994315f4ed63ce",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/src/dashboard/context/ForecastContext.tsx"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "5ff7bf562fde648a340b49b8a756af325ffe2afd",
+      "original_source_sha256": "d93a66e6073d00262a4d6e6a555529d397e32f61e22f019b5d994315f4ed63ce",
+      "repository_relative_path": "frontend/src/dashboard/context/ForecastContext.tsx",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json",
+        "expected_sha256": "764486e7f02822e6dde52a54dff6852cfe44145996f5aae39645076b1309598e",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/src/dashboard/styles/dashboard.css"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "e93865afbfffc500467a9e60016bf245abe9910c",
+      "original_source_sha256": "764486e7f02822e6dde52a54dff6852cfe44145996f5aae39645076b1309598e",
+      "repository_relative_path": "frontend/src/dashboard/styles/dashboard.css",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/historical_source.py",
+      "independent_authority": {
+        "document": "docs/v0-17/evidence/v0.17-s6-cross-surface-product-acceptance-r2.json",
+        "expected_sha256": "c2d2ed8870e48a53c58e0810a2f052810646ae8c9577f4e7a1ade3519832f4a0",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/src/test/selectorCancellation.test.tsx"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "dc3a2eff91b01eb98e21a96b1fca27a4f2785cb0",
+      "original_source_sha256": "c2d2ed8870e48a53c58e0810a2f052810646ae8c9577f4e7a1ade3519832f4a0",
+      "repository_relative_path": "frontend/src/test/selectorCancellation.test.tsx",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s4-dashboard-authorized-business-flow-r1.json",
+        "expected_sha256": "245517ac71f58cc5dab4e7c5b4ceca5fde64dc75860cb6929354098d8b99eb96",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/historical_source.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "89641834ab7a0bd902a23f9243325da5c163d518",
+      "original_git_blob_oid": "477e3d5cf072257ef1886a3b978936a0d57d3805",
+      "original_source_sha256": "245517ac71f58cc5dab4e7c5b4ceca5fde64dc75860cb6929354098d8b99eb96",
+      "repository_relative_path": "backend/tests/historical_source.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/forecast_intelligence/test_v0_18_s4_business_flow_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s4-dashboard-authorized-business-flow-r1.json",
+        "expected_sha256": "e6f0f6296ea96674822513ff74c6ffa9bb3ea5e722b825fd0d1f5802b0750289",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/src/test/dashboardGovernance.test.ts"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "89641834ab7a0bd902a23f9243325da5c163d518",
+      "original_git_blob_oid": "7a687998af7460b92b4c35fa0ce9fa6136d3b5c0",
+      "original_source_sha256": "e6f0f6296ea96674822513ff74c6ffa9bb3ea5e722b825fd0d1f5802b0750289",
+      "repository_relative_path": "frontend/src/test/dashboardGovernance.test.ts",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "db1209223b3d92b917d3ba84dff97d11c45f7733c7be61eca4b2eebfac45de1f",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/api/local_auth_admin.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "eec74c7ac87a18c027a2fcf6f23f71f2606f47cc",
+      "original_source_sha256": "db1209223b3d92b917d3ba84dff97d11c45f7733c7be61eca4b2eebfac45de1f",
+      "repository_relative_path": "backend/app/api/local_auth_admin.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "d5094762cdb8fcbffd5024a312492a344b0ff2a608e1f2533613c228c071f446",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/core/config.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "48fb00084d1cb6aaca0141ebe29c87181a022d43",
+      "original_source_sha256": "d5094762cdb8fcbffd5024a312492a344b0ff2a608e1f2533613c228c071f446",
+      "repository_relative_path": "backend/app/core/config.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "0a97c967f9513df37fac6e054bfc262f3dc7233ff73253a37daa1d18466cbbd6",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/local_auth/authorization.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "868eafd479d56cce0fe7d5022d4fa629eef31aee",
+      "original_source_sha256": "0a97c967f9513df37fac6e054bfc262f3dc7233ff73253a37daa1d18466cbbd6",
+      "repository_relative_path": "backend/app/local_auth/authorization.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "051f900a567e3eaf5aa0ce6a9a5418e3e7b4d330328c3fe30203e382f8f85e2c",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/local_auth/repository.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "4a3b5048c1b2c81e72552ed5b5f858d3d1e7a93b",
+      "original_source_sha256": "051f900a567e3eaf5aa0ce6a9a5418e3e7b4d330328c3fe30203e382f8f85e2c",
+      "repository_relative_path": "backend/app/local_auth/repository.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "0aed8d4f93af53d82836dbcf8a8fee2d5827adc9f8ecd5e98f5c26c1d80df6d5",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/local_auth/schemas.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "ef6a4fc82747a65f9a6d52359f2283a80f4480c4",
+      "original_source_sha256": "0aed8d4f93af53d82836dbcf8a8fee2d5827adc9f8ecd5e98f5c26c1d80df6d5",
+      "repository_relative_path": "backend/app/local_auth/schemas.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "ab4fbd826dcb2d6c02752d0f1f148329354719a9bea91ae40778ebc10e5bb995",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/local_auth/service.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "9f3fc780122aa0bbfe51be4b13a4ffd0bdfaeaf0",
+      "original_source_sha256": "ab4fbd826dcb2d6c02752d0f1f148329354719a9bea91ae40778ebc10e5bb995",
+      "repository_relative_path": "backend/app/local_auth/service.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "014783c642bee0d4019eca08e716150faf56909384d9669ee106f492508b5011",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/main.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "168605a26837a2d1d5d2c956e3ad903675e03062",
+      "original_source_sha256": "014783c642bee0d4019eca08e716150faf56909384d9669ee106f492508b5011",
+      "repository_relative_path": "backend/app/main.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "268b103807cb0feb0100cae4792071b306093b5f512a472ecae06dd707214c09",
+        "field": [
+          "source_evidence_sha256",
+          "backend/app/models/__init__.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "6d20696a153a40bfe02b4572631b248b12a7cddf",
+      "original_source_sha256": "268b103807cb0feb0100cae4792071b306093b5f512a472ecae06dd707214c09",
+      "repository_relative_path": "backend/app/models/__init__.py",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "1ef88e0fe155eaa2fbc90647d6e38b454968eef61ab484d7e1bc95c89d4c9d7e",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/e2e/test_v0_17_s6_evidence_contract.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "6cf9e5697f43e773ddad75ddbdf84ebe7201ee64",
+      "original_source_sha256": "1ef88e0fe155eaa2fbc90647d6e38b454968eef61ab484d7e1bc95c89d4c9d7e",
+      "repository_relative_path": "backend/tests/e2e/test_v0_17_s6_evidence_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "d8899a0ca0a300b546ff023fe7d9ba360206aa6e96db65a4678036dbad061b1e",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "54b472d35e53a41655aa8a540f21d5128ed427a7",
+      "original_source_sha256": "d8899a0ca0a300b546ff023fe7d9ba360206aa6e96db65a4678036dbad061b1e",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "4c72ff03d3024a3022e6cc984b5e03797fe6e303254757652b451824b73f3bf0",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "8eafc2bdc77ac8699cdc35f6c0a52f85ee42dbd7",
+      "original_source_sha256": "4c72ff03d3024a3022e6cc984b5e03797fe6e303254757652b451824b73f3bf0",
+      "repository_relative_path": "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "422cb4931c25e7915f5599b8b36973ec584620e47cfdf6539c13ec4456dc91bb",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/historical_source.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "db11370b7f021c4a8f1adfc622f204aa77c78fd8",
+      "original_source_sha256": "422cb4931c25e7915f5599b8b36973ec584620e47cfdf6539c13ec4456dc91bb",
+      "repository_relative_path": "backend/tests/historical_source.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "459b82f4e3dff0f19d3f654630930446f2ca6769a0eba8b58578ffe7fd6564b6",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/integration/test_rolling_backtest_orchestration.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "7100374475ef7a424c926d34cc2cd93c8b3fab98",
+      "original_source_sha256": "459b82f4e3dff0f19d3f654630930446f2ca6769a0eba8b58578ffe7fd6564b6",
+      "repository_relative_path": "backend/tests/integration/test_rolling_backtest_orchestration.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "9136680e3172fc7572b96568868841fa433a0a6f4432844cac770b2f049ef1f0",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/local_auth/test_historical_source.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "e6e5eee52f958399bb6460e66b3d969ca5b77138",
+      "original_source_sha256": "9136680e3172fc7572b96568868841fa433a0a6f4432844cac770b2f049ef1f0",
+      "repository_relative_path": "backend/tests/local_auth/test_historical_source.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "e7054aee289cd41022c06a44f9adbd80be3233fe63adfc045f42b2baa8f05c7c",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/local_auth/test_runtime_evidence_contract.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "fa89cefe8de2c689b71ed051d790b1447fe8e959",
+      "original_source_sha256": "e7054aee289cd41022c06a44f9adbd80be3233fe63adfc045f42b2baa8f05c7c",
+      "repository_relative_path": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_runtime_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "897d55405d07ad109c58ec13ccccee37a6dcadb7ab6267b32c015d6dd762dcfa",
+        "field": [
+          "source_evidence_sha256",
+          "frontend/src/test/dashboardGovernance.test.ts"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "2eb8983dadd8a2fc550edb17244d9b31602c564f",
+      "original_source_sha256": "897d55405d07ad109c58ec13ccccee37a6dcadb7ab6267b32c015d6dd762dcfa",
+      "repository_relative_path": "frontend/src/test/dashboardGovernance.test.ts",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "consumer": "backend/tests/local_auth/test_preauth_fix_evidence_contract.py",
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/preauth-concurrent-login-fix-r1/evidence.json",
+        "expected_sha256": "245517ac71f58cc5dab4e7c5b4ceca5fde64dc75860cb6929354098d8b99eb96",
+        "field": [
+          "source_evidence_sha256",
+          "backend/tests/historical_source.py"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "f151f0e6aca3577c5ee959a220c16e9756179649",
+      "original_git_blob_oid": "477e3d5cf072257ef1886a3b978936a0d57d3805",
+      "original_source_sha256": "245517ac71f58cc5dab4e7c5b4ceca5fde64dc75860cb6929354098d8b99eb96",
+      "repository_relative_path": "backend/tests/historical_source.py",
+      "source_class": "TEST_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    }
+  ],
+  "schema_version": "TD01E_CODE_IDENTITY_R1",
+  "scope": "EXPLICIT_CODE_ONLY_NOT_DATA_OR_PUBLICATION_AUTHORITY"
+}
