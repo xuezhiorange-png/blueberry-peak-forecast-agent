@@ -10,6 +10,9 @@ ROOT = Path(__file__).resolve().parents[3]
 EVIDENCE = ROOT / "docs/v0-18/s1/local-auth-runtime-r1.json"
 MERGED_S1 = "e9812e82067dceae444ff0707ceeb2f560c1018e"
 REVISED_RUNTIME_SOURCES = {
+    # TD-03F repairs the current fixture's session ownership. Its historical
+    # V0.18 evidence still verifies these exact MERGED_S1 bytes and old Hash.
+    "backend/tests/integration/test_rolling_backtest_orchestration.py",
     "backend/tests/forecast_intelligence/test_v0_18_s1_preflight_contract.py",
     "backend/tests/e2e/test_v0_17_s6_evidence_contract.py",
     "backend/tests/forecast_intelligence/test_v0_18_roadmap_reassessment.py",
