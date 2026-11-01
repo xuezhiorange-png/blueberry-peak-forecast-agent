@@ -1,0 +1,57 @@
+{
+  "frontend": "NOT_RUN_OWNER_SCOPE_AND_DEPENDENCIES_NOT_CLEARED",
+  "isolated_checks": {
+    "format": {
+      "exit_code": 0,
+      "status": "PASS",
+      "summary": "12 files already formatted"
+    },
+    "pure_daily_curve": {
+      "exit_code": 0,
+      "status": "PASS",
+      "summary": "SYNTHETIC_ONLY_BIN_MASS_AND_H7_PREFIX_VERIFIED"
+    },
+    "ruff": {
+      "exit_code": 0,
+      "status": "PASS",
+      "summary": "All checks passed!"
+    },
+    "strict_mypy": {
+      "exit_code": 0,
+      "status": "PASS",
+      "summary": "Success: no issues found in 10 source files"
+    },
+    "synthetic_publication_tests": {
+      "blocked_tests": [
+        "test_path_only_audit_registry_and_original_ref_inventory_are_bound"
+      ],
+      "case_count": 25,
+      "exit_code": 1,
+      "failed": 1,
+      "failure_not_suppressed": true,
+      "passed": 24,
+      "reason": "UNEXPORTED_HISTORICAL_AUDIT_METADATA",
+      "status": "BLOCKED"
+    }
+  },
+  "original_ci_prechecks": {
+    "0124371b433d1b3c34e5e59a2a9a5e621a570f3b": {
+      "exit_code": 128,
+      "status": "BLOCKED_ORIGINAL_COMMIT_ABSENT"
+    },
+    "320f2046e3105b1b55da9cb037892571110b584a": {
+      "exit_code": 128,
+      "status": "BLOCKED_ORIGINAL_COMMIT_ABSENT"
+    },
+    "e9812e82067dceae444ff0707ceeb2f560c1018e": {
+      "exit_code": 128,
+      "status": "BLOCKED_ORIGINAL_COMMIT_ABSENT"
+    }
+  },
+  "original_complete_ci": "BLOCKED_NOT_EXECUTED_IN_NEW_ROOT",
+  "original_skips_changed": false,
+  "original_test_assertions_changed": false,
+  "postgres": "NOT_RUN_NO_DATABASE_INPUTS_OR_SERVICE_IN_CANDIDATE",
+  "public_increment_baseline": "BLOCKED_PENDING_OWNER_SCOPE_D02_D03_D06",
+  "runtime_application": "NOT_VALIDATED_AS_WHOLE_APPLICATION"
+}

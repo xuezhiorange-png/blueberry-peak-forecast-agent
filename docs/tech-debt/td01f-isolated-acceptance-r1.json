@@ -1,0 +1,13 @@
+{
+  "business_reports_identical": true,
+  "independent_process_count": 2,
+  "logs_and_junit_retained_outside_isolated_repository": true,
+  "module_sha256": "fa825adf9a732cf4a6695606007e656bf64e75846de7fa66b523b62fb9a309b3",
+  "raw_business_content_read": false,
+  "report_sha256": {
+    "clean-repository-manifest.json": "dfd3ff02659656e813fd150c55aecbe87ba2b649f92da44f94b3ea603578be14",
+    "clean-repository-object-verification.json": "b23a646c722b1d436d386c3fec1ff9c6df955a6f6ed83977e19f724750a57d61",
+    "public-ci-compatibility-report.json": "9297185a3e9bfbc7d626981e08b05eb0a4cbeb25cdf2d9b5fb9cb8de91f7eafd",
+    "public-code-dependency-coverage.json": "364813e9fe1e2b45d670da25a679bd8c6c68df600db849922a02ed7e07e638d4"
+  }
+}
