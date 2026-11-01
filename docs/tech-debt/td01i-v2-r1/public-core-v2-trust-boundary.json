@@ -1,0 +1,9 @@
+{
+  "authority_kind": "TD01I_INDEPENDENT_SYNTHETIC_REVIEW_R1",
+  "publication_authorized": false,
+  "real_remote_authorization": "UNVERIFIED",
+  "trust_origin": "EXTERNAL_TO_PROPOSED_REPOSITORY_CALLER_PINNED_SYNTHETIC_INTENT",
+  "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846",
+  "trusted_v1_manifest_sha256": "4fa783f4bbccab468f7de6ac8a8b4cd2807503f206e1ea510e435ed296f82cc0",
+  "v1_preserved": true
+}
