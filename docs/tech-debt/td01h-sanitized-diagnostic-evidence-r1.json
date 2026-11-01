@@ -1,0 +1,172 @@
+{
+  "all_controlled_databases_dropped": true,
+  "base_main_sha": "d070331756a83e9a0247157298204a34271fe3f0",
+  "blocked_pr_781_failure_sources_identical_to_main": true,
+  "business_quantity_rows_included": false,
+  "ci_at_commit": "PENDING_FINAL_EXACT_HEAD",
+  "controlled_matrix": [
+    {
+      "archive_hash_unchanged": true,
+      "archive_list_validated": true,
+      "client_pg_dump_major": "16",
+      "client_pg_restore_major": "16",
+      "exit_code": 0,
+      "new_database_empty": true,
+      "restored_snapshot_equal": true
+    },
+    {
+      "archive_hash_unchanged": true,
+      "archive_list_validated": true,
+      "client_pg_dump_major": "18",
+      "client_pg_restore_major": "18",
+      "diagnostic": {
+        "archive_format": "CUSTOM",
+        "archive_validation_status": "PASS",
+        "client_pg_dump_version": "18.1",
+        "client_pg_restore_version": "18.1",
+        "diagnostic_evidence_status": "EXPLICIT_STDERR_CLASSIFIED",
+        "error_class": "VERSION_INCOMPATIBILITY",
+        "exit_code": 1,
+        "operation": "PG_RESTORE",
+        "phase": "RESTORE_INTO_NEW_SYNTHETIC_DATABASE",
+        "server_version_num": 160015,
+        "sqlstate_if_reliably_available": null
+      },
+      "exit_code": 1,
+      "new_database_empty": true
+    },
+    {
+      "archive_hash_unchanged": true,
+      "archive_list_validated": true,
+      "client_pg_dump_major": "16",
+      "client_pg_restore_major": "18",
+      "diagnostic": {
+        "archive_format": "CUSTOM",
+        "archive_validation_status": "PASS",
+        "client_pg_dump_version": "16.15",
+        "client_pg_restore_version": "18.1",
+        "diagnostic_evidence_status": "EXPLICIT_STDERR_CLASSIFIED",
+        "error_class": "VERSION_INCOMPATIBILITY",
+        "exit_code": 1,
+        "operation": "PG_RESTORE",
+        "phase": "RESTORE_INTO_NEW_SYNTHETIC_DATABASE",
+        "server_version_num": 160015,
+        "sqlstate_if_reliably_available": null
+      },
+      "exit_code": 1,
+      "new_database_empty": true
+    }
+  ],
+  "diagnostic_limits": {
+    "archive_list_check_is_full_data_validation": false,
+    "credentials_or_private_paths_exported": false,
+    "historical_binary_identity_claimed": false,
+    "historical_client_exact_versions_recorded": false,
+    "raw_stderr_exported": false,
+    "sql_exported": false,
+    "sqlstate_inferred": false
+  },
+  "evidence_kind": "OWNED_SYNTHETIC_POSTGRES_DIAGNOSTIC_METADATA",
+  "historical_run_observations": {
+    "baseline": {
+      "event": "push",
+      "explicit_error_evidence": [
+        {
+          "ci_log_line_timestamp": "2026-11-01T02:48:00.8845600Z",
+          "parameter": "transaction_timeout",
+          "postgres_error": "UNRECOGNIZED_CONFIGURATION_PARAMETER",
+          "server_event_timestamp_if_present": "2026-11-01 02:46:23.426 UTC"
+        }
+      ],
+      "failure_confirmed": true,
+      "log_sha256": "46d2039aab6c3c692a52b834d768bb539ee34ea3eba689df6b7de829d50e62f4",
+      "run_id": 41265226227,
+      "runner_image": "ubuntu-26.04",
+      "runner_image_manifest_lookup": "UNAVAILABLE_404",
+      "server_version_num": 160015,
+      "sha": "d070331756a83e9a0247157298204a34271fe3f0"
+    },
+    "baseline_sha": "d070331756a83e9a0247157298204a34271fe3f0",
+    "client_version_in_historical_logs": "NOT_RECORDED",
+    "failure_node": "backend/tests/safe_pilot/test_restore_and_ingress.py::test_full_backup_restore_reapproval_and_fail_closed_rollback",
+    "failure_stage": "PG_RESTORE",
+    "historical_same_root_cause_inference": "NOT_ASSUMED",
+    "pr781": {
+      "event": "pull_request",
+      "explicit_error_evidence": [
+        {
+          "ci_log_line_timestamp": "2026-11-01T03:26:37.6709112Z",
+          "parameter": "transaction_timeout",
+          "postgres_error": "UNRECOGNIZED_CONFIGURATION_PARAMETER",
+          "server_event_timestamp_if_present": "2026-11-01 03:25:24.648 UTC"
+        }
+      ],
+      "failure_confirmed": true,
+      "log_sha256": "40d8c41e34de2133e7a6647bf70ef3a87895cd25297d8e1cddf28da110c92e2d",
+      "run_id": 41268116287,
+      "runner_image": "ubuntu-26.04",
+      "runner_image_manifest_lookup": "UNAVAILABLE_404",
+      "server_version_num": 160015,
+      "sha": "1e66a9eb283e2aef713f1c137641e648832f17d7"
+    },
+    "pr781_head": "1e66a9eb283e2aef713f1c137641e648832f17d7"
+  },
+  "implementation_ci_followup": {
+    "failed_new_restore_regressions": 3,
+    "failed_original_restore_node": true,
+    "failure_stage": "CLIENT_TOOLCHAIN_PREFLIGHT",
+    "final_ci_client_install": "PENDING",
+    "head": "adba68b20caa20eb69e945264e09fba8088f3cbd",
+    "local_linux_install": "NOT_RUN_MACOS",
+    "root_blocker": "SYNTHETIC_POSTGRES_MATCHING_CLIENT_REQUIRED",
+    "run_id": 41278051834
+  },
+  "independent_restore_source_evidence": {
+    "file": "src/bin/pg_dump/pg_backup_archiver.c",
+    "file_sha256": "30bf6dd038c04090d7d9238304b60a4895d520f3c78c851b6feeb71d29d81e83",
+    "fixed_restore_session_state_contains_transaction_timeout": true,
+    "official_source_version": "18.1",
+    "parameter_initialization_line": 3389,
+    "sql_not_exported": true
+  },
+  "message_locale_regression": {
+    "controlled_message_only_locale": "LC_MESSAGES=C",
+    "corrected_bad_archive_error_class": "INVALID_ARCHIVE",
+    "database_encoding_timezone_or_lc_all_changed": false,
+    "initial_bad_archive_error_class": "UNKNOWN_UNCLASSIFIED",
+    "initial_extended_suite": {
+      "failed": 1,
+      "passed": 261,
+      "skipped": 0
+    }
+  },
+  "official_client_source": {
+    "scope": "OWNED_LOCAL_CLIENT_TOOLS_ONLY_NO_APPLICATION_DEPENDENCY_CHANGE",
+    "source_bytes": 22423920,
+    "source_sha256": "ff86675c336c46e98ac991ebb306d1b67621ece1d06787beaade312c2c915d54",
+    "source_url": "https://ftp.postgresql.org/pub/source/v18.1/postgresql-18.1.tar.bz2",
+    "version": "18.1"
+  },
+  "original_failure_diagnostic": {
+    "archive_format": "CUSTOM",
+    "archive_validation_status": "PASS",
+    "client_pg_dump_version": "18.1",
+    "client_pg_restore_version": "18.1",
+    "diagnostic_evidence_status": "EXPLICIT_STDERR_CLASSIFIED",
+    "error_class": "VERSION_INCOMPATIBILITY",
+    "exit_code": 1,
+    "operation": "PG_RESTORE",
+    "phase": "RESTORE_INTO_NEW_SYNTHETIC_DATABASE",
+    "server_version_num": 160015,
+    "sqlstate_if_reliably_available": null
+  },
+  "pr781_modified": false,
+  "preflight_redaction_negative_tests": "RED_THEN_GREEN",
+  "real_data_read": false,
+  "root_cause_category": "VERSION_INCOMPATIBILITY",
+  "root_cause_status": "PROVEN_CONTROLLED_REPRODUCTION",
+  "source_snapshot_unchanged": true,
+  "synthetic_source_registration_or_publication_clearance_claimed": false,
+  "task_id": "BLUEBERRY_TD01H_SAFE_PILOT_POSTGRES_RESTORE_ROOT_CAUSE_R1",
+  "version_probes_receive_database_credentials": false
+}
