@@ -33,3 +33,6 @@ strict = true
 [[tool.mypy.overrides]]
 module = ["openpyxl", "openpyxl.*", "xlrd", "xlrd.*"]
 ignore_missing_imports = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["backend", "tools"]

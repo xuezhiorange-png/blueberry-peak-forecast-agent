@@ -141,7 +141,7 @@ def execute(output: Path) -> dict[str, object]:
                 "--report",
                 str(output / "installation.json"),
                 "-r",
-                str(ROOT / "requirements.lock"),
+                str(ROOT / "requirements-lock.txt"),
             ],
         )
         archive = output / "public-core.tar"

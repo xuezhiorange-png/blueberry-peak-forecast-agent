@@ -138,35 +138,35 @@
     },
     {
       "class": "TD01G_BUILD_METADATA",
-      "git_blob_oid": "c306ca6453efefd56ef7936da9228d224f7adc82",
+      "git_blob_oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
       "public_path": "pyproject.toml",
       "repository_relative_path": "public_core/td01g_v1/pyproject.toml",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
-      "sha256": "4574a3d273bc94442618d408c530dc20ff7811d06e17192f0c5eed0b5609dfc8"
+      "sha256": "da7a46f662df58be9eea1001aece7685ba4b121027670683d87af657821c851b"
     },
     {
       "class": "TD01G_BUILD_METADATA",
       "git_blob_oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
-      "public_path": "requirements.in",
-      "repository_relative_path": "public_core/td01g_v1/requirements.in",
+      "public_path": "requirements-direct.txt",
+      "repository_relative_path": "public_core/td01g_v1/requirements-direct.txt",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
       "sha256": "9af3a255397d68033658fd31af6499077ce7407daba2d5bcd69af4783c44e768"
     },
     {
       "class": "TD01G_BUILD_METADATA",
       "git_blob_oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
-      "public_path": "requirements.lock",
-      "repository_relative_path": "public_core/td01g_v1/requirements.lock",
+      "public_path": "requirements-lock.txt",
+      "repository_relative_path": "public_core/td01g_v1/requirements-lock.txt",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
       "sha256": "3977eb89a3db402695eeebaa12d03e3e7d38b5c365e6d918c58b251846928846"
     },
     {
       "class": "TD01G_BUILD_METADATA",
-      "git_blob_oid": "d94ade443368c8b8132e5725d5c2eac513090c30",
+      "git_blob_oid": "f8b722276f311416d3813f93b1f7289620e6345e",
       "public_path": "README.md",
       "repository_relative_path": "public_core/td01g_v1/README.md",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
-      "sha256": "d66eb4e94832b4475fdc91ab1be5738b4c3fcf5eb1387da5d48432521aadf6c4"
+      "sha256": "f48dd2d15c7fa1f85a81020c58f9f38e6f98d112b70789fe3aa2e0b6c756c012"
     },
     {
       "class": "TD01G_REVIEWED_CODE",
@@ -178,11 +178,11 @@
     },
     {
       "class": "TD01G_REVIEWED_CODE",
-      "git_blob_oid": "a603badeb85975ff8653e45bbbf5b2a5307caf78",
+      "git_blob_oid": "83b1f2ef94d256ae4159cbdb4cd3db7047bdaa10",
       "public_path": "tools/run_public_ci.py",
       "repository_relative_path": "public_core/td01g_v1/run_public_ci.py",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
-      "sha256": "8fd0dd6cf8f9e7e690a03ae5af06d3a2fa853ce6a0ad27effb5b9f6e1f34471c"
+      "sha256": "f36c3f66733f4c2e52577ba7b21ff882885b83abdf459a715b31fdfe31696580"
     },
     {
       "class": "TD01G_REVIEWED_CODE",
@@ -194,19 +194,19 @@
     },
     {
       "class": "TD01G_REVIEWED_CODE",
-      "git_blob_oid": "a5ade991c7d668629cdde6d647386f8aa9c63289",
+      "git_blob_oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
       "public_path": "tests/test_public_contract.py",
       "repository_relative_path": "public_core/td01g_v1/test_public_contract.py",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
-      "sha256": "f2fd659507eb453071ffe59920a70bf35c5d3680de333ae4e1a08eff72045a84"
+      "sha256": "fab92d34265ba53d062a8574583c8489db54eb7db2e9cec4b69da482a193fec7"
     },
     {
       "class": "TD01G_REVIEWED_CODE",
-      "git_blob_oid": "f7faf31bb1d0ef4d97548f97f1123df56721b465",
+      "git_blob_oid": "7ae371043aba5856e33a07a52263d539b59cd8d4",
       "public_path": "tests/test_public_safety.py",
       "repository_relative_path": "public_core/td01g_v1/test_public_safety.py",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
-      "sha256": "24a050b1423812058f39db4fea9177ca3ced28e36a6e9ce741c6fe3782bb7b54"
+      "sha256": "1c9544329d5e0a182624f59b6081e39fda97bcfe6c95bb78957e692ec7350859"
     },
     {
       "class": "TD01G_WORKFLOW_TEMPLATE",

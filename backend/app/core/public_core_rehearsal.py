@@ -20,7 +20,7 @@ from backend.app.core import historical_code_identity as history
 
 ROOT = Path(__file__).resolve().parents[3]
 CATALOG = ROOT / "docs/tech-debt/td01g-public-core-candidates-r1.json"
-CATALOG_SHA256 = "02dc7ff01da28bde0a4ed7b3d9b902e51094a699e38e4fa0f78a77183ae255a5"
+CATALOG_SHA256 = "b502c44d3ce4c166ed71fb04f3f1b66a788c6babe27d9a1aaa2506af4fe78ea1"
 
 
 def canonical(value: object) -> bytes:

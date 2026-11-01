@@ -44,7 +44,7 @@ STRICT_REAL_PIT_VALIDATED=false, PRODUCTION_MODEL_ADMITTED=false.
 
 ## Environment scope
 
-requirements.in lists direct runtime/build/test tools. requirements.lock pins the
+requirements-direct.txt lists direct runtime/build/test tools. requirements-lock.txt pins the
 complete 18-package resolution and records SHA256 for released wheels of those
 versions, including platform alternatives. Installation uses require-hashes and
 binary-only mode. This is stronger than pinning direct dependency ranges; it is
