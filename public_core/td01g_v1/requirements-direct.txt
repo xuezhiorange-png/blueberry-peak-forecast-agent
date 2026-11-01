@@ -1,0 +1,10 @@
+# Direct runtime: frozen producer/parser imports, no original application dependencies.
+openpyxl==3.1.5
+xlrd==2.0.2
+# Explicit build and quality toolchain. Component version is not a GitHub release.
+pip==26.2.2
+setuptools==80.10.2
+wheel==0.45.1
+pytest==9.1.1
+mypy==2.1.0
+ruff==0.15.20

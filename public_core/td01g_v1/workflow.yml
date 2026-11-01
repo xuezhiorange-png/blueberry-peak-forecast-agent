@@ -1,0 +1,31 @@
+name: Synthetic public core v1
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Sealed source and object gate
+        run: python -I -B tools/verify_public_core.py
+      - name: Independent install and public contracts
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -I -B tools/run_public_ci.py --output-dir "$RUNNER_TEMP/td01g-public-ci"
+      - name: Retain bounded validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-public-core-v1-results
+          path: ${{ runner.temp }}/td01g-public-ci/summary.json
+          if-no-files-found: error

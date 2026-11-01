@@ -1,0 +1,244 @@
+{
+  "config": {
+    "input_source": "GENERATED_ONLY",
+    "private_files_required": false,
+    "schema": "TD01G_PUBLIC_CORE_V1",
+    "seed": "EXPLICIT_BOUNDED_INT"
+  },
+  "installed_imports": {
+    "all_local_modules_installed_in_owned_venv": true,
+    "exact_locked_distributions_only": true,
+    "local_modules": [
+      "backend",
+      "backend.app",
+      "backend.app.etl",
+      "backend.app.etl.history",
+      "backend.app.etl.history.fingerprint",
+      "backend.app.etl.history.normalizer",
+      "backend.app.etl.history.parser",
+      "backend.app.etl.history.schemas",
+      "backend.app.etl.history.synthetic_publication",
+      "backend.app.public_core",
+      "backend.research",
+      "backend.research.v019_daily_curve"
+    ],
+    "packages": {
+      "Pygments": "2.21.0",
+      "ast_serialize": "0.13.1",
+      "blueberry-public-core": "0.0.0",
+      "et_xmlfile": "2.0.0",
+      "iniconfig": "2.3.1",
+      "librt": "0.16.0",
+      "mypy": "2.1.0",
+      "mypy_extensions": "1.1.0",
+      "openpyxl": "3.1.5",
+      "packaging": "26.3",
+      "pathspec": "1.1.1",
+      "pip": "26.2.2",
+      "pluggy": "1.7.0",
+      "pytest": "9.1.1",
+      "ruff": "0.15.20",
+      "setuptools": "80.10.2",
+      "typing_extensions": "4.16.0",
+      "wheel": "0.45.1",
+      "xlrd": "2.0.2"
+    }
+  },
+  "isolated_install": {
+    "python": "3.12.13",
+    "system_site_packages": false
+  },
+  "source_code_configuration_not_changed": true,
+  "static_closure": {
+    "entry_points": [
+      "backend.app.public_core:generate",
+      "backend.app.public_core:curve",
+      "backend.app.public_core:execute"
+    ],
+    "explicit_tools": [
+      "pip",
+      "setuptools",
+      "wheel",
+      "pytest",
+      "mypy",
+      "ruff"
+    ],
+    "historical_git_identity_required": false,
+    "local_imports": {
+      "backend/__init__.py": [],
+      "backend/app/__init__.py": [],
+      "backend/app/etl/__init__.py": [],
+      "backend/app/etl/history/__init__.py": [],
+      "backend/app/etl/history/fingerprint.py": [
+        "datetime",
+        "decimal",
+        "hashlib"
+      ],
+      "backend/app/etl/history/normalizer.py": [
+        "backend.app.etl.history.schemas",
+        "re",
+        "unicodedata"
+      ],
+      "backend/app/etl/history/parser.py": [
+        "backend.app.etl.history.normalizer",
+        "backend.app.etl.history.schemas",
+        "datetime",
+        "decimal",
+        "pathlib",
+        "typing",
+        "xlrd",
+        "xlrd.sheet"
+      ],
+      "backend/app/etl/history/schemas.py": [
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "pathlib",
+        "typing"
+      ],
+      "backend/app/etl/history/synthetic_publication.py": [
+        "__future__",
+        "argparse",
+        "backend.app.etl.history.fingerprint",
+        "backend.app.etl.history.normalizer",
+        "backend.app.etl.history.parser",
+        "backend.app.etl.history.schemas",
+        "csv",
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "hashlib",
+        "io",
+        "json",
+        "openpyxl",
+        "os",
+        "pathlib",
+        "random",
+        "re",
+        "xml.etree",
+        "zipfile"
+      ],
+      "backend/app/public_core.py": [
+        "__future__",
+        "argparse",
+        "backend.app.etl.history",
+        "backend.app.etl.history.synthetic_publication",
+        "backend.research.v019_daily_curve",
+        "collections",
+        "datetime",
+        "decimal",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "random"
+      ],
+      "backend/research/__init__.py": [],
+      "backend/research/v019_daily_curve.py": [
+        "__future__",
+        "bisect",
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "hashlib",
+        "json",
+        "math",
+        "re"
+      ],
+      "tests/test_public_contract.py": [
+        "backend.app",
+        "backend.app.etl.history",
+        "backend.app.etl.history.schemas",
+        "backend.app.etl.history.synthetic_publication",
+        "backend.app.public_core",
+        "backend.research.v019_daily_curve",
+        "dataclasses",
+        "datetime",
+        "decimal",
+        "hashlib",
+        "io",
+        "json",
+        "openpyxl",
+        "openpyxl.comments",
+        "pathlib",
+        "pytest",
+        "subprocess",
+        "sys",
+        "zipfile"
+      ],
+      "tests/test_public_safety.py": [
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "pytest",
+        "subprocess",
+        "sys",
+        "tools",
+        "tools.verify_public_core"
+      ],
+      "tools/__init__.py": [],
+      "tools/run_public_ci.py": [
+        "__future__",
+        "argparse",
+        "ast",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "subprocess",
+        "sys",
+        "tomllib",
+        "venv"
+      ],
+      "tools/verify_public_core.py": [
+        "__future__",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "subprocess"
+      ]
+    },
+    "private_data_required": false,
+    "runtime_private_configuration_required": false,
+    "stdlib_roots": [
+      "__future__",
+      "argparse",
+      "ast",
+      "bisect",
+      "collections",
+      "csv",
+      "dataclasses",
+      "datetime",
+      "decimal",
+      "hashlib",
+      "io",
+      "json",
+      "math",
+      "os",
+      "pathlib",
+      "random",
+      "re",
+      "subprocess",
+      "sys",
+      "tomllib",
+      "typing",
+      "unicodedata",
+      "venv",
+      "xml",
+      "zipfile"
+    ],
+    "tests_and_tools": "EXPLICIT_FILES_IN_PUBLIC_MANIFEST",
+    "third_party_runtime": [
+      "openpyxl",
+      "xlrd"
+    ],
+    "third_party_test": [
+      "pytest",
+      "openpyxl"
+    ]
+  }
+}
