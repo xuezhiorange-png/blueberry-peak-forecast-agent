@@ -101,6 +101,8 @@ HEAD `adba68b20caa20eb69e945264e09fba8088f3cbd` 的 CI `41278051834`
 `SYNTHETIC_POSTGRES_MATCHING_CLIENT_REQUIRED`：没有通过验证的同主版本客户端，
 预检拒绝执行数据库恢复。不能从此进一步猜测包是否未安装或其可执行依赖损坏。
 该红色运行及失败日志保留；不重跑同一 SHA。
+推送依赖修复时，旧运行尚未完成部分由仓库原有并发策略取代，实际取消状态另记，
+不把未完成的 Golden 或该运行作为完整 CI 验收。
 
 因此仅在既有 Canary Job 增加 PostgreSQL 16 **客户端**安装和两个客户端的真实版本检查。
 若原 apt 索引尚无该包，按 PostgreSQL 官方 Ubuntu 仓库步骤配置仓库并验证其公钥指纹。
