@@ -48,7 +48,7 @@ PostgreSQL 17 才引入该参数，且官方不保证较新客户端的输出可
   `pg_dump` / `pg_restore`。只检查 PATH、现有本机服务器工具的同目录和精确的 Debian
   版本目录，不扫描私有目录；缺少匹配客户端明确失败，不退回不兼容客户端。
 - 所有原恢复参数、非零退出失败、备份 Hash、隔离、撤销、重新批准和旧密码失效逻辑不变。
-  不修改正式应用、数据库迁移、预测或 CI 工作流。
+  不修改正式应用、数据库迁移或预测。
 - 失败仅导出受限诊断字段，原退出码保留。未匹配明确证据时返回
   `UNKNOWN_UNCLASSIFIED`；默认 stderr 没有可靠 SQLSTATE，记录 null，不猜测。
 - 原始 stderr/SQL/路径/连接参数不进入异常或报告；返回失败前同时清理 traceback 帧内
@@ -68,14 +68,15 @@ S5/S6 原证据的 operations.py SHA256 保持
 `2b890d8e68a47ca506e7cf6b04bd187472138b2d` 的精确代码字节。
 两处既有历史源码读取白名单仅增加这个路径，保留所有原 expected Hash 和比较断言；
 S6 既有 wrong-commit/wrong-hash 负例也实际覆盖新增路径。
-原恢复测试、Local Auth fixture、Runner 和 CI 工作流字节不变；原断言 AST 不变。
+原恢复测试、Local Auth fixture、Runner 字节不变；原断言 AST 不变。
 当前运行能力由新增 PostgreSQL 回归证明，不继承旧历史验收 PASS。
 
 ## 验证及停止边界
 
 实际结果见同目录 `td01h-sanitized-diagnostic-evidence-r1.json` 与
 `td01h-before-after-regression-r1.json`。本地验证使用已提交代码
-`5b444af08a9117f6f5076786ca731abacee78bf1`；后续提交仅登记本轮脱敏证据。
+`5b444af08a9117f6f5076786ca731abacee78bf1`；其 PostgreSQL helper 字节后续不变。
+后续补齐 CI 客户端依赖与合同，Linux 安装由最终 HEAD 的实际 GitHub CI 验证。
 完整 exact-head CI 必须在最终 HEAD 独立验收，本文不预填成功，终态记录在 PR 回执。
 
 预检脱敏补充前的完整安全回归为 **266 PASS / 0 FAIL / 0 SKIP**，包含原完整恢复测试、三个新增真实
@@ -92,6 +93,25 @@ app/research strict Mypy（643 个源文件）通过。最终源码的追加结�
 旧 HEAD `1110c40958053489a0a347b82977d5effc010b5f` 的 CI `41277279697`
 在证明预检 traceback 脱敏缺口后取消并保留，未重跑该 SHA。新测试与修复提交后，
 重新固定源码和最终 HEAD 验收；这不是反复重试偶发失败，也不修改两次原失败 CI。
+
+### 实际 CI 暴露的客户端依赖缺口
+
+HEAD `adba68b20caa20eb69e945264e09fba8088f3cbd` 的 CI `41278051834`
+在 Canary 2 的三个新增 PostgreSQL 回归与 Canary 3 的原恢复测试中均明确返回
+`SYNTHETIC_POSTGRES_MATCHING_CLIENT_REQUIRED`：没有通过验证的同主版本客户端，
+预检拒绝执行数据库恢复。不能从此进一步猜测包是否未安装或其可执行依赖损坏。
+该红色运行及失败日志保留；不重跑同一 SHA。
+
+因此仅在既有 Canary Job 增加 PostgreSQL 16 **客户端**安装和两个客户端的真实版本检查。
+若原 apt 索引尚无该包，按 PostgreSQL 官方 Ubuntu 仓库步骤配置仓库并验证其公钥指纹。
+已独立核验官方 resolute-pgdg 包元数据确有 postgresql-client-16；不安装服务端、不开新集群，
+不接触开发/生产库或用户卷，不改 Python 依赖。此安装仅在临时 GitHub runner 执行，
+不把本机 macOS 单测冒称 Linux 安装成功。
+客户端限定为服务端主版本 16，补丁版本以实际安装输出为证；这不是 OS 或全部传递库锁定。
+
+新增 CI 合同先 RED 后 GREEN，并拒绝缺少该步骤、错误主版本及忽略失败的配置。
+删除这一个新增依赖步骤后，YAML 语义与原工作流完全相等：事件、矩阵、分片、原测试命令、
+超时及成功标准均保持。最终以含该依赖修复的新 HEAD 完整 CI 为准。
 
 报告是运行诊断元数据，不是可登记的数据集或业务来源：不含数量行，不申请合成来源登记或
 公开数据许可。初次把报告标成 dataset `data_class=SYNTHETIC_ONLY` 被原公开增量门禁拒绝；

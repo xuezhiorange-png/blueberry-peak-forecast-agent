@@ -36,6 +36,54 @@
     "skipped": 0
   },
   "business_quantity_rows_included": false,
+  "ci_client_dependency_fix": {
+    "all_original_ci_lines_preserved": true,
+    "application_dependencies_changed": false,
+    "ci_success_criteria_changed": false,
+    "failed_new_restore_regressions": 3,
+    "failed_original_restore_node": true,
+    "failure_log_sha256": {
+      "canary2": "6fd9a3fd6e72fe02e03c4c993cdbe69448e00106c42dc92db20d6ec77c7f5895",
+      "canary3": "60e58d1d4067482d9fd60cf44cf6d03a36abc8e27f4c4fdf160c1bcb93c325e2"
+    },
+    "failure_stage": "CLIENT_TOOLCHAIN_PREFLIGHT",
+    "final_ci_client_install": "PENDING",
+    "head": "adba68b20caa20eb69e945264e09fba8088f3cbd",
+    "local_ci_contracts_passed": 207,
+    "local_environment_version_regression_passed": 34,
+    "local_linux_install": "NOT_RUN_MACOS",
+    "new_install_step_bash_syntax": "PASS",
+    "no_gate_or_event_matrix_change": true,
+    "official_package_availability": {
+      "available_clients": [
+        {
+          "Architecture": "amd64",
+          "Package": "postgresql-client-16",
+          "Version": "16.15-1.pgdg26.04+2"
+        },
+        {
+          "Architecture": "amd64",
+          "Package": "postgresql-client-16",
+          "Version": "16.14-1.pgdg26.04+1"
+        },
+        {
+          "Architecture": "amd64",
+          "Package": "postgresql-client-16",
+          "Version": "16.13-1.pgdg26.04+2"
+        }
+      ],
+      "metadata_sha256": "1b681fbd603e389cdda99dae98338fe10452807d95afe7663eea663c36476ddc",
+      "metadata_url": "https://apt.postgresql.org/pub/repos/apt/dists/resolute-pgdg/main/binary-amd64/Packages.gz"
+    },
+    "root_blocker": "SYNTHETIC_POSTGRES_MATCHING_CLIENT_REQUIRED",
+    "run_id": 41278051834,
+    "same_sha_rerun": false,
+    "server_install_or_database_migration": false,
+    "workflow_change": "ONE_EXISTING_CANARY_CLIENT_DEPENDENCY_STEP",
+    "workflow_semantics_equal_after_removing_added_step": true
+  },
+  "ci_dependency_contract_commit": "91883db44aabe8e2ff5d1a94b7c465bade89bd18",
+  "ci_success_criteria_changed": false,
   "earlier_after_fix_full_security": {
     "cleanup": {
       "directory_identity_verified": true,
@@ -78,6 +126,32 @@
     "skipped": 0
   },
   "earlier_tested_code_commit": "2328e15b7339cb85dbf57df029276bbcd02880f9",
+  "earlier_workflow_preservation_checks": [
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": true,
+      "path": "backend/tests/safe_pilot/test_restore_and_ingress.py"
+    },
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": true,
+      "path": "backend/tests/local_auth/conftest.py"
+    },
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": true,
+      "path": "backend/tests/safe_pilot/run.py"
+    },
+    {
+      "original_bytes_unchanged": true,
+      "path": ".github/workflows/ci.yml"
+    },
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": false,
+      "path": "backend/tests/forecast_intelligence/test_v0_18_s6_acceptance_contract.py"
+    }
+  ],
   "evidence_kind": "OWNED_SYNTHETIC_POSTGRES_DIAGNOSTIC_METADATA",
   "exact_head_ci": "PENDING_AT_COMMIT",
   "frozen_contracts_and_final_diagnostics": {
@@ -104,7 +178,7 @@
     "skipped": 0
   },
   "old_skip_reasons_changed": false,
-  "original_ci_workflow_changed": false,
+  "original_ci_workflow_changed": true,
   "original_historical_evidence_changed": false,
   "original_test_assertions_changed": false,
   "owned_runner_cleanup_inventory": [
@@ -194,10 +268,6 @@
       "original_assertions_unchanged": true,
       "original_bytes_unchanged": true,
       "path": "backend/tests/safe_pilot/run.py"
-    },
-    {
-      "original_bytes_unchanged": true,
-      "path": ".github/workflows/ci.yml"
     },
     {
       "original_assertions_unchanged": true,
