@@ -12,6 +12,9 @@ from decimal import Decimal, localcontext
 from pathlib import Path
 
 import pytest
+from openpyxl import load_workbook
+from openpyxl.comments import Comment
+
 from backend.app import public_core as core
 from backend.app.etl.history import synthetic_publication as publication
 from backend.app.etl.history.schemas import EXPECTED_HEADERS
@@ -22,8 +25,6 @@ from backend.research.v019_daily_curve import (
     generate_candidate,
     select_window,
 )
-from openpyxl import load_workbook
-from openpyxl.comments import Comment
 
 
 def test_export_quality_and_all_independent_bytes(tmp_path):
