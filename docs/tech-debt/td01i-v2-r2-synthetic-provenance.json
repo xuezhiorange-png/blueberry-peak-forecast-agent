@@ -15,7 +15,6 @@
     "production_gate_unmodified": true,
     "self_consistent_five_file_gate_status": "PASS"
   },
-  "data_class": "SYNTHETIC_ONLY",
   "final_exact_head_ci": "RECORDED_SEPARATELY_ON_PR_783_NEW_HEAD",
   "forecast_math_changed": false,
   "independent_ci": {
@@ -31,6 +30,7 @@
     "trusted_base_security_tests": 15,
     "v1_original_tests": 38
   },
+  "input_scope": "INDEPENDENT_SYNTHETIC_FIXTURES_ONLY",
   "original_repository_ci_configuration_changed": false,
   "producer": {
     "closure_sha256": "58817e9e5929b42f7f0364f44da1ed81fae287f5e9d7fa0889d5096993d2c42d",
@@ -49,6 +49,7 @@
   "publication_authorized": false,
   "real_history_rewrite_performed": false,
   "real_workbooks_read": false,
+  "report_class": "VALIDATION_METADATA_ONLY",
   "reviewed_head": "6af6e107b8edfd5e6ace52ad3a5abf3885c42a6b",
   "schema": "TD01I_V2_SYNTHETIC_PROVENANCE_CORRECTION_R2",
   "source_002_read": false,
