@@ -30,6 +30,10 @@ R1_EVOLVING_SOURCES = frozenset(
     {
         "backend/app/main.py",
         "backend/tests/safe_pilot/run.py",
+        # TD-01H changes current test tooling, not the original S5 acceptance.
+        # Its original bytes were independently verified against the unchanged
+        # 4e2b8805... SHA256 in the R1 evidence before this exact-path adaptation.
+        "backend/tests/safe_pilot/operations.py",
         "backend/tests/safe_pilot/evidence.py",
         "backend/tests/forecast_intelligence/test_v0_18_s5_safe_pilot_contract.py",
         "frontend/e2e/dashboard-business-flow.spec.ts",

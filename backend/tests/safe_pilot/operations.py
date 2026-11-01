@@ -57,6 +57,9 @@ def isolated_environment(database):
         "PGPASSWORD": os.environ["POSTGRES_PASSWORD"],
         "PGDATABASE": database,
         "PGCONNECT_TIMEOUT": "5",
+        # Stable diagnostic vocabulary only: no LC_ALL, encoding or timezone
+        # override, and no change to the server/database locale or data.
+        "LC_MESSAGES": "C",
     }
 
 
@@ -94,18 +97,70 @@ def row_digest(rows):
 
 
 async def pg_command(arguments, database):
+    from backend.tests.safe_pilot.pg_tools import toolchain
+
+    environment = isolated_environment(database)
+    name = Path(arguments[0]).name
+    if name not in {"pg_dump", "pg_restore"}:
+        raise ValueError("SYNTHETIC_POSTGRES_OPERATION_REQUIRED")
+    probe = await connection(database)
+    try:
+        server = int(await probe.fetchval("SHOW server_version_num"))
+    finally:
+        await probe.close()
+    clients = await asyncio.to_thread(toolchain, server, environment)
+    arguments = [clients[name][0], *arguments[1:]]
     completed = await asyncio.to_thread(
         subprocess.run,
         arguments,
-        env=isolated_environment(database),
+        env=environment,
         capture_output=True,
         timeout=60,
         check=False,
     )
     # Do not expose SQL, filesystem paths or connection details from tool stderr.
     if completed.returncode:
-        raise RuntimeError("SYNTHETIC_POSTGRES_OPERATION_FAILED")
+        error = await pg_failure(arguments, environment, clients, server, completed)
+        # Pytest can include function arguments/locals in a failure report. Keep
+        # this frame as safe as the exception, including with --showlocals.
+        arguments, database, environment, clients, probe = (
+            [name],
+            "SYNTHETIC_DATABASE",
+            {},
+            {},
+            None,
+        )
+        raise error from None
     return completed
+
+
+async def pg_failure(arguments, environment, clients, server, completed):
+    """Best-effort metadata cannot replace or suppress the original failure."""
+    from backend.tests.safe_pilot.pg_diagnostics import failure
+
+    validation = "NOT_PROVEN"
+    operation = "PG_DUMP" if Path(arguments[0]).name == "pg_dump" else "PG_RESTORE"
+    if operation == "PG_RESTORE":
+        try:
+            listing = await asyncio.to_thread(
+                subprocess.run,
+                [arguments[0], "--list", arguments[-1]],
+                env=environment,
+                capture_output=True,
+                timeout=5,
+                check=False,
+            )
+            validation = "PASS" if listing.returncode == 0 else "FAIL"
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return failure(
+        completed,
+        operation,
+        clients["pg_dump"][1],
+        clients["pg_restore"][1],
+        server,
+        validation,
+    )
 
 
 async def backup(database, directory):
