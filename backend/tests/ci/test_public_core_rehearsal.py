@@ -60,8 +60,8 @@ def test_foreign_repository_is_never_written(tmp_path):
 def test_public_workflow_keeps_all_gates_and_has_no_release_command():
     workflow = (public.ROOT / "public_core/td01g_v1/workflow.yml").read_text()
     assert "python-version: '3.12'" in workflow
-    assert "python tools/verify_public_core.py" in workflow
-    assert "python -m tools.run_public_ci" in workflow
+    assert "python -I -B tools/verify_public_core.py" in workflow
+    assert "python -I -B tools/run_public_ci.py" in workflow
     assert "persist-credentials: false" in workflow
     assert "contents: read" in workflow
     assert "continue-on-error" not in workflow

@@ -127,3 +127,19 @@ def test_readonly_checkout_shaped_refs_are_checked_without_network(candidate):
     git(candidate, "update-ref", "refs/remotes/origin/main", root)
     git(candidate, "checkout", "--detach", "-q", root)
     assert guard.verify(candidate)["remote_count"] == 1
+
+
+def test_isolated_bootstrap_does_not_execute_an_unreviewed_shadow_module(candidate):
+    file = candidate / "tools/json.py"
+    file.write_text('raise RuntimeError("SYNTHETIC_SHADOW_EXECUTED")\n')
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-I", "-B", str(candidate / "tools/verify_public_core.py")],
+        cwd=candidate,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "UNKNOWN_WORKING_FILE" in result.stderr
+    assert "SYNTHETIC_SHADOW_EXECUTED" not in result.stderr

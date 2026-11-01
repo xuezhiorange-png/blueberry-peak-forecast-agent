@@ -20,7 +20,7 @@ from backend.app.core import historical_code_identity as history
 
 ROOT = Path(__file__).resolve().parents[3]
 CATALOG = ROOT / "docs/tech-debt/td01g-public-core-candidates-r1.json"
-CATALOG_SHA256 = "b502c44d3ce4c166ed71fb04f3f1b66a788c6babe27d9a1aaa2506af4fe78ea1"
+CATALOG_SHA256 = "8cbf891efebdbe9ce7035d19ce990588034af3f976fe5e1568ffc3021ed8552c"
 
 
 def canonical(value: object) -> bytes:
@@ -173,8 +173,9 @@ def rehearse(output: Path) -> dict[str, object]:
             run = subprocess.run(
                 [
                     sys.executable,
-                    "-m",
-                    "tools.run_public_ci",
+                    "-I",
+                    "-B",
+                    str(repo / "tools/run_public_ci.py"),
                     "--output-dir",
                     str(output / "public-ci"),
                 ],

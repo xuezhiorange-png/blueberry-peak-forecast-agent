@@ -7,12 +7,12 @@ import ast
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
+import tomllib
 import venv
 from pathlib import Path
-
-from tools.verify_public_core import verify
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -29,7 +29,7 @@ def closure(root: Path) -> dict[str, object]:
     for file in sorted(
         p for folder in ("backend", "tools", "tests") for p in (root / folder).rglob("*.py")
     ):
-        imports = set()
+        imports: set[str] = set()
         for node in ast.walk(ast.parse(file.read_bytes())):
             if isinstance(node, ast.Import):
                 imports.update(alias.name for alias in node.names)
@@ -75,12 +75,23 @@ def closure(root: Path) -> dict[str, object]:
     }
 
 
+def source_gate() -> dict[str, object]:
+    run = subprocess.run(
+        [sys.executable, "-I", "-B", str(ROOT / "tools/verify_public_core.py")],
+        cwd=ROOT,
+        capture_output=True,
+        check=True,
+    )
+    proof: dict[str, object] = json.loads(run.stdout)
+    return proof
+
+
 def execute(output: Path) -> dict[str, object]:
     if sys.version_info[:2] != (3, 12):
         raise AssertionError("PYTHON_312_REQUIRED")
     if output.resolve().is_relative_to(ROOT.resolve()):
         raise AssertionError("EVIDENCE_MUST_BE_OUTSIDE_SOURCE_CHECKOUT")
-    proof = verify(ROOT)
+    proof = source_gate()
     output.mkdir(mode=0o700, parents=True, exist_ok=False)
     env = {
         k: v
@@ -178,6 +189,20 @@ print(json.dumps({"local_modules":sorted(local),"all_local_modules_installed_in_
         runtime = json.loads(
             run("installed-imports", [str(python), "-I", "-B", "-c", probe], cwd=output)
         )
+
+        def normalize(name: str) -> str:
+            return re.sub(r"[-_.]+", "-", name).lower()
+
+        lock = (ROOT / "requirements-lock.txt").read_text()
+        expected = {
+            normalize(n): v for n, v in re.findall(r"^([A-Za-z0-9_.-]+)==([^ \n]+)", lock, re.M)
+        }
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+        expected[normalize(project["name"])] = project["version"]
+        actual = {normalize(n): v for n, v in runtime["packages"].items()}
+        if actual != expected:
+            raise AssertionError("INSTALLED_DISTRIBUTION_SET_NOT_EXACT_LOCK_CLOSURE")
+        runtime["exact_locked_distributions_only"] = True
         summary["installed_imports"] = runtime
         summary["import_closure"] = closure(ROOT)
         run(
@@ -269,7 +294,7 @@ print(json.dumps({"local_modules":sorted(local),"all_local_modules_installed_in_
         if hashes[0] != hashes[1]:
             raise AssertionError("INDEPENDENT_PROCESS_OUTPUT_MISMATCH")
         summary["deterministic_report_sha256"] = hashes[0]
-        summary["git_object_verification_after"] = verify(ROOT)
+        summary["git_object_verification_after"] = source_gate()
         summary["status"] = "PASS"
     except BaseException:
         summary["status"] = "FAIL"
