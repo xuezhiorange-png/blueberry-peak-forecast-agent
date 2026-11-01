@@ -53,6 +53,9 @@ PostgreSQL 17 才引入该参数，且官方不保证较新客户端的输出可
   `UNKNOWN_UNCLASSIFIED`；默认 stderr 没有可靠 SQLSTATE，记录 null，不猜测。
 - 原始 stderr/SQL/路径/连接参数不进入异常或报告；返回失败前同时清理 traceback 帧内
   参数、环境及 CompletedProcess 内容。负例包含合成密码、Cookie、Token、路径和业务字面量。
+- 缺少同版本客户端的预检异常也有 RED→GREEN 脱敏负例。版本探针只接收 PATH 与
+  LC_MESSAGES，不接收数据库凭据；失败前清理选择器输入和捕获输出，并移除携带私有路径的
+  worker traceback。继续抛出固定的 MATCHING_CLIENT_REQUIRED，不执行恢复、不忽略错误。
 - 仅设置客户端 `LC_MESSAGES=C`，不设置 `LC_ALL`、`PGCLIENTENCODING`、`PGOPTIONS` 或
   时区，不修改服务端区域设置。实际对照证明：本地化消息会使坏归档分类成为 UNKNOWN，
   固定消息语言后归类 INVALID_ARCHIVE；两者均以非零码拒绝恢复。
@@ -72,14 +75,23 @@ S6 既有 wrong-commit/wrong-hash 负例也实际覆盖新增路径。
 
 实际结果见同目录 `td01h-sanitized-diagnostic-evidence-r1.json` 与
 `td01h-before-after-regression-r1.json`。本地验证使用已提交代码
-`2328e15b7339cb85dbf57df029276bbcd02880f9`；后续提交仅登记本轮脱敏证据。
+`5b444af08a9117f6f5076786ca731abacee78bf1`；后续提交仅登记本轮脱敏证据。
 完整 exact-head CI 必须在最终 HEAD 独立验收，本文不预填成功，终态记录在 PR 回执。
 
-最终完整安全回归为 **266 PASS / 0 FAIL / 0 SKIP**，包含原完整恢复测试、三个新增真实
+预检脱敏补充前的完整安全回归为 **266 PASS / 0 FAIL / 0 SKIP**，包含原完整恢复测试、三个新增真实
 PostgreSQL 回归和八项原 Runner 清理场景。TD-03G 实驱动生命周期 **8 PASS**，
 历史与诊断专项 **34 PASS**；另有 Local Auth / MCP / Forecast Intelligence 相关
 非 PostgreSQL 合同 **1345 PASS / 70 DESELECTED**。全仓 Ruff、Format 与
-app/research strict Mypy（643 个源文件）通过。上述本地结果不替代远端整仓 CI。
+app/research strict Mypy（643 个源文件）通过。最终源码的追加结果见机器回执。
+上述本地结果不替代远端整仓 CI。
+
+预检脱敏补齐后的最终源码重新完整执行：安全链路 **268 PASS / 0 FAIL / 0 SKIP**，
+历史与诊断专项 **36 PASS**，TD-03G **8 PASS**；十次自有 Runner 的进程和端口均已清理。
+旧成功与失败记录各自保留，没有把被取消 CI 或先前结果重新标为最终 HEAD 成功。
+
+旧 HEAD `1110c40958053489a0a347b82977d5effc010b5f` 的 CI `41277279697`
+在证明预检 traceback 脱敏缺口后取消并保留，未重跑该 SHA。新测试与修复提交后，
+重新固定源码和最终 HEAD 验收；这不是反复重试偶发失败，也不修改两次原失败 CI。
 
 报告是运行诊断元数据，不是可登记的数据集或业务来源：不含数量行，不申请合成来源登记或
 公开数据许可。初次把报告标成 dataset `data_class=SYNTHETIC_ONLY` 被原公开增量门禁拒绝；

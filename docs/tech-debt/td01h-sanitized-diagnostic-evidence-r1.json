@@ -1,6 +1,7 @@
 {
   "all_controlled_databases_dropped": true,
   "base_main_sha": "d070331756a83e9a0247157298204a34271fe3f0",
+  "blocked_pr_781_failure_sources_identical_to_main": true,
   "business_quantity_rows_included": false,
   "ci_at_commit": "PENDING_FINAL_EXACT_HEAD",
   "controlled_matrix": [
@@ -71,9 +72,10 @@
       "event": "push",
       "explicit_error_evidence": [
         {
+          "ci_log_line_timestamp": "2026-11-01T02:48:00.8845600Z",
           "parameter": "transaction_timeout",
           "postgres_error": "UNRECOGNIZED_CONFIGURATION_PARAMETER",
-          "timestamp": "2026-11-01T02:48:00.8845600Z"
+          "server_event_timestamp_if_present": "2026-11-01 02:46:23.426 UTC"
         }
       ],
       "failure_confirmed": true,
@@ -93,9 +95,10 @@
       "event": "pull_request",
       "explicit_error_evidence": [
         {
+          "ci_log_line_timestamp": "2026-11-01T03:26:37.6709112Z",
           "parameter": "transaction_timeout",
           "postgres_error": "UNRECOGNIZED_CONFIGURATION_PARAMETER",
-          "timestamp": "2026-11-01T03:26:37.6709112Z"
+          "server_event_timestamp_if_present": "2026-11-01 03:25:24.648 UTC"
         }
       ],
       "failure_confirmed": true,
@@ -148,10 +151,12 @@
     "sqlstate_if_reliably_available": null
   },
   "pr781_modified": false,
+  "preflight_redaction_negative_tests": "RED_THEN_GREEN",
   "real_data_read": false,
   "root_cause_category": "VERSION_INCOMPATIBILITY",
   "root_cause_status": "PROVEN_CONTROLLED_REPRODUCTION",
   "source_snapshot_unchanged": true,
   "synthetic_source_registration_or_publication_clearance_claimed": false,
-  "task_id": "BLUEBERRY_TD01H_SAFE_PILOT_POSTGRES_RESTORE_ROOT_CAUSE_R1"
+  "task_id": "BLUEBERRY_TD01H_SAFE_PILOT_POSTGRES_RESTORE_ROOT_CAUSE_R1",
+  "version_probes_receive_database_credentials": false
 }
