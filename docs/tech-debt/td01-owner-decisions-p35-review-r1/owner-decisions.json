@@ -1,0 +1,47 @@
+{
+  "approval_scope": "BUSINESS_BOUNDARIES_ONLY_NOT_AUTOMATIC_FILE_OR_PUBLICATION_APPROVAL",
+  "authority": {
+    "date_precision": "DAY",
+    "instruction_date": "2026-11-02",
+    "kind": "EXPLICIT_OWNER_INSTRUCTION_IN_CURRENT_TASK",
+    "timezone": "Asia/Shanghai"
+  },
+  "authorized_this_task": [
+    "versioned_decision_records",
+    "read_only_p35_file_review",
+    "separate_docs_only_Draft_PR"
+  ],
+  "base_main_sha": "fe494971c92f1d951f5acfeb6a70b85a4aff23ac",
+  "decisions": {
+    "D02": {
+      "owner_statement": "真实基地、分场、加工厂及其精确对应关系不进入独立公开交付包。通用程序与 Schema 可以公开。",
+      "status": "OWNER_APPROVED"
+    },
+    "D03": {
+      "owner_statement": "真实产量、面积、逐日曲线及经营统计不进入独立公开交付包。演示使用独立生成的合成数据。",
+      "status": "OWNER_APPROVED"
+    },
+    "D06": {
+      "owner_statement": "历史研究原件及 Hash 保持不变。独立公开交付仅包含经过逐文件确认的技术内容及合成材料。",
+      "status": "OWNER_APPROVED"
+    }
+  },
+  "historical_disposition_authorized": false,
+  "not_authorized": [
+    "p35_package_upload",
+    "p35_package_rebuild",
+    "PR783_modification",
+    "tag_release_modification",
+    "model_data_frozen_evidence_modification",
+    "new_remote_repository",
+    "history_rewrite",
+    "ready_merge_release_deploy"
+  ],
+  "old_pending_evidence_overwritten": false,
+  "original_repository_visibility": "PUBLIC",
+  "p35_publication_authorized": false,
+  "record_class": "OWNER_BUSINESS_SCOPE_DECISION",
+  "repository": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "schema_version": "TD01_OWNER_SCOPE_DECISIONS_R1",
+  "task_id": "TD01_OWNER_DECISIONS_FREEZE_AND_P35_REVIEW_R1"
+}

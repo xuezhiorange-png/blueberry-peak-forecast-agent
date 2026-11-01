@@ -1,0 +1,61 @@
+{
+  "existing_repository_pending_documents": [
+    "docs/tech-debt/td01f-owner-boundary-decisions-r1.md",
+    "docs/tech-debt/td01d-owner-decisions-r1.md"
+  ],
+  "historical_pending_status_preserved": true,
+  "not_retroactively_approved": true,
+  "p35_publication_authorized": false,
+  "records": [
+    {
+      "bytes": 7962,
+      "logical_locator": "RECEIPT.md",
+      "sha256": "deca891af885c9bc0ce9a19183dccdafd6dc725d42cc5015fbdb97867a04a262"
+    },
+    {
+      "bytes": 13366,
+      "logical_locator": "review/DELIVERY-FILES.csv",
+      "sha256": "3e30df2f9944e585f076b0e8c90934c75c8182b9876b2aea302faaed363aca31"
+    },
+    {
+      "bytes": 5244,
+      "logical_locator": "review/HISTORICAL-DISPOSITION-PLAN.md",
+      "sha256": "cf5ce19f1c5f20a3bcd23c937bcc56180f887afb3d65e792093f9a4f83e79ed0"
+    },
+    {
+      "bytes": 10482,
+      "logical_locator": "final-scope-review-r1/FINAL-REVIEW.md",
+      "sha256": "266486be4748bf13a98918fe93e08a8f3309b7cefe6a5440324bf015c800cd84"
+    },
+    {
+      "bytes": 3292,
+      "logical_locator": "final-scope-review-r1/OWNER-DECISIONS.md",
+      "sha256": "8770e0fb38f228fbf49457b1304b02d4eaec379eb7a156a00d9389af3614f04f"
+    },
+    {
+      "bytes": 1587,
+      "logical_locator": "final-scope-review-r1/RESULT.json",
+      "sha256": "8bd19f42657d22cb69b0a484a8bdbcfd13a1bd816fd7a4a4f55257a1d4cb9f63"
+    },
+    {
+      "bytes": 26882,
+      "logical_locator": "final-scope-review-r1/FILE-SCOPE-MATRIX.csv",
+      "sha256": "243b11b4ff78fd579c0706908083865bb89a4b4974f4e54a7d47866980c7492c"
+    },
+    {
+      "bytes": 45017,
+      "logical_locator": "final-scope-review-r1/FILE-SCOPE-MATRIX.json",
+      "sha256": "9f3c86e1a015504126f9bed657a4b97876fb6ff284d63e9f771bd7ce1e5687c7"
+    },
+    {
+      "bytes": 420,
+      "logical_locator": "final-scope-review-r1/evidence/AUDIT-RESULT.json",
+      "sha256": "03f6dce3b7cbb0f4c480ddd486e57e66ba0fe428e49c8fdc0098d477d0d58a8c"
+    }
+  ],
+  "reference_kind": "EXISTING_LOCAL_SEALED_REVIEW_NOT_NEW_REPOSITORY_FILE_PATHS",
+  "report_class": "VALIDATION_METADATA_ONLY",
+  "schema_version": "TD01_PRIOR_REVIEW_INDEX_R1",
+  "superseding_business_decision_record": "owner-decisions.json",
+  "task_id": "TD01_OWNER_DECISIONS_FREEZE_AND_P35_REVIEW_R1"
+}
