@@ -81,6 +81,10 @@ PostgreSQL 回归和八项原 Runner 清理场景。TD-03G 实驱动生命周期
 非 PostgreSQL 合同 **1345 PASS / 70 DESELECTED**。全仓 Ruff、Format 与
 app/research strict Mypy（643 个源文件）通过。上述本地结果不替代远端整仓 CI。
 
+报告是运行诊断元数据，不是可登记的数据集或业务来源：不含数量行，不申请合成来源登记或
+公开数据许可。初次把报告标成 dataset `data_class=SYNTHETIC_ONLY` 被原公开增量门禁拒绝；
+现明确使用 evidence_kind，保留实际测试范围和失败记录，门禁、基线、验证规则均未修改。
+
 首次扩展安全回归为 261 PASS / 1 FAIL / 0 SKIP，失败是本轮新增坏归档分类负例；
 独立消息语言对照后修复为仅固定 LC_MESSAGES，失败 JUnit 与清理证据保留。
 最终源码的完整安全回归、既有 SIGTERM/失败中断/其他实例保护、TD-03G 实驱动生命周期、

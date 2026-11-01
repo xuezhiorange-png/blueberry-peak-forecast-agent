@@ -35,7 +35,8 @@
     "shutdown_exit": 0,
     "skipped": 0
   },
-  "data_class": "SYNTHETIC_ONLY",
+  "business_quantity_rows_included": false,
+  "evidence_kind": "OWNED_SYNTHETIC_POSTGRES_DIAGNOSTIC_METADATA",
   "exact_head_ci": "PENDING_AT_COMMIT",
   "frozen_contracts_and_final_diagnostics": {
     "failures": 0,
@@ -106,6 +107,7 @@
     "ruff": "PASS",
     "strict_mypy": "PASS"
   },
+  "synthetic_source_registration_or_publication_clearance_claimed": false,
   "task_id": "BLUEBERRY_TD01H_SAFE_PILOT_POSTGRES_RESTORE_ROOT_CAUSE_R1",
   "td03g_real_driver_lifecycle": {
     "cleanup": {
