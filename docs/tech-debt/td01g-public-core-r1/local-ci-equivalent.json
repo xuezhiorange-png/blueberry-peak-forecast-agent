@@ -1,0 +1,147 @@
+{
+  "ACTUAL_NEW_REMOTE_GITHUB_ACTIONS": "NOT_RUN",
+  "LOCAL_CI_EQUIVALENT": "PASS",
+  "PUBLIC_TESTS_BLOCKED": 0,
+  "PUBLIC_TESTS_PASSED": 38,
+  "catalog_sha256": "8cbf891efebdbe9ce7035d19ce990588034af3f976fe5e1568ffc3021ed8552c",
+  "commands": {
+    "format": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "ff581aaa8f1b2a77e28a682a7cae7b738f926730737e49664d06c810bcd5aa03"
+    },
+    "install-locked": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "c7f484f65bd2d37cb91f1820bb81dd81d6658b3297bad24fb7e9351dfec2a9be"
+    },
+    "install-project": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "a53fc92898d57f5805e77b05a3d4ad86ba6a6ea2d3ae10821d89dad006cff971"
+    },
+    "installed-demo-1": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "0f33d18846afe62147a6dcf19f817a0facef4315ff67150c29d08bd567802ebc"
+    },
+    "installed-demo-2": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "0f33d18846afe62147a6dcf19f817a0facef4315ff67150c29d08bd567802ebc"
+    },
+    "installed-imports": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "776127912e959f1ee9ae80d1b2cad7133841cafe15a15fb477d0f54f0dc3fdcf"
+    },
+    "pip-check": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "9261363b733079a641c2e4cc9bc46ffa1d8336945a87f807b6cf68847dbc9b09"
+    },
+    "public-contracts": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "d31b18f8aac2caf3fae20854286ee09a220af89fa9a3d442b4e2bc7193278b6c"
+    },
+    "ruff": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "source-archive": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8a3c76dbc9f30b0efcbb579ecdb1bb903e5afb4c76ee7810120063493cc6c514"
+    },
+    "strict-mypy": {
+      "exit_code": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "fe22d95914d7fdd98483ace256b7f2708db4be1255737e5d7cca4d16703ca242"
+    }
+  },
+  "deterministic_output_sha256": {
+    "SYNTHETIC_ONLY-manifest.json": "54898b2d5cd84fc5d7fb66295ffdeb2360276eeb98c9fc5f430756a9203a3861",
+    "SYNTHETIC_ONLY_2039_2040.csv": "2c3bf457df5a672bd95e9f2bb96cedf5095a8063376bb5b1b3d7ce62f8430d8b",
+    "SYNTHETIC_ONLY_2039_2040.xlsx": "509474a4bfabfe98d63fed7879a86146d404d4814a150c2e679f8a2935d1cc64",
+    "SYNTHETIC_ONLY_2040_2041.csv": "7e149480a6eef42721044136d8206ac430fd38515662347ad2ae28604ff4a5c9",
+    "SYNTHETIC_ONLY_2040_2041.xlsx": "405f5b21893c4d62a3ac85721862cd1f0ad372cf5feb5757c673110fc92d93b5",
+    "daily-curve-report.json": "229de49048591dc93342a29b0e625173bc8f0ca174681c2de9e7f2a79d7d39c7",
+    "public-core-run.json": "326c785d9dc7bec2414fa89812d3306d13244cd86c2ad6ba4c9dec16278bccfc",
+    "quality-report.json": "a0aeea8016ffccc41c6fff3a09174b05c207beb052319b3731e0e0e3fb1ec10a"
+  },
+  "full_original_repo_ci": "PENDING_AT_LOCAL_EVIDENCE_SEAL",
+  "git_after": {
+    "alternates_present": false,
+    "commit_count": 1,
+    "contract": "TD01G_PUBLIC_CORE_V1",
+    "file_count": 28,
+    "known_business_blobs_present": false,
+    "object_count": 42,
+    "original_history_copied": false,
+    "parent_count": 0,
+    "publication_authorized": false,
+    "remote_count": 0,
+    "status": "PASS",
+    "tag_count": 0
+  },
+  "git_before": {
+    "alternates_present": false,
+    "commit_count": 1,
+    "contract": "TD01G_PUBLIC_CORE_V1",
+    "file_count": 28,
+    "known_business_blobs_present": false,
+    "object_count": 42,
+    "original_history_copied": false,
+    "parent_count": 0,
+    "publication_authorized": false,
+    "remote_count": 0,
+    "status": "PASS",
+    "tag_count": 0
+  },
+  "initial_failure_retained": "REHEARSAL_1_RUFF_IMPORT_CLASSIFICATION_FAILED_AFTER_SUCCESSFUL_CLEAN_INSTALL",
+  "public_test_cases": [
+    "test_export_quality_and_all_independent_bytes",
+    "test_no_formal_source_admission[TRAINING]",
+    "test_no_formal_source_admission[FORMAL_FORECAST]",
+    "test_no_formal_source_admission[REAL_SCORING]",
+    "test_no_formal_source_admission[AUTHORITY]",
+    "test_unknown_real_source_rejected_before_access",
+    "test_labels_cannot_turn_different_records_into_synthetic[identity]",
+    "test_labels_cannot_turn_different_records_into_synthetic[class]",
+    "test_labels_cannot_turn_different_records_into_synthetic[weight]",
+    "test_labels_cannot_turn_different_records_into_synthetic[relation]",
+    "test_complete_workbook_and_metadata_binding[hidden]",
+    "test_complete_workbook_and_metadata_binding[comment]",
+    "test_complete_workbook_and_metadata_binding[formula]",
+    "test_complete_workbook_and_metadata_binding[link]",
+    "test_complete_workbook_and_metadata_binding[author]",
+    "test_complete_workbook_and_metadata_binding[extra]",
+    "test_csv_changed_weight_is_refused",
+    "test_actual_frozen_curve_invariants_and_decimal_context",
+    "test_invalid_daily_inputs_are_not_filled_or_rounded[missing]",
+    "test_invalid_daily_inputs_are_not_filled_or_rounded[duplicate]",
+    "test_invalid_daily_inputs_are_not_filled_or_rounded[negative]",
+    "test_invalid_daily_inputs_are_not_filled_or_rounded[float]",
+    "test_two_independent_installed_cli_processes_are_identical",
+    "test_registered_samples_are_full_generator_output",
+    "test_fresh_root_exact_allowlist",
+    "test_renaming_or_labels_do_not_admit_unknown_files[SYNTHETIC_ONLY.csv]",
+    "test_renaming_or_labels_do_not_admit_unknown_files[backend/app/renamed.py]",
+    "test_renaming_or_labels_do_not_admit_unknown_files[extra.json]",
+    "test_renaming_or_labels_do_not_admit_unknown_files[unknown.content.gz]",
+    "test_known_business_identity_is_rejected_before_body_access",
+    "test_forged_manifest_and_labels_are_not_authority",
+    "test_unreachable_object_cannot_hide_outside_the_tree",
+    "test_history_transport_and_source_tampering[tag]",
+    "test_history_transport_and_source_tampering[alternates]",
+    "test_history_transport_and_source_tampering[origin]",
+    "test_history_transport_and_source_tampering[changed]",
+    "test_readonly_checkout_shaped_refs_are_checked_without_network",
+    "test_isolated_bootstrap_does_not_execute_an_unreviewed_shadow_module"
+  ],
+  "source_head": "209e56d0cb62b768eb8657ca8bf5910d9c09f986",
+  "td01f_historical_audit_blocker": "UNCHANGED_NOT_IN_THIS_ACCEPTANCE_SCOPE",
+  "two_installed_processes_equal": true
+}

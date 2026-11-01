@@ -91,3 +91,20 @@ def test_independent_public_environment_and_ci_equivalent(tmp_path):
     assert ci["installed_imports"]["all_local_modules_installed_in_owned_venv"] is True
     assert all(command["exit_code"] == 0 for command in ci["commands"].values())
     assert ci["git_object_verification"] == ci["git_object_verification_after"]
+
+
+def test_committed_public_evidence_is_separate_and_source_bound():
+    folder = public.ROOT / "docs/tech-debt/td01g-public-core-r1"
+    report = json.loads((folder / "local-ci-equivalent.json").read_bytes())
+    proof = json.loads((folder / "object-and-scope-verification.json").read_bytes())
+    assert report["LOCAL_CI_EQUIVALENT"] == "PASS"
+    assert report["ACTUAL_NEW_REMOTE_GITHUB_ACTIONS"] == "NOT_RUN"
+    assert report["PUBLIC_TESTS_PASSED"] == 38 and report["PUBLIC_TESTS_BLOCKED"] == 0
+    assert report["catalog_sha256"] == public.CATALOG_SHA256 == proof["catalog_sha256"]
+    assert proof["historical_td01f_result_preserved"]["blocked"] == 1
+    assert proof["git_objects"]["file_count"] == 28
+    assert proof["git_objects"]["object_count"] == 42
+    assert report["git_before"] == report["git_after"]
+    prior = json.loads((folder / "predecessor-ci-failure.json").read_bytes())
+    assert prior["conclusion"] == "FAILURE"
+    assert prior["root_cause"] == "NOT_PROVEN" and prior["replayed"] is False

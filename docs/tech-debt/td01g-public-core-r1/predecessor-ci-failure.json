@@ -1,0 +1,20 @@
+{
+  "acceptance": "NOT_ACCEPTED",
+  "business_assertions_modified": false,
+  "canary_error": "SYNTHETIC_POSTGRES_OPERATION_FAILED",
+  "conclusion": "FAILURE",
+  "event": "push",
+  "failed_tests": [
+    "frontend/e2e/dashboard-business-flow.spec.ts::real revoked PG session removes old sensitive DOM and refresh never restores selection (desktop/mobile)",
+    "backend/tests/safe_pilot/test_restore_and_ingress.py::test_full_backup_restore_reapproval_and_fail_closed_rollback"
+  ],
+  "head_sha": "d070331756a83e9a0247157298204a34271fe3f0",
+  "logs_sha256": {
+    "predecessor-failed-0.log": "38c015b9f607e6cc5973898c9c536a7d95617c133b7e0a8eb342d4070c8d31e0",
+    "predecessor-failed-1.log": "46d2039aab6c3c692a52b834d768bb539ee34ea3eba689df6b7de829d50e62f4"
+  },
+  "replayed": false,
+  "root_cause": "NOT_PROVEN",
+  "run_id": 41265226227,
+  "td01g_code_present_in_failed_sha": false
+}
