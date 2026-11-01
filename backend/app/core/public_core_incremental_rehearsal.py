@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
+import json
 import os
 import subprocess
 import sys
 import tempfile
+import zipfile
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import replace
@@ -361,6 +364,57 @@ def synthetic_bundle_case() -> dict[str, object]:
         g.review({path: raw[path] + b"SYNTHETIC_UNVERIFIED\n"}, kinds=kinds)
         changed = g.check()
         return {"valid": valid, "changed_bytes": changed, "wrong_producer": wrong}
+
+
+def counterfeit_bundle_case(*, xlsx_container_only: bool = False) -> dict[str, object]:
+    """Five internally consistent files, reviewed exactly, but for the wrong seed."""
+    with graph() as g:
+        git = gate.Git(g.repo)
+        root = gate._bootstrap(git)
+        raw = {
+            "examples/SYNTHETIC-seed43/" + Path(path).name: git.read("cat-file", "blob", f.blob)
+            for path, f in root.items()
+            if path.startswith("docs/tech-debt/td01c-synthetic-example/")
+        }
+        manifest = next(p for p in raw if p.endswith("/SYNTHETIC_ONLY-manifest.json"))
+        declaration = gate._dict(json.loads(raw[manifest]))
+        assert declaration["seed"] == 41
+        seed = 41 if xlsx_container_only else 43
+        declaration["seed"] = seed
+        if xlsx_container_only:
+            path = next(p for p in raw if p.endswith(".xlsx"))
+            stream = io.BytesIO(raw[path])
+            with zipfile.ZipFile(stream, "a") as archive:
+                archive.comment = b"SYNTHETIC_ONLY_NON_GENERATOR_CONTAINER"
+            raw[path] = stream.getvalue()
+            exports = gate._dict(declaration["exports_sha256"])
+            exports[Path(path).name] = gate.digest(raw[path])
+            declaration["exports_sha256"] = exports
+        raw[manifest] = (
+            json.dumps(declaration, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+        ).encode()
+        expected_exports = {
+            Path(p).name: gate.digest(body) for p, body in raw.items() if p != manifest
+        }
+        assert declaration["exports_sha256"] == expected_exports and len(raw) == 5
+        assert declaration["source_identity"] == "TD01C_INDEPENDENT_GENERATOR_V1"
+        g.commit(raw)
+        g.review(raw, kinds={p: "SYNTHETIC" for p in raw})
+        grants = g.reviews[-1].files
+        assert all(f.blob == gate.blob_id(raw[f.path]) for f in grants)
+        assert all(f.sha256 == gate.digest(raw[f.path]) for f in grants)
+        g.bundles.append(
+            gate.SyntheticBundle(gate.V1_ROOT, gate.producer_closure(root), seed, grants)
+        )
+        return {
+            "file_count": len(raw),
+            "declared_seed": seed,
+            "actual_generation_seed": 41,
+            "xlsx_container_only": xlsx_container_only,
+            "manifest_self_consistent": True,
+            "independent_review_matches_all_blobs_and_sha256": True,
+            "gate": g.check(),
+        }
 
 
 def checkout_case() -> dict[str, object]:

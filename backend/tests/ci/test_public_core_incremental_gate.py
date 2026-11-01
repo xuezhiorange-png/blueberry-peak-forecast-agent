@@ -1,6 +1,7 @@
 """TD01I: independent synthetic review, never publication or business data."""
 
 import json
+import subprocess
 from dataclasses import replace
 
 import pytest
@@ -139,6 +140,71 @@ def test_synthetic_bundle_uses_frozen_producer_and_complete_bytes():
     assert report["valid"]["status"] == "PASS"
     assert report["changed_bytes"]["status"] == "BLOCKED"
     assert report["wrong_producer"]["status"] == "BLOCKED"
+
+
+def test_self_consistent_reviewed_bundle_must_be_actual_frozen_generator_output():
+    report = rehearsal.counterfeit_bundle_case()
+    assert report["file_count"] == 5
+    assert report["manifest_self_consistent"] is True
+    assert report["independent_review_matches_all_blobs_and_sha256"] is True
+    assert report["declared_seed"] == 43
+    assert report["actual_generation_seed"] == 41
+    assert report["gate"]["status"] == "BLOCKED"
+    assert "SYNTHETIC_GENERATOR_OUTPUT_MISMATCH" in rehearsal.reasons(report["gate"])
+
+
+def test_full_xlsx_container_is_compared_even_with_unchanged_sheet_values():
+    report = rehearsal.counterfeit_bundle_case(xlsx_container_only=True)
+    assert report["manifest_self_consistent"] is True
+    assert report["independent_review_matches_all_blobs_and_sha256"] is True
+    assert report["declared_seed"] == report["actual_generation_seed"] == 41
+    assert report["gate"]["status"] == "BLOCKED"
+    assert "SYNTHETIC_GENERATOR_OUTPUT_MISMATCH" in rehearsal.reasons(report["gate"])
+
+
+def test_missing_trusted_regeneration_is_blocked_without_public_child_error(monkeypatch):
+    original = subprocess.run
+
+    def unavailable(command, *args, **kwargs):
+        if len(command) > 3 and command[1:4] == ["-I", "-B", "-c"]:
+            return subprocess.CompletedProcess(command, 2, b"", b"SYNTHETIC_PRIVATE_ERROR")
+        return original(command, *args, **kwargs)
+
+    monkeypatch.setattr(gate.subprocess, "run", unavailable)
+    report = rehearsal.counterfeit_bundle_case()["gate"]
+    assert report["status"] == "BLOCKED"
+    assert "SYNTHETIC_REGENERATION_UNAVAILABLE" in rehearsal.reasons(report)
+    assert "SYNTHETIC_PRIVATE_ERROR" not in json.dumps(report)
+
+
+def test_verified_root_executes_before_reading_any_proposed_bundle_blob(monkeypatch):
+    original_read = gate.Git.read
+    original_regenerate = gate._regenerate
+    verified_root_blobs = set()
+    regenerated = False
+
+    def replay(git, root, seed):
+        nonlocal regenerated
+        assert verified_root_blobs == {f.blob for f in root.values()}
+        result = original_regenerate(git, root, seed)
+        regenerated = True
+        return result
+
+    def guarded(self, *arguments):
+        if arguments[:2] == ("cat-file", "blob"):
+            assert arguments[2] in verified_root_blobs or regenerated
+        return original_read(self, *arguments)
+
+    with rehearsal.graph() as graph:
+        root = gate._bootstrap(gate.Git(graph.repo))
+        verified_root_blobs.update(f.blob for f in root.values())
+        monkeypatch.setattr(gate, "_regenerate", replay)
+        monkeypatch.setattr(gate.Git, "read", guarded)
+        # Nested fixture roots have the identical sealed Blob identities.
+        report = rehearsal.counterfeit_bundle_case()["gate"]
+    assert regenerated is True
+    assert report["status"] == "BLOCKED"
+    assert "SYNTHETIC_GENERATOR_OUTPUT_MISMATCH" in rehearsal.reasons(report)
 
 
 def test_checked_out_test_merge_is_not_the_trusted_base():
@@ -378,8 +444,8 @@ def test_v2_local_ci_equivalence_uses_fresh_install_and_original_38(tmp_path):
     assert report["status"] == "PASS"
     assert report["v1_public_tests"] == 38
     assert report["active_head_functional_tests"] == 24
-    assert report["v2_security_tests"] == 12
-    assert report["reviewed_head_tests"] == 12
+    assert report["v2_security_tests"] == 15
+    assert report["reviewed_head_tests"] == 15
     assert report["executor_origin_base"] == report["gate"]["trusted_base"]
     assert report["executor_origin_base"] != "SYNTHETIC_BOOTSTRAP_HOST"
     assert report["actual_new_remote_github_actions"] == "NOT_RUN"

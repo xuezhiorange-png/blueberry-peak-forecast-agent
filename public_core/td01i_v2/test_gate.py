@@ -2,9 +2,12 @@
 
 import hashlib
 import importlib.util
+import io
+import json
 import os
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -147,3 +150,59 @@ def test_head_file_is_not_independent_authority(repository, guard):
     file.write_text('{"APPROVED":true}\n')
     with pytest.raises(guard.Violation, match="PROPOSED_HEAD_IS_NOT_AUTHORITY"):
         guard.read_authority(file, hashlib.sha256(file.read_bytes()).hexdigest(), repository)
+
+
+@pytest.mark.parametrize(
+    "variant", ["valid_generator_output", "wrong_seed_output", "xlsx_container"]
+)
+def test_self_consistent_five_file_review_cannot_invent_generator_provenance(
+    repository, guard, variant
+):
+    root = guard._bootstrap(guard.Git(repository))
+    files = {
+        "examples/SYNTHETIC-reviewed/" + Path(path).name: git(
+            repository, "cat-file", "blob", grant.blob
+        )
+        for path, grant in root.items()
+        if path.startswith("docs/tech-debt/td01c-synthetic-example/")
+    }
+    manifest = next(p for p in files if p.endswith("/SYNTHETIC_ONLY-manifest.json"))
+    declaration = json.loads(files[manifest])
+    assert declaration["seed"] == 41
+    seed = 43 if variant == "wrong_seed_output" else 41
+    declaration["seed"] = seed
+    if variant == "xlsx_container":
+        name = next(p for p in files if p.endswith(".xlsx"))
+        stream = io.BytesIO(files[name])
+        with zipfile.ZipFile(stream, "a") as archive:
+            archive.comment = b"SYNTHETIC_ONLY_NON_GENERATOR_CONTAINER"
+        files[name] = stream.getvalue()
+        declaration["exports_sha256"][Path(name).name] = guard.digest(files[name])
+    assert declaration["exports_sha256"] == {
+        Path(p).name: guard.digest(raw) for p, raw in files.items() if p != manifest
+    }
+    files[manifest] = (
+        json.dumps(declaration, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
+    ).encode()
+    assert len(files) == 5
+    grants = []
+    for name, raw in sorted(files.items()):
+        file = repository / name
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_bytes(raw)
+        identity = git(repository, "hash-object", "-w", "--stdin", data=raw).decode().strip()
+        git(repository, "update-index", "--add", "--cacheinfo", f"100644,{identity},{name}")
+        grants.append(guard.FileGrant(name, identity, guard.digest(raw), "SYNTHETIC"))
+    # One complete commit, with an independent exact review for all five files.
+    name = sorted(files)[-1]
+    head, tree = commit(repository, name, files[name], guard.V1_ROOT)
+    review = guard.Review(head, tree, (guard.V1_ROOT,), tuple(grants))
+    bundle = guard.SyntheticBundle(guard.V1_ROOT, guard.producer_closure(root), seed, tuple(grants))
+    authority = guard.Authority(guard.V1_ROOT, (review,), (bundle,))
+    report = guard.verify(repository, context(guard, head), authority)
+    if variant == "valid_generator_output":
+        assert report["status"] == "PASS"
+        assert len(report["synthetic_recomputations"][0]["files_sha256"]) == 5
+    else:
+        assert report["status"] == "BLOCKED"
+        assert any(r["code"] == "SYNTHETIC_GENERATOR_OUTPUT_MISMATCH" for r in report["reasons"])
