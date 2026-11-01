@@ -162,11 +162,11 @@
     },
     {
       "class": "TD01G_BUILD_METADATA",
-      "git_blob_oid": "f8b722276f311416d3813f93b1f7289620e6345e",
+      "git_blob_oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
       "public_path": "README.md",
       "repository_relative_path": "public_core/td01g_v1/README.md",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
-      "sha256": "f48dd2d15c7fa1f85a81020c58f9f38e6f98d112b70789fe3aa2e0b6c756c012"
+      "sha256": "a4f2fb2ad19b5d272a122afcbe8d49a8d960d30b8195c7ae63b2517093f31afd"
     },
     {
       "class": "TD01G_REVIEWED_CODE",
@@ -178,11 +178,11 @@
     },
     {
       "class": "TD01G_REVIEWED_CODE",
-      "git_blob_oid": "83b1f2ef94d256ae4159cbdb4cd3db7047bdaa10",
+      "git_blob_oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
       "public_path": "tools/run_public_ci.py",
       "repository_relative_path": "public_core/td01g_v1/run_public_ci.py",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
-      "sha256": "f36c3f66733f4c2e52577ba7b21ff882885b83abdf459a715b31fdfe31696580"
+      "sha256": "0de0134bb87dbb38c52fb685ec3a4fe82f0972ccce6e9717aa25e94df63b9eae"
     },
     {
       "class": "TD01G_REVIEWED_CODE",
@@ -202,19 +202,19 @@
     },
     {
       "class": "TD01G_REVIEWED_CODE",
-      "git_blob_oid": "7ae371043aba5856e33a07a52263d539b59cd8d4",
+      "git_blob_oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
       "public_path": "tests/test_public_safety.py",
       "repository_relative_path": "public_core/td01g_v1/test_public_safety.py",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
-      "sha256": "1c9544329d5e0a182624f59b6081e39fda97bcfe6c95bb78957e692ec7350859"
+      "sha256": "41c1cf20e435d0a46d9ba930aec7f15ac2823dac5772feca2e8c9fd951cd077b"
     },
     {
       "class": "TD01G_WORKFLOW_TEMPLATE",
-      "git_blob_oid": "54bffc825dda6ee758eb91ffe801ccc735ae7e0e",
+      "git_blob_oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
       "public_path": ".github/workflows/public-core.yml",
       "repository_relative_path": "public_core/td01g_v1/workflow.yml",
       "review_basis": "EXPLICIT_CODE_AND_IMPORT_REVIEW_NO_REAL_BUSINESS_LITERALS",
-      "sha256": "779e9310c366b722f04203ba2c90e4113a16bc8c86237939b1141e448b02181d"
+      "sha256": "af4d6fc9d525c07fb39189125bd39df6d08e4a14f5743e9c4e024b901db1b0f5"
     }
   ],
   "publication_authorized": false,

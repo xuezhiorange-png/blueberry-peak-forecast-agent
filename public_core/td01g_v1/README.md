@@ -15,8 +15,8 @@ it does not automatically admit arbitrary future commit histories or tags.
 From this clean checkout, with an output path outside it:
 
 ```sh
-python tools/verify_public_core.py
-python -m tools.run_public_ci --output-dir /tmp/TD01G-public-ci
+python -I -B tools/verify_public_core.py
+python -I -B tools/run_public_ci.py --output-dir /tmp/TD01G-public-ci
 ```
 
 The second command creates a new venv with system-site-packages disabled, installs

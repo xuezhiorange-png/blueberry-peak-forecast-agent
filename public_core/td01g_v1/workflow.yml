@@ -17,11 +17,11 @@ jobs:
         with:
           python-version: '3.12'
       - name: Sealed source and object gate
-        run: python tools/verify_public_core.py
+        run: python -I -B tools/verify_public_core.py
       - name: Independent install and public contracts
         env:
           PYTHONDONTWRITEBYTECODE: '1'
-        run: python -m tools.run_public_ci --output-dir "$RUNNER_TEMP/td01g-public-ci"
+        run: python -I -B tools/run_public_ci.py --output-dir "$RUNNER_TEMP/td01g-public-ci"
       - name: Retain bounded validation evidence
         if: always()
         uses: actions/upload-artifact@v4
