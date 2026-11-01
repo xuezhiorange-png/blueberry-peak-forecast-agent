@@ -1,0 +1,27 @@
+{
+  "catalog_sha256": "8cbf891efebdbe9ce7035d19ce990588034af3f976fe5e1568ffc3021ed8552c",
+  "git_objects": {
+    "alternates_present": false,
+    "commit_count": 1,
+    "contract": "TD01G_PUBLIC_CORE_V1",
+    "file_count": 28,
+    "known_business_blobs_present": false,
+    "object_count": 42,
+    "original_history_copied": false,
+    "parent_count": 0,
+    "publication_authorized": false,
+    "remote_count": 0,
+    "status": "PASS",
+    "tag_count": 0
+  },
+  "historical_td01f_result_preserved": {
+    "blocked": 1,
+    "passed": 24,
+    "status": "BLOCKED_HISTORICAL_AUDIT_SCOPE_UNCHANGED",
+    "test": "test_path_only_audit_registry_and_original_ref_inventory_are_bound"
+  },
+  "new_scope": "TD01G_PUBLIC_CORE_V1_SEPARATE_ACCEPTANCE",
+  "public_manifest_sha256": "4fa783f4bbccab468f7de6ac8a8b4cd2807503f206e1ea510e435ed296f82cc0",
+  "root_commit": "04457546f5577d4e44effb808154a6aa08b45846",
+  "source_head": "209e56d0cb62b768eb8657ca8bf5910d9c09f986"
+}
