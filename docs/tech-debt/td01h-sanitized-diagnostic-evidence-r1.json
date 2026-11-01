@@ -1,6 +1,7 @@
 {
   "all_controlled_databases_dropped": true,
   "base_main_sha": "d070331756a83e9a0247157298204a34271fe3f0",
+  "business_quantity_rows_included": false,
   "ci_at_commit": "PENDING_FINAL_EXACT_HEAD",
   "controlled_matrix": [
     {
@@ -55,7 +56,6 @@
       "new_database_empty": true
     }
   ],
-  "data_class": "SYNTHETIC_ONLY",
   "diagnostic_limits": {
     "archive_list_check_is_full_data_validation": false,
     "credentials_or_private_paths_exported": false,
@@ -65,6 +65,7 @@
     "sql_exported": false,
     "sqlstate_inferred": false
   },
+  "evidence_kind": "OWNED_SYNTHETIC_POSTGRES_DIAGNOSTIC_METADATA",
   "historical_run_observations": {
     "baseline": {
       "event": "push",
@@ -151,5 +152,6 @@
   "root_cause_category": "VERSION_INCOMPATIBILITY",
   "root_cause_status": "PROVEN_CONTROLLED_REPRODUCTION",
   "source_snapshot_unchanged": true,
+  "synthetic_source_registration_or_publication_clearance_claimed": false,
   "task_id": "BLUEBERRY_TD01H_SAFE_PILOT_POSTGRES_RESTORE_ROOT_CAUSE_R1"
 }
