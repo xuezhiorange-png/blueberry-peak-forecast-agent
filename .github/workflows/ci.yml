@@ -1661,6 +1661,29 @@ jobs:
             pyproject.toml
             backend/constraints-ci.txt
 
+      - name: Install matching PostgreSQL 16 test clients
+        run: |
+          # The ephemeral runner's newest client need not match postgres:16.
+          # Install clients only; never provision another server or cluster.
+          sudo apt-get update -qq
+          if ! apt-cache show postgresql-client-16 >/dev/null 2>&1; then
+            td01h_key="$RUNNER_TEMP/td01h-pgdg.asc"
+            curl --fail --silent --show-error --location \
+              https://www.postgresql.org/media/keys/ACCC4CF8.asc --output "$td01h_key"
+            mkdir -m 700 "$RUNNER_TEMP/td01h-gnupg"
+            test "$(gpg --homedir "$RUNNER_TEMP/td01h-gnupg" --batch --show-keys \
+              --with-colons "$td01h_key" | awk -F: '$1 == "fpr" {print $10; exit}')" \
+              = B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+            sudo install -D -m 0644 "$td01h_key" /usr/share/keyrings/td01h-pgdg.asc
+            . /etc/os-release
+            echo "deb [signed-by=/usr/share/keyrings/td01h-pgdg.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+              | sudo tee /etc/apt/sources.list.d/td01h-pgdg.list >/dev/null
+            sudo apt-get update -qq
+          fi
+          sudo apt-get install -y --no-install-recommends postgresql-client-16
+          /usr/lib/postgresql/16/bin/pg_dump --version
+          /usr/lib/postgresql/16/bin/pg_restore --version
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade --quiet pip

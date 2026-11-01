@@ -18,6 +18,9 @@ EVOLVING_S6_SOURCES = {
     "frontend/e2e/dashboard-s6-acceptance.spec.ts",
     "backend/tests/forecast_intelligence/test_v0_18_s6_acceptance_contract.py",
     "backend/tests/safe_pilot/evidence.py",
+    # TD-01H client tooling has separate runtime regressions. Keep this S6
+    # historical source bound to its original commit and unchanged expected hash.
+    "backend/tests/safe_pilot/operations.py",
 }
 
 
