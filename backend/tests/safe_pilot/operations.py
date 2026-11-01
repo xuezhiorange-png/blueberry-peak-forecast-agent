@@ -97,7 +97,7 @@ def row_digest(rows):
 
 
 async def pg_command(arguments, database):
-    from backend.tests.safe_pilot.pg_tools import toolchain
+    from backend.tests.safe_pilot.pg_tools import PostgresClientUnavailable, toolchain
 
     environment = isolated_environment(database)
     name = Path(arguments[0]).name
@@ -108,7 +108,16 @@ async def pg_command(arguments, database):
         server = int(await probe.fetchval("SHOW server_version_num"))
     finally:
         await probe.close()
-    clients = await asyncio.to_thread(toolchain, server, environment)
+    try:
+        # --version never needs database credentials or connection options.
+        clients = await asyncio.to_thread(
+            toolchain, server, {"PATH": environment["PATH"], "LC_MESSAGES": "C"}
+        )
+    except PostgresClientUnavailable as error:
+        arguments, database, environment, probe = [name], "SYNTHETIC_DATABASE", {}, None
+        # Propagate the same fail-closed code, without worker frames that retain
+        # the lookup's private PATH. No database command was attempted.
+        raise error.with_traceback(None) from None
     arguments = [clients[name][0], *arguments[1:]]
     completed = await asyncio.to_thread(
         subprocess.run,
