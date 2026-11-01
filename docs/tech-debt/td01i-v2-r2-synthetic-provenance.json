@@ -1,0 +1,71 @@
+{
+  "after": {
+    "counterfeit_reason": "SYNTHETIC_GENERATOR_OUTPUT_MISMATCH",
+    "counterfeit_seed_43": "BLOCKED",
+    "full_five_file_recomputation": true,
+    "proposed_manifest_never_selects_producer_or_expected_output": true,
+    "unavailable_recomputation": "BLOCKED_SYNTHETIC_REGENERATION_UNAVAILABLE",
+    "valid_seed_43": "PASS",
+    "verified_execution_before_proposed_blob_read": true,
+    "xlsx_container_only": "BLOCKED"
+  },
+  "before": {
+    "evidence_sha256": "e00acf779cffe172f3ebc4fcd91e3798ea0998feee65aa4ca039555313e2bf83",
+    "new_blocking_regression": "RED",
+    "production_gate_unmodified": true,
+    "self_consistent_five_file_gate_status": "PASS"
+  },
+  "data_class": "SYNTHETIC_ONLY",
+  "final_exact_head_ci": "RECORDED_SEPARATELY_ON_PR_783_NEW_HEAD",
+  "forecast_math_changed": false,
+  "independent_ci": {
+    "active_head_functional_tests": 24,
+    "actual_new_remote_github_actions": "NOT_RUN",
+    "commands_passed": 22,
+    "executor_origin_base": "388919c05f68970b2eefa70bc828de6cb56031d5",
+    "fresh_venv_system_site_packages": false,
+    "original_v1_commands_passed": 11,
+    "reviewed_head_tests": 15,
+    "status": "PASS",
+    "trusted_base": "388919c05f68970b2eefa70bc828de6cb56031d5",
+    "trusted_base_security_tests": 15,
+    "v1_original_tests": 38
+  },
+  "original_repository_ci_configuration_changed": false,
+  "producer": {
+    "closure_sha256": "58817e9e5929b42f7f0364f44da1ed81fae287f5e9d7fa0889d5096993d2c42d",
+    "dependency_versions": {
+      "et_xmlfile": "2.0.0",
+      "openpyxl": "3.1.5",
+      "xlrd": "2.0.2"
+    },
+    "git_blob_oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+    "path": "backend/app/etl/history/synthetic_publication.py",
+    "sha256": "f0e49cf005a73adbeb79a2dfd551f7bfe9b021a9d5c536f31308d7bd1963ea15",
+    "source_identity": "TD01C_INDEPENDENT_GENERATOR_V1",
+    "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846",
+    "v1_manifest_sha256": "4fa783f4bbccab468f7de6ac8a8b4cd2807503f206e1ea510e435ed296f82cc0"
+  },
+  "publication_authorized": false,
+  "real_history_rewrite_performed": false,
+  "real_workbooks_read": false,
+  "reviewed_head": "6af6e107b8edfd5e6ace52ad3a5abf3885c42a6b",
+  "schema": "TD01I_V2_SYNTHETIC_PROVENANCE_CORRECTION_R2",
+  "source_002_read": false,
+  "tests": {
+    "format": "PASS",
+    "independent_process_outputs_byte_identical": true,
+    "independent_processes": 2,
+    "original_negative_blocked": 28,
+    "original_negative_scenarios": 28,
+    "related_deselected": 1,
+    "related_failed": 0,
+    "related_passed": 158,
+    "ruff": "PASS",
+    "strict_mypy_sources": 650,
+    "targeted_failed": 0,
+    "targeted_passed": 53,
+    "targeted_skipped": 0
+  },
+  "v1_and_td01f_frozen_results_preserved": true
+}

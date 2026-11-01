@@ -381,7 +381,7 @@ print(json.dumps({'installed_inside_owned_venv':True,'packages':packages,
             fixture,
         )
         cases = list(ElementTree.parse(output / "v2-security.xml").getroot().iter("testcase"))
-        if len(cases) != 12 or any(
+        if len(cases) != 15 or any(
             c.find(k) is not None for c in cases for k in ("failure", "error", "skipped")
         ):
             raise ValueError("V2_SECURITY_CONTRACT_FAILED")

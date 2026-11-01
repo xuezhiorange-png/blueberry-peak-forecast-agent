@@ -2,7 +2,8 @@
 
 The only implemented independent-review transport is an external, caller-pinned
 SYNTHETIC rehearsal document. Real GitHub approval is deliberately unconfigured.
-No network, source execution, publication, history editing or database access.
+Only the verified root producer may execute in an isolated child interpreter.
+No proposed source execution, network, publication, history editing or database access.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ import re
 import stat
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
@@ -333,6 +335,7 @@ class Audit:
     merge_base: str | None = None
     proposed_diff: list[dict[str, object]] = field(default_factory=list)
     authority_kind: str = "UNCONFIGURED"
+    synthetic_recomputations: list[dict[str, object]] = field(default_factory=list)
 
     def issue(self, code: str, *, path: str = "", identity: str = "", review: bool = False) -> None:
         row = {"code": code, "severity": "REVIEW_REQUIRED" if review else "BLOCKED"}
@@ -379,6 +382,8 @@ class Audit:
             "strict_real_pit_validated": False,
             "production_model_admitted": False,
         }
+        if self.synthetic_recomputations:
+            result["synthetic_recomputations"] = self.synthetic_recomputations
         result["result_sha256"] = digest(canonical(result))
         return result
 
@@ -438,6 +443,101 @@ def _changed(tree: dict[str, str], before: dict[str, str]) -> dict[str, str | No
     }
 
 
+def _bundle_metadata(bundle: SyntheticBundle, root: dict[str, FileGrant]) -> None:
+    expected_names = {PurePosixPath(p).name for p in root if p.startswith(_ROOT_DATA)}
+    if (
+        bundle.producer_root != V1_ROOT
+        or bundle.producer_closure_sha256 != producer_closure(root)
+        or type(bundle.seed) is not int
+        or not 0 <= bundle.seed < 2**31
+        or {PurePosixPath(f.path).name for f in bundle.files} != expected_names
+        or len(bundle.files) != len(expected_names)
+        or any(f.kind != "SYNTHETIC" for f in bundle.files)
+    ):
+        raise Violation("SYNTHETIC_PRODUCER_OR_BUNDLE_MISMATCH")
+
+
+def _regenerate(git: Git, root: dict[str, FileGrant], seed: int) -> dict[str, bytes]:
+    """Never import a producer, dependency lock or output from proposed Head."""
+    with tempfile.TemporaryDirectory(prefix="TD01I_FROZEN_PRODUCER_") as directory:
+        folder = Path(directory)
+        folder.chmod(0o700)
+        source = folder / "verified-root"
+        source.mkdir(mode=0o700)
+        for path, grant in sorted(root.items()):
+            if not path.startswith("backend/"):
+                continue
+            body = git.read("cat-file", "blob", grant.blob)
+            if blob_id(body) != grant.blob or digest(body) != grant.sha256:
+                raise Violation("SYNTHETIC_PRODUCER_SOURCE_MISMATCH")
+            target = source / safe_path(path)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(body)
+            target.chmod(0o600)
+        # This lock is from the sealed V1 root, not the proposal or review.
+        lock_grant = root["requirements-lock.txt"]
+        lock = git.read("cat-file", "blob", lock_grant.blob)
+        if digest(lock) != lock_grant.sha256 or blob_id(lock) != lock_grant.blob:
+            raise Violation("SYNTHETIC_PRODUCER_SOURCE_MISMATCH")
+        versions = {}
+        for name in ("openpyxl", "et_xmlfile", "xlrd"):
+            match = re.search(rb"(?m)^" + name.encode() + rb"==([0-9.]+) \\", lock)
+            if match is None:
+                raise Violation("SYNTHETIC_REGENERATION_UNAVAILABLE")
+            versions[name] = match[1].decode()
+        # -I ignores PYTHONPATH, user site and current-directory imports. Only
+        # verified root bytes are inserted into this independent interpreter.
+        # No proposed CSV/XLSX/Manifest bytes reach the producer process.
+        program = """import importlib.metadata,json,sys
+from pathlib import Path
+if sys.version_info[:2] != (3,12):
+    raise SystemExit(2)
+for name, version in json.loads(sys.argv[4]).items():
+    if importlib.metadata.version(name) != version:
+        raise SystemExit(2)
+sys.path.insert(0, sys.argv[1])
+from backend.app.etl.history.synthetic_publication import export,generate
+export(generate(int(sys.argv[2])), Path(sys.argv[3]))
+"""
+        output = folder / "generated"
+        try:
+            process = subprocess.run(
+                [
+                    sys.executable,
+                    "-I",
+                    "-B",
+                    "-c",
+                    program,
+                    str(source),
+                    str(seed),
+                    str(output),
+                    json.dumps(versions, sort_keys=True),
+                ],
+                cwd=source,
+                env={
+                    "PATH": os.defpath,
+                    "OPENPYXL_LXML": "False",
+                    "OPENPYXL_DEFUSEDXML": "False",
+                    "PYTHONDONTWRITEBYTECODE": "1",
+                    "APP_ENV": "test",
+                },
+                capture_output=True,
+                check=False,
+                timeout=60,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise Violation("SYNTHETIC_REGENERATION_UNAVAILABLE") from error
+        if process.returncode or not output.is_dir():
+            raise Violation("SYNTHETIC_REGENERATION_UNAVAILABLE")
+        names = {PurePosixPath(p).name for p in root if p.startswith(_ROOT_DATA)}
+        files = list(output.iterdir())
+        if {p.name for p in files} != names or any(
+            p.is_symlink() or not p.is_file() or p.stat().st_size > 2 * 1024 * 1024 for p in files
+        ):
+            raise Violation("SYNTHETIC_REGENERATION_UNAVAILABLE")
+        return {p.name: p.read_bytes() for p in files}
+
+
 def _review_files(
     git: Git,
     audit: Audit,
@@ -447,6 +547,7 @@ def _review_files(
     review: Review | None,
     bundles: tuple[SyntheticBundle, ...],
     root: dict[str, FileGrant],
+    regenerated: dict[int, dict[str, bytes]],
 ) -> None:
     changes = _changed(tree, before)
     grants = {f.path: f for f in review.files} if review else {}
@@ -458,24 +559,18 @@ def _review_files(
         raise Violation("REVIEW_CHANGESET_MISMATCH")
     synthetic = {}
     for bundle in bundles:
-        names = {PurePosixPath(f.path).name for f in bundle.files}
-        expected_names = {PurePosixPath(p).name for p in root if p.startswith(_ROOT_DATA)}
-        if (
-            bundle.producer_root != V1_ROOT
-            or bundle.producer_closure_sha256 != producer_closure(root)
-            or type(bundle.seed) is not int
-            or not 0 <= bundle.seed < 2**31
-            or names != expected_names
-            or len(bundle.files) != len(expected_names)
-        ):
-            raise Violation("SYNTHETIC_PRODUCER_OR_BUNDLE_MISMATCH")
-        if any(f.kind != "SYNTHETIC" for f in bundle.files):
-            raise Violation("SYNTHETIC_PRODUCER_OR_BUNDLE_MISMATCH")
+        _bundle_metadata(bundle, root)
         for f in bundle.files:
             if f.path in synthetic:
                 raise Violation("DUPLICATE_SYNTHETIC_IDENTITY")
             synthetic[f.path] = f
         if all(tree.get(f.path) == f.blob for f in bundle.files):
+            for f in bundle.files:
+                expected = regenerated[bundle.seed][PurePosixPath(f.path).name]
+                submitted = git.read("cat-file", "blob", f.blob)
+                if submitted != expected:
+                    audit.issue("SYNTHETIC_GENERATOR_OUTPUT_MISMATCH", path=f.path, identity=f.blob)
+                    raise Violation("SYNTHETIC_GENERATOR_OUTPUT_MISMATCH")
             manifest = next(
                 f for f in bundle.files if f.path.endswith("/SYNTHETIC_ONLY-manifest.json")
             )
@@ -678,6 +773,24 @@ def _verify(git: Git, audit: Audit, authority: Authority | None) -> None:
     base_ancestors = set(git.text("rev-list", context.base).splitlines())
     if base_ancestors - {V1_ROOT} - set(reviews):
         raise Violation("UNTRUSTED_BASE_HISTORY")
+    # Trusted source and fixed environment first, proposed content afterwards.
+    # Cache only inside this verification; never accept PR-provided expected bytes.
+    regenerated: dict[int, dict[str, bytes]] = {}
+    for bundle in authority.bundles if authority else ():
+        _bundle_metadata(bundle, root)
+        if bundle.seed not in regenerated:
+            regenerated[bundle.seed] = _regenerate(git, root, bundle.seed)
+            audit.synthetic_recomputations.append(
+                {
+                    "producer_root": V1_ROOT,
+                    "producer_closure_sha256": producer_closure(root),
+                    "seed": bundle.seed,
+                    "execution": "ISOLATED_VERIFIED_ROOT_NOT_PROPOSED_HEAD",
+                    "files_sha256": {
+                        k: digest(v) for k, v in sorted(regenerated[bundle.seed].items())
+                    },
+                }
+            )
     for commit, (tree_id, parents) in sorted(graph.items()):
         if commit == V1_ROOT:
             continue
@@ -720,6 +833,7 @@ def _verify(git: Git, audit: Audit, authority: Authority | None) -> None:
             review,
             authority.bundles if authority else (),
             root,
+            regenerated,
         )
     if not any(row["severity"] == "BLOCKED" for row in audit.issues):
         _working_tree(git, context, trees[context.checkout])
