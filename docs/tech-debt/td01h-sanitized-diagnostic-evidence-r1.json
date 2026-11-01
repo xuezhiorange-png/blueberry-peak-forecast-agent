@@ -111,6 +111,16 @@
     },
     "pr781_head": "1e66a9eb283e2aef713f1c137641e648832f17d7"
   },
+  "implementation_ci_followup": {
+    "failed_new_restore_regressions": 3,
+    "failed_original_restore_node": true,
+    "failure_stage": "CLIENT_TOOLCHAIN_PREFLIGHT",
+    "final_ci_client_install": "PENDING",
+    "head": "adba68b20caa20eb69e945264e09fba8088f3cbd",
+    "local_linux_install": "NOT_RUN_MACOS",
+    "root_blocker": "SYNTHETIC_POSTGRES_MATCHING_CLIENT_REQUIRED",
+    "run_id": 41278051834
+  },
   "independent_restore_source_evidence": {
     "file": "src/bin/pg_dump/pg_backup_archiver.c",
     "file_sha256": "30bf6dd038c04090d7d9238304b60a4895d520f3c78c851b6feeb71d29d81e83",
