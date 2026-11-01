@@ -62,3 +62,7 @@
 真实远端 Owner 审查、Required Checks、Branch Protection 和防绕过仍未配置，
 新公开远端 Actions 仍为 NOT_RUN。本轮不授予公开发布权限，不读取真实工作簿、
 SOURCE_002 或业务原件，不重写真实 Git 历史，不 Ready、Merge、发布或部署。
+
+推送前原公开增量门禁曾拒绝本轮验收 JSON 的错误 `data_class=SYNTHETIC_ONLY` 声明。
+该文件仅为验证元数据，不是生成器的数据产品；已纠正为 `report_class=VALIDATION_METADATA_ONLY`。
+原始拒绝记录保留，未修改公开增量门禁、来源准入或任何数据内容。
