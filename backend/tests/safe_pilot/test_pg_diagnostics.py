@@ -196,3 +196,75 @@ def test_only_client_message_locale_is_fixed(monkeypatch):
     assert "LC_ALL" not in environment
     assert "PGCLIENTENCODING" not in environment
     assert "PGOPTIONS" not in environment
+
+
+def test_matching_client_failure_frame_contains_no_environment_or_private_paths(
+    monkeypatch, tmp_path
+):
+    from backend.tests.safe_pilot.pg_tools import client_for_server
+
+    secret = "SYNTHETIC-password-and-private-path"
+    tool = tmp_path / secret / "pg_dump"
+    tool.parent.mkdir()
+    tool.touch()
+    monkeypatch.setattr("shutil.which", lambda name, **_: str(tool))
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            [str(tool)], 0, b"pg_dump (PostgreSQL) 18.1\n" + secret.encode(), secret.encode()
+        ),
+    )
+    with pytest.raises(RuntimeError, match="SYNTHETIC_POSTGRES_MATCHING_CLIENT_REQUIRED") as caught:
+        client_for_server("pg_dump", 160015, {"PGPASSWORD": secret}, ())
+    trace = caught.value.__traceback__
+    while trace and trace.tb_frame.f_code.co_name != "client_for_server":
+        trace = trace.tb_next
+    assert trace is not None
+    assert secret not in repr(trace.tb_frame.f_locals)
+    assert str(tool) not in repr(trace.tb_frame.f_locals)
+
+
+async def test_pg_command_matching_client_preflight_exposes_no_credentials(monkeypatch, tmp_path):
+    from backend.tests.safe_pilot import operations, pg_tools
+
+    secret = "SYNTHETIC-preflight-private-value"
+    for key, value in {
+        "APP_ENV": "test",
+        "POSTGRES_HOST": "127.0.0.1",
+        "POSTGRES_PORT": "60000",
+        "POSTGRES_USER": "SYNTHETIC-test",
+        "POSTGRES_PASSWORD": secret,
+    }.items():
+        monkeypatch.setenv(key, value)
+    closed = []
+
+    class Probe:
+        async def fetchval(self, statement):
+            return 160015
+
+        async def close(self):
+            closed.append(True)
+
+    async def connection(database):
+        return Probe()
+
+    def unavailable(server, environment):
+        assert set(environment) == {"PATH", "LC_MESSAGES"}
+        assert secret not in repr(environment)
+        raise pg_tools.PostgresClientUnavailable()
+
+    monkeypatch.setattr(operations, "connection", connection)
+    monkeypatch.setattr(pg_tools, "toolchain", unavailable)
+    with pytest.raises(pg_tools.PostgresClientUnavailable) as caught:
+        await operations.pg_command(
+            ["pg_restore", "--dbname", "SYNTHETIC", str(tmp_path / secret)],
+            "blueberry_test_auth_" + "a" * 32,
+        )
+    assert closed == [True]
+    trace = caught.value.__traceback__
+    while trace and trace.tb_frame.f_code.co_name != "pg_command":
+        trace = trace.tb_next
+    assert trace is not None and trace.tb_next is None
+    assert secret not in repr(trace.tb_frame.f_locals)
+    assert trace.tb_frame.f_locals["environment"] == {}
