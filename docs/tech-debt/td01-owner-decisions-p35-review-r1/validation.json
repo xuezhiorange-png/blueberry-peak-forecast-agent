@@ -1,0 +1,152 @@
+{
+  "base_main_sha": "fe494971c92f1d951f5acfeb6a70b85a4aff23ac",
+  "file_count": 35,
+  "local_contract_tests": {
+    "errors": 0,
+    "failed": 0,
+    "junit_sha256": "1e2f3f833dfff44a0d6a58222f35145d958724c5dbedb5535582194f60b7204d",
+    "passed": 62,
+    "selection": "all existing public_increment contracts plus three metadata/identity/CI workbook guards",
+    "skipped": 0,
+    "status": "PASS",
+    "stdout_sha256": "01ab11124daf8a18f478f136c764237a81c05cca97f40b822a953b478c85c9d5"
+  },
+  "new_record_checks": {
+    "all_file_admissions": "PASS",
+    "local_links_exist": true,
+    "no_private_local_paths_in_committed_materials": true,
+    "old_pending_records_preserved": true,
+    "only_six_allowlisted_documents": true,
+    "owner_business_approval_statuses": 3,
+    "p35_rows": 35,
+    "publication_flags_all_false": true,
+    "status": "PASS"
+  },
+  "old_pending_records_overwritten": false,
+  "owner_status": {
+    "D02": "OWNER_APPROVED",
+    "D03": "OWNER_APPROVED",
+    "D06": "OWNER_APPROVED"
+  },
+  "p35_file_review": "PASS",
+  "package_publication_authorized": false,
+  "package_rebuilt": false,
+  "package_sha256": "f74c9a618370499769e124661bc105bea08f4114efa091d3b00d7e37d9245fde",
+  "public_increment_text_classifier": {
+    "exact_git_tree_guard_required_before_push": true,
+    "six_metadata_documents_accepted": true,
+    "status": "PASS",
+    "unchanged_guard": true
+  },
+  "read_only_review_checks": [
+    {
+      "check": "latest_main_pinned",
+      "status": "PASS"
+    },
+    {
+      "check": "prior_seal_review/RECEIPT-INTEGRITY.json",
+      "items": 19,
+      "status": "PASS"
+    },
+    {
+      "check": "prior_seal_final-scope-review-r1/REVIEW-INTEGRITY.json",
+      "items": 29,
+      "status": "PASS"
+    },
+    {
+      "check": "prior_matrix_35_unique",
+      "status": "PASS"
+    },
+    {
+      "check": "original_archive_exact_identity",
+      "status": "PASS"
+    },
+    {
+      "check": "exact_safe_archive_membership",
+      "status": "PASS"
+    },
+    {
+      "check": "all_35_archive_directory_matrix_identities",
+      "status": "PASS"
+    },
+    {
+      "check": "frozen_g_catalog_seal",
+      "status": "PASS"
+    },
+    {
+      "check": "exact_git_code_and_sample_provenance",
+      "status": "PASS",
+      "verified_source_files": 33
+    },
+    {
+      "check": "generated_manifest_fixed_derivation",
+      "status": "PASS"
+    },
+    {
+      "check": "local_document_sealed_content",
+      "status": "PASS"
+    },
+    {
+      "check": "prior_full_generator_proof_bound_to_unchanged_five_samples",
+      "p35_regenerated_this_task": false,
+      "status": "PASS"
+    },
+    {
+      "check": "static_dependency_closure_unchanged",
+      "python_files": 21,
+      "status": "PASS"
+    },
+    {
+      "check": "eleven_prior_priority_paths_excluded",
+      "status": "PASS"
+    },
+    {
+      "check": "no_old_git_graph_or_real_workbook_members",
+      "status": "PASS"
+    }
+  ],
+  "real_business_data_read": false,
+  "remote_ci": "OBSERVE_EXACT_FINAL_HEAD_AFTER_DRAFT_PR; NOT_CLAIMED_BY_THIS_PRECOMMIT_RECORD",
+  "report_class": "VALIDATION_METADATA_ONLY",
+  "schema_version": "TD01_P35_VALIDATION_R1",
+  "source_002_read": false,
+  "static_checks": {
+    "format": {
+      "exit_code": 0,
+      "formatted_python_files": 1667,
+      "status": "PASS",
+      "stdout_sha256": "4fec2ee58450667171104720e49150f1be94d327f08e876f2f304c64802498e5"
+    },
+    "mypy": {
+      "argon2_cffi_version_from_main": "25.1.0",
+      "command_scope": "backend/app backend/research",
+      "config_unchanged": true,
+      "earlier_environment_failures_preserved": [
+        {
+          "attempt": "shared-tool-environment",
+          "exit_code": 1,
+          "reason": "main-pinned argon2-cffi absent",
+          "stdout_sha256": "74ade981fb1700f7f9aae4a14a907ff249a836077e196ec9b96984734835e84c"
+        },
+        {
+          "attempt": "MYPYPATH-only overlay",
+          "exit_code": 1,
+          "reason": "native CFFI extension treated as source; normal installed-package environment used instead",
+          "stdout_sha256": "27a6892f970a71c6208bafc1d540069133890580621423f8286ddf19c636368d"
+        }
+      ],
+      "exit_code": 0,
+      "shared_environment_modified": false,
+      "source_files": 645,
+      "status": "PASS",
+      "stdout_sha256": "b935eb35206436eadbbc04b5e7e6c1dccd5918f459c5a668a3b66642e95465f3",
+      "tool_environment": "TASK_OWNED_INSTALLED_DEPENDENCIES_WITH_READONLY_EXISTING_TOOLS"
+    },
+    "ruff": {
+      "exit_code": 0,
+      "status": "PASS",
+      "stdout_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  },
+  "task_id": "TD01_OWNER_DECISIONS_FREEZE_AND_P35_REVIEW_R1"
+}
