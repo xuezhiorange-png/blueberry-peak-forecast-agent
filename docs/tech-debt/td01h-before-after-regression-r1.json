@@ -1,0 +1,324 @@
+{
+  "after_fix_full_security": {
+    "cleanup": {
+      "directory_identity_verified": true,
+      "listener_closed": true,
+      "postmaster_absent": true,
+      "state": "STOPPED",
+      "stop_exit": 0
+    },
+    "errors": 0,
+    "execution_log_sha256": "882b10acdf51a742608664e81a7244eabe3ce517648acf01fa37d8a18c34e97e",
+    "failures": 0,
+    "junit_sha256": "faa688b8346b592c15d0cfa60e355dd9aca30ca093353b06930b30f9c1c9d559",
+    "owned_manifest_sha256": "712cb3cab780b70a96fa712725c0c398319ceee3efbc5475ba4acdd57bfa1bee",
+    "passed": 268,
+    "runner_exit": 0,
+    "shutdown_exit": 0,
+    "skipped": 0
+  },
+  "before_fix": {
+    "cleanup": {
+      "directory_identity_verified": true,
+      "listener_closed": true,
+      "postmaster_absent": true,
+      "state": "STOPPED",
+      "stop_exit": 0
+    },
+    "errors": 0,
+    "execution_log_sha256": "1de87aebdbc38309e9055af397ec9019482bb23fb31beb3f84c34e6190bcd960",
+    "failures": 1,
+    "junit_sha256": "2202214984f01d34228e92fa1ba8c3da909fa62a9feeadcd42413894f28c3a8f",
+    "owned_manifest_sha256": "6944fbc5f5ca6e0359d864dcd279dbf784ac931c7be99d5a1d605a2adacd0895",
+    "passed": 0,
+    "runner_exit": 1,
+    "shutdown_exit": 0,
+    "skipped": 0
+  },
+  "business_quantity_rows_included": false,
+  "ci_client_dependency_fix": {
+    "all_original_ci_lines_preserved": true,
+    "application_dependencies_changed": false,
+    "ci_success_criteria_changed": false,
+    "failed_new_restore_regressions": 3,
+    "failed_original_restore_node": true,
+    "failure_log_sha256": {
+      "canary2": "6fd9a3fd6e72fe02e03c4c993cdbe69448e00106c42dc92db20d6ec77c7f5895",
+      "canary3": "60e58d1d4067482d9fd60cf44cf6d03a36abc8e27f4c4fdf160c1bcb93c325e2"
+    },
+    "failure_stage": "CLIENT_TOOLCHAIN_PREFLIGHT",
+    "final_ci_client_install": "PENDING",
+    "head": "adba68b20caa20eb69e945264e09fba8088f3cbd",
+    "local_ci_contracts_passed": 207,
+    "local_environment_version_regression_passed": 34,
+    "local_linux_install": "NOT_RUN_MACOS",
+    "new_install_step_bash_syntax": "PASS",
+    "no_gate_or_event_matrix_change": true,
+    "official_package_availability": {
+      "available_clients": [
+        {
+          "Architecture": "amd64",
+          "Package": "postgresql-client-16",
+          "Version": "16.15-1.pgdg26.04+2"
+        },
+        {
+          "Architecture": "amd64",
+          "Package": "postgresql-client-16",
+          "Version": "16.14-1.pgdg26.04+1"
+        },
+        {
+          "Architecture": "amd64",
+          "Package": "postgresql-client-16",
+          "Version": "16.13-1.pgdg26.04+2"
+        }
+      ],
+      "metadata_sha256": "1b681fbd603e389cdda99dae98338fe10452807d95afe7663eea663c36476ddc",
+      "metadata_url": "https://apt.postgresql.org/pub/repos/apt/dists/resolute-pgdg/main/binary-amd64/Packages.gz"
+    },
+    "root_blocker": "SYNTHETIC_POSTGRES_MATCHING_CLIENT_REQUIRED",
+    "run_id": 41278051834,
+    "same_sha_rerun": false,
+    "server_install_or_database_migration": false,
+    "workflow_change": "ONE_EXISTING_CANARY_CLIENT_DEPENDENCY_STEP",
+    "workflow_semantics_equal_after_removing_added_step": true
+  },
+  "ci_dependency_contract_commit": "91883db44aabe8e2ff5d1a94b7c465bade89bd18",
+  "ci_success_criteria_changed": false,
+  "earlier_after_fix_full_security": {
+    "cleanup": {
+      "directory_identity_verified": true,
+      "listener_closed": true,
+      "postmaster_absent": true,
+      "state": "STOPPED",
+      "stop_exit": 0
+    },
+    "errors": 0,
+    "execution_log_sha256": "4b87407e187a4f1c7bb0542d2c9187c3401598cd7da070e0c3ab0cb6e47a35a1",
+    "failures": 0,
+    "junit_sha256": "baa461df9b54fd193b69b41efef764306395e877045ecb10bf925549b6f078a9",
+    "owned_manifest_sha256": "9504efb5ad51a433a148230a6a38a33cc5d7c9e398bd0291c954cfdf589072e5",
+    "passed": 266,
+    "runner_exit": 0,
+    "shutdown_exit": 0,
+    "skipped": 0
+  },
+  "earlier_frozen_contracts_and_final_diagnostics": {
+    "failures": 0,
+    "junit_sha256": "dcf260f6d0b974d57c81c4cbbda74f1a6e919367a509a5c54add91eba590f568",
+    "passed": 34
+  },
+  "earlier_td03g_real_driver_lifecycle": {
+    "cleanup": {
+      "directory_identity_verified": true,
+      "listener_closed": true,
+      "postmaster_absent": true,
+      "state": "STOPPED",
+      "stop_exit": 0
+    },
+    "errors": 0,
+    "execution_log_sha256": "dc9c94cbccaa30605b3d0fd5a555323007c9af7ca803d4d0bb75fcc9e7080f60",
+    "failures": 0,
+    "junit_sha256": "9e7f80de7ed00de7de3fd50d5ba54ecbe7db5cf2a1fcba63230a6e25b5736d7c",
+    "owned_manifest_sha256": "1f0ec8919c686f6e47048e2fce48b0feb374860039103c21310dcd06417c9d9a",
+    "passed": 8,
+    "runner_exit": 0,
+    "shutdown_exit": 0,
+    "skipped": 0
+  },
+  "earlier_tested_code_commit": "2328e15b7339cb85dbf57df029276bbcd02880f9",
+  "earlier_workflow_preservation_checks": [
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": true,
+      "path": "backend/tests/safe_pilot/test_restore_and_ingress.py"
+    },
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": true,
+      "path": "backend/tests/local_auth/conftest.py"
+    },
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": true,
+      "path": "backend/tests/safe_pilot/run.py"
+    },
+    {
+      "original_bytes_unchanged": true,
+      "path": ".github/workflows/ci.yml"
+    },
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": false,
+      "path": "backend/tests/forecast_intelligence/test_v0_18_s6_acceptance_contract.py"
+    }
+  ],
+  "evidence_kind": "OWNED_SYNTHETIC_POSTGRES_DIAGNOSTIC_METADATA",
+  "exact_head_ci": "PENDING_AT_COMMIT",
+  "frozen_contracts_and_final_diagnostics": {
+    "failures": 0,
+    "junit_sha256": "74b6d7b4b7a579544db5a7a167c59f528ecc3705d57d64bfb10fb94bef94c119",
+    "passed": 36
+  },
+  "initial_extended_suite": {
+    "cleanup": {
+      "directory_identity_verified": true,
+      "listener_closed": true,
+      "postmaster_absent": true,
+      "state": "STOPPED",
+      "stop_exit": 0
+    },
+    "errors": 0,
+    "execution_log_sha256": "77f78f8fa2fcf29760ad2ebc9be13f529d4ff295fa314b1183038d607597ac1c",
+    "failures": 1,
+    "junit_sha256": "00a6793e01bf31aba71323de8383b28d557bd43116aa813e08a4f2a32b3a1438",
+    "owned_manifest_sha256": "b687e8c9a4769755a06ced3bf16f0587b71acd6236169e2f7c8a23e64003620d",
+    "passed": 261,
+    "runner_exit": 1,
+    "shutdown_exit": 0,
+    "skipped": 0
+  },
+  "old_skip_reasons_changed": false,
+  "original_ci_workflow_changed": true,
+  "original_historical_evidence_changed": false,
+  "original_test_assertions_changed": false,
+  "owned_runner_cleanup_inventory": [
+    {
+      "cleanup_state": "STOPPED",
+      "evidence_name": "SYNTHETIC-after-targeted",
+      "exit": 0,
+      "manifest_sha256": "bc4ad5baef3f1caf1bbf486e3ed25fe1b88c69680b2cdfc2c0327f935c1afce4"
+    },
+    {
+      "cleanup_state": "STOPPED",
+      "evidence_name": "SYNTHETIC-before",
+      "exit": 1,
+      "manifest_sha256": "6944fbc5f5ca6e0359d864dcd279dbf784ac931c7be99d5a1d605a2adacd0895"
+    },
+    {
+      "cleanup_state": "STOPPED",
+      "evidence_name": "SYNTHETIC-final-lifecycle",
+      "exit": 0,
+      "manifest_sha256": "e65e150a345fe1558d37ee32a400a778d6f289a68dd4cdf5a8c7bb0dcfcc9934"
+    },
+    {
+      "cleanup_state": "STOPPED",
+      "evidence_name": "SYNTHETIC-final-security",
+      "exit": 0,
+      "manifest_sha256": "9504efb5ad51a433a148230a6a38a33cc5d7c9e398bd0291c954cfdf589072e5"
+    },
+    {
+      "cleanup_state": "STOPPED",
+      "evidence_name": "SYNTHETIC-full-security",
+      "exit": 1,
+      "manifest_sha256": "b687e8c9a4769755a06ced3bf16f0587b71acd6236169e2f7c8a23e64003620d"
+    },
+    {
+      "cleanup_state": "STOPPED",
+      "evidence_name": "SYNTHETIC-lifecycle",
+      "exit": 0,
+      "manifest_sha256": "1f0ec8919c686f6e47048e2fce48b0feb374860039103c21310dcd06417c9d9a"
+    },
+    {
+      "cleanup_state": "STOPPED",
+      "evidence_name": "SYNTHETIC-matrix",
+      "exit": 1,
+      "manifest_sha256": "99335eeec89fb822d0240ae0ea32597c157b7f77b0b82b42acaeb6c41e6f50f9"
+    },
+    {
+      "cleanup_state": "STOPPED",
+      "evidence_name": "SYNTHETIC-matrix-configured",
+      "exit": 1,
+      "manifest_sha256": "247e169501ca9eb68da946fc2ab826b5e07bdd312cb8a63a519095556fd4c589"
+    },
+    {
+      "cleanup_state": "STOPPED",
+      "evidence_name": "SYNTHETIC-matrix-uncompressed",
+      "exit": 0,
+      "manifest_sha256": "d334971fc2be33f2c3ef35363b4095db4984e2e319f08d6ac84c0e1e53f68698"
+    },
+    {
+      "cleanup_state": "STOPPED",
+      "evidence_name": "SYNTHETIC-preflight-final-security",
+      "exit": 0,
+      "manifest_sha256": "712cb3cab780b70a96fa712725c0c398319ceee3efbc5475ba4acdd57bfa1bee"
+    }
+  ],
+  "pr781_modified": false,
+  "preflight_failure_redaction": {
+    "after_diagnostic_tests_passed": 22,
+    "after_log_sha256": "31d7a7543f29b08db6836b2c8a4ca306d16fa414a038bd5b022f24e8f1ccdeec",
+    "before_log_sha256": "603f64f381dd940764513b8cabe39f0ecd7b4faee979b5fd79f3a51cd919fa32",
+    "before_test_failed": true,
+    "credentials_given_to_version_probes": false,
+    "probe_connection_close_verified": true,
+    "proof_includes_worker_frame_removal": true
+  },
+  "preservation_checks": [
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": true,
+      "path": "backend/tests/safe_pilot/test_restore_and_ingress.py"
+    },
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": true,
+      "path": "backend/tests/local_auth/conftest.py"
+    },
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": true,
+      "path": "backend/tests/safe_pilot/run.py"
+    },
+    {
+      "original_assertions_unchanged": true,
+      "original_bytes_unchanged": false,
+      "path": "backend/tests/forecast_intelligence/test_v0_18_s6_acceptance_contract.py"
+    }
+  ],
+  "real_database_accessed": false,
+  "real_workbooks_read": false,
+  "related_local_auth_mcp_forecast_contracts": {
+    "deselected": 70,
+    "failures": 0,
+    "junit_sha256": "a5efae0546c56f169cc45cb812614271e4fe1fcf9bfa6a7e045a345d1e4a8ff9",
+    "passed": 1345
+  },
+  "skip_xfail_or_blind_retries_added": false,
+  "static_checks": {
+    "format": "PASS",
+    "mypy_source_files": 643,
+    "ruff": "PASS",
+    "strict_mypy": "PASS"
+  },
+  "superseded_ci": {
+    "conclusion": "cancelled",
+    "event": "pull_request",
+    "head_sha": "1110c40958053489a0a347b82977d5effc010b5f",
+    "id": 41277279697,
+    "reason": "PROVEN_PREFLIGHT_REDACTION_FIX_REQUIRED_NEW_CODE_HEAD",
+    "run_attempt": 1,
+    "status": "completed"
+  },
+  "synthetic_source_registration_or_publication_clearance_claimed": false,
+  "task_id": "BLUEBERRY_TD01H_SAFE_PILOT_POSTGRES_RESTORE_ROOT_CAUSE_R1",
+  "td03g_real_driver_lifecycle": {
+    "cleanup": {
+      "directory_identity_verified": true,
+      "listener_closed": true,
+      "postmaster_absent": true,
+      "state": "STOPPED",
+      "stop_exit": 0
+    },
+    "errors": 0,
+    "execution_log_sha256": "dcd945eecf3866120441ddb18d0c2c3063a1555fa170e54fc9e6f63a1da10162",
+    "failures": 0,
+    "junit_sha256": "851f2150b58ea153b475b2dbe637b0ac9e82bb9d02023cd40a12291fde0bd598",
+    "owned_manifest_sha256": "e65e150a345fe1558d37ee32a400a778d6f289a68dd4cdf5a8c7bb0dcfcc9934",
+    "passed": 8,
+    "runner_exit": 0,
+    "shutdown_exit": 0,
+    "skipped": 0
+  },
+  "tested_code_commit": "5b444af08a9117f6f5076786ca731abacee78bf1",
+  "tests_deleted": false
+}
