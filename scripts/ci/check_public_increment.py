@@ -68,6 +68,13 @@ def _git(repo: Path, *args: str) -> bytes:
 def tree(repo: Path, ref: str) -> dict[str, tuple[str, str]]:
     if ref != "HEAD" and re.fullmatch(r"[0-9a-f]{40}", ref) is None:
         raise ValueError("EXPLICIT_GIT_IDENTITY_REQUIRED")
+    if ref == BASELINE:
+        from backend.app.core.rewritten_history import HistoryLocationError, resolve
+
+        try:
+            ref = resolve(repo, ref, role="BASELINE")
+        except HistoryLocationError as error:
+            raise ValueError(str(error)) from error
     oid = _git(repo, "rev-parse", "--verify", ref + "^{tree}").decode().strip()
     result = {}
     for entry in _git(repo, "ls-tree", "--full-tree", "-r", "-z", oid).split(b"\0"):

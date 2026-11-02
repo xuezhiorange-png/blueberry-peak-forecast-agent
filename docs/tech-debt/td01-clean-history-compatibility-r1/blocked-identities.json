@@ -1,0 +1,260 @@
+{
+  "entries": [
+    {
+      "consumer_group": "EXISTING_UNADMITTED_TEST",
+      "original_commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "path": "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py",
+      "status": "BLOCKED_NO_MATCHING_INDEPENDENT_AUTHORITY"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_r1.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "reader_test_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_r1.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_obtain.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_obtain.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_bind.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_run_sync_query.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_query.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/incumbent_forecast_daily_curve_live_obtain.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/live_accepted_s2_train_val_actuals_source.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_run_sync.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_connection.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/s3_a2_live_catalog_execution.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "runtime_ast_sources",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/app/forecast_quality/train_val_pairing_materialization_live_async.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    },
+    {
+      "consumer_group": "controlled_diagnostic_source",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "path": "backend/tests/integration/test_asyncpg_resource_lifecycle.py",
+      "status": "BLOCKED_NOT_IN_REVIEWED_IDENTITY_CATALOG"
+    }
+  ],
+  "matching_existing_post_td03g_hashes_for_requested_old_runtime_and_diagnostic_sources": "0/15",
+  "publication_authorized": false,
+  "scope": "Targeted failed-consumer code identities only; no historical data scan or new source clearance.",
+  "task_id": "TD01_CLEAN_HISTORY_COMPATIBILITY_FIX_R1"
+}
