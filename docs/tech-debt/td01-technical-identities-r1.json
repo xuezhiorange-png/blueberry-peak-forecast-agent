@@ -1,0 +1,57 @@
+{
+  "entries": [
+    {
+      "independent_authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "696c72eeee06046d761d76a919b21ac374eb7f86e22d6639c21e97f660120fab",
+        "field": [
+          "source_evidence_sha256",
+          ".github/workflows/ci.yml"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "ba39349668d7db5f3f2893455357b8b993d3bf08",
+      "original_source_sha256": "696c72eeee06046d761d76a919b21ac374eb7f86e22d6639c21e97f660120fab",
+      "repository_relative_path": ".github/workflows/ci.yml",
+      "source_class": "TECHNICAL_FILE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json",
+        "expected_sha256": "3fa58e6bfb946b9714a29f6263d92acc659f2d871155ee542aba85c52ab8f764",
+        "field": [
+          "source_evidence_sha256",
+          "pyproject.toml"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "df672f11a28e0a49ceed46454d496cdebe8f0612",
+      "original_source_sha256": "3fa58e6bfb946b9714a29f6263d92acc659f2d871155ee542aba85c52ab8f764",
+      "repository_relative_path": "pyproject.toml",
+      "source_class": "TECHNICAL_FILE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    },
+    {
+      "independent_authority": {
+        "document": "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json",
+        "expected_sha256": "91cd8c9d1678e8b505c4ff10c6275ca630e026c45c2210b0879ed4fc34ec0218",
+        "field": [
+          "source_evidence_sha256",
+          "uv.lock"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "8f97a9557ea1bc2e41863a3efb3e917c658f9c84",
+      "original_source_sha256": "91cd8c9d1678e8b505c4ff10c6275ca630e026c45c2210b0879ed4fc34ec0218",
+      "repository_relative_path": "uv.lock",
+      "source_class": "TECHNICAL_FILE",
+      "verification_status": "VERIFIED_EXISTING_SHA256"
+    }
+  ],
+  "schema_version": "TD01_TECHNICAL_IDENTITY_R1",
+  "scope": "EXPLICIT_TECHNICAL_FILES_ONLY_NOT_BUSINESS_OR_PUBLICATION_AUTHORITY"
+}
