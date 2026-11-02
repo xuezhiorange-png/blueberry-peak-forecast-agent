@@ -288,7 +288,9 @@ def test_original_assertions_test_identities_and_hash_literals_are_unchanged():
 
 def test_ci_still_requires_original_commit_and_baseline_scope_is_not_replaced():
     ci = (identity.ROOT / ".github/workflows/ci.yml").read_text()
-    assert ci.count("git cat-file -e 320f2046e3105b1b55da9cb037892571110b584a^{commit}") == 3
+    assert ci.count("python -B -m backend.app.core.historical_code_identity preflight") == 3
+    assert identity.preflight()["original_commit"] == "320f2046e3105b1b55da9cb037892571110b584a"
+    assert identity.preflight()["original_blob_and_sha256_verified"] is True
     from scripts.ci.check_public_increment import BASELINE
 
     assert BASELINE == "e2d0ffa233483821e4fed3d429e317510dfcfcc1"
