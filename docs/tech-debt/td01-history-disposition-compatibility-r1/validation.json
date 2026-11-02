@@ -1,0 +1,131 @@
+{
+  "base_main_sha": "0118d82c8a0aa14f17fb37f56faeb6ed134698cf",
+  "blocked_scope_checks": {
+    "body_read": false,
+    "compressed_paths_rejected": 5,
+    "explicit_unadmitted_identities_rejected": 4,
+    "non_code_paths_rejected": 222
+  },
+  "current_history": {
+    "arbitrary_fallback_allowed": false,
+    "catalog_sha256": "80c60fe1b35204a8f3a819e3b84dd1ca3f2c469b7a71811b282c45ca3cbd6193",
+    "data_or_publication_authority_granted": false,
+    "identity_count": 65,
+    "mode": "CURRENT_HISTORY",
+    "original_code_bytes_unchanged": true,
+    "original_expected_sha256_unchanged": true,
+    "real_history_rewrite_ready": false,
+    "result_sha256": "1364b12cec6cd65f4ca9597c061d619b847693d1673cd78501d6448319c9105e",
+    "verified_git_blob_identity": true
+  },
+  "custody_details": "UNCONFIRMED",
+  "existing_contract_tests": {
+    "errors": 0,
+    "failed": 0,
+    "junit_sha256": "ed94bf38f932633893ede54edf94d7a9ad82e4292e03ebcd652810d2d0d0196b",
+    "passed": 115,
+    "selected_files": [
+      "backend/tests/ci/test_historical_code_identity.py",
+      "backend/tests/local_auth/test_historical_source.py",
+      "backend/tests/test_td03f_historical_fixture_contract.py",
+      "backend/tests/test_td03g_historical_compatibility.py",
+      "backend/tests/ci/test_public_increment.py"
+    ],
+    "skipped": 0
+  },
+  "existing_files_changed": false,
+  "full_history_runtime_compatibility": "BLOCKED",
+  "new_PR_exact_head_CI": "REPORTED_SEPARATELY_NOT_PREFILLED",
+  "new_policy_statuses": {
+    "D01": "OWNER_POLICY_APPROVED",
+    "D07": "OWNER_POLICY_APPROVED",
+    "D08": "OWNER_POLICY_APPROVED",
+    "D09": "OWNER_POLICY_APPROVED"
+  },
+  "new_record_validation": {
+    "checks": [
+      "json_parse_and_local_links",
+      "exact_owner_policy_statuses",
+      "custody_fields_unconfirmed",
+      "implementation_and_publication_flags_false",
+      "prior_input_hashes_preserved",
+      "65_and_222_reconcile"
+    ],
+    "file_count": 5,
+    "status": "PASS"
+  },
+  "new_remote_repository_created": false,
+  "non_code_compatibility": "BLOCKED",
+  "old_pending_records_overwritten": false,
+  "only_five_new_documents": true,
+  "ordered_operations": [
+    "python -m backend.app.core.historical_code_identity verify",
+    "python -m backend.app.core.historical_code_identity rehearse"
+  ],
+  "owned_code_rehearsal": {
+    "arbitrary_fallback_allowed": false,
+    "catalog_sha256": "80c60fe1b35204a8f3a819e3b84dd1ca3f2c469b7a71811b282c45ca3cbd6193",
+    "data_or_publication_authority_granted": false,
+    "identity_count": 65,
+    "mode": "CLEAN_GRAPH_REHEARSAL",
+    "old_commits_present": 0,
+    "original_code_bytes_unchanged": true,
+    "original_expected_sha256_unchanged": true,
+    "real_history_rewrite_ready": false,
+    "registered_code_blobs_only": true,
+    "result_sha256": "bf4d86d4fb3261ab5a3180e40b729b2875073ec47c7f27e3c02eb55c2398d5cc",
+    "synthetic_git_commit": "ea77158efdf68c91907d367472760af526996d2c",
+    "synthetic_git_tree": "325e8ae52b49b741d339b6079ae6fb9969bd6384",
+    "verified_git_blob_identity": true
+  },
+  "p35_rebuilt_or_uploaded": false,
+  "predecessor": {
+    "jobs_failed": 0,
+    "jobs_skipped": 8,
+    "jobs_success": 8,
+    "main_ci_attempt": 1,
+    "main_ci_conclusion": "success",
+    "main_ci_event": "push",
+    "main_ci_run": 41375181391,
+    "main_ci_status": "completed",
+    "merge_commit": "0118d82c8a0aa14f17fb37f56faeb6ed134698cf",
+    "merged": true,
+    "pr_head": "ca195a1899d7e99b9966a468b6141f99c39f499d",
+    "td01i_pr": 783
+  },
+  "quality_checks": {
+    "mypy": {
+      "log_sha256": "0b007e2d4514100d1338da4c29fc0752afa4f486ba546eec8bf4887827db2630",
+      "status": "PASS"
+    },
+    "ruff": {
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "status": "PASS"
+    },
+    "ruff_format": {
+      "log_sha256": "b4453ac9855dda7e24ed023c14ebe6710ca2e4849f07064eeba31ffeec990df1",
+      "status": "PASS"
+    }
+  },
+  "real_history_modified": false,
+  "real_model_recalculation_performed": false,
+  "real_workbook_content_read": false,
+  "report_class": "VALIDATION_METADATA_ONLY",
+  "schema_version": "TD01_HISTORY_COMPATIBILITY_VALIDATION_R1",
+  "scope": "APPROVED_CODE_IDENTITY_REHEARSAL",
+  "source_002_content_read": false,
+  "status": "PARTIAL",
+  "tag_release_modified": false,
+  "task_id": "TD01_HISTORY_DISPOSITION_DECISIONS_AND_COMPATIBILITY_R1",
+  "unchanged_public_increment_guard": {
+    "baseline": "e2d0ffa233483821e4fed3d429e317510dfcfcc1",
+    "candidate_new_documents": 5,
+    "changed_paths_since_guard_baseline": 100,
+    "raw_assets_opened": false,
+    "status": "PASS"
+  },
+  "workbook_distribution_guard": {
+    "status": "PASS",
+    "workbook_content_read": false
+  }
+}

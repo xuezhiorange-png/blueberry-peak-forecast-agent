@@ -1,0 +1,127 @@
+{
+  "approved_code_identity_count": 65,
+  "base_main_sha": "0118d82c8a0aa14f17fb37f56faeb6ed134698cf",
+  "code_commit_groups": [
+    {
+      "current_history": "PASS",
+      "identities": 15,
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "owned_code_rehearsal": "PASS",
+      "real_graph_adapter": "BLOCKED_NON_CODE_AND_UNREGISTERED_DEPENDENCIES"
+    },
+    {
+      "current_history": "PASS",
+      "identities": 31,
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "owned_code_rehearsal": "PASS",
+      "real_graph_adapter": "BLOCKED_NON_CODE_AND_UNREGISTERED_DEPENDENCIES"
+    },
+    {
+      "current_history": "PASS",
+      "identities": 2,
+      "original_commit_sha": "89641834ab7a0bd902a23f9243325da5c163d518",
+      "owned_code_rehearsal": "PASS",
+      "real_graph_adapter": "BLOCKED_NON_CODE_AND_UNREGISTERED_DEPENDENCIES"
+    },
+    {
+      "current_history": "PASS",
+      "identities": 16,
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "owned_code_rehearsal": "PASS",
+      "real_graph_adapter": "BLOCKED_NON_CODE_AND_UNREGISTERED_DEPENDENCIES"
+    },
+    {
+      "current_history": "PASS",
+      "identities": 1,
+      "original_commit_sha": "f151f0e6aca3577c5ee959a220c16e9756179649",
+      "owned_code_rehearsal": "PASS",
+      "real_graph_adapter": "BLOCKED_NON_CODE_AND_UNREGISTERED_DEPENDENCIES"
+    }
+  ],
+  "compressed_assets_excluded": 5,
+  "explicit_unadmitted_identities": [
+    {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "path": "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py",
+      "reason": "UNREGISTERED_CODE_IDENTITY",
+      "status": "BLOCKED"
+    },
+    {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "path": "pyproject.toml",
+      "reason": "NON_CODE_PATH_NOT_ADMITTED",
+      "status": "BLOCKED"
+    },
+    {
+      "commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "path": "uv.lock",
+      "reason": "NON_CODE_PATH_NOT_ADMITTED",
+      "status": "BLOCKED"
+    },
+    {
+      "commit": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "path": ".github/workflows/ci.yml",
+      "reason": "NON_CODE_PATH_NOT_ADMITTED",
+      "status": "BLOCKED"
+    }
+  ],
+  "formal_model_recalculation": "NOT_RUN_NO_NEW_SOURCE_OR_TRAINING_AUTHORITY",
+  "full_runtime_compatibility": "BLOCKED_NON_CODE_AND_UNREGISTERED_DEPENDENCIES",
+  "identity_coverage": "ALL_ENTRIES_OF_UNCHANGED_TD01E_CATALOG",
+  "non_code_dependencies_remaining": 222,
+  "non_code_status_groups": [
+    {
+      "compatibility_status": "BLOCKED",
+      "count": 11,
+      "dependency_class": "CONFIGURATION_NOT_ADMITTED",
+      "reason": "NON_CODE_PATH_NOT_ADMITTED"
+    },
+    {
+      "compatibility_status": "BLOCKED",
+      "count": 209,
+      "dependency_class": "FROZEN_REPORT_OR_EVIDENCE_NOT_ADMITTED",
+      "reason": "NON_CODE_PATH_NOT_ADMITTED"
+    },
+    {
+      "compatibility_status": "BLOCKED",
+      "count": 2,
+      "dependency_class": "ORIGINAL_DATA_DO_NOT_READ",
+      "reason": "NON_CODE_PATH_NOT_ADMITTED"
+    }
+  ],
+  "original_consumer_inventory": {
+    "historical_source_consumers": 112,
+    "inventory_base": "38df347543c37315d5802e168afdc2eb9db4486b",
+    "is_complete_current_main_reinventory": false,
+    "total": 174
+  },
+  "public_increment_baseline": {
+    "business_policy_approval_does_not_implement_baseline_migration": true,
+    "changed": false,
+    "commit": "e2d0ffa233483821e4fed3d429e317510dfcfcc1",
+    "original_pending_record_preserved": true
+  },
+  "real_history_rehearsal": "BLOCKED_CUSTODY_AND_EXACT_SCOPE_UNCONFIRMED",
+  "real_history_rewrite_ready": false,
+  "report_class": "VALIDATION_METADATA_ONLY",
+  "reused_inputs": {
+    "docs/tech-debt/td01e-code-identities-r1.json": {
+      "git_blob_oid": "29aa668035b24812323665d67d9fdb57d2f037d3",
+      "sha256": "80c60fe1b35204a8f3a819e3b84dd1ca3f2c469b7a71811b282c45ca3cbd6193"
+    },
+    "docs/tech-debt/td01e-historical-consumers-r1.json": {
+      "git_blob_oid": "b5b30417265cdb7deeb560b2fb36959a03f6311e",
+      "sha256": "5edb6674556988459b4b6708e3c420a03035eaf9a7a35ba80951d0e54fc918a6"
+    },
+    "docs/tech-debt/td01e-original-assertions-r1.json": {
+      "git_blob_oid": "f83ca01e8a1123d06edd6a5a34f51657bcde453e",
+      "sha256": "7d878e90e384161ec408b6e8c860d6320cb0ab11c40aeb32caa6835d61b76802"
+    },
+    "docs/tech-debt/td01e-unresolved-historical-dependencies-r1.json": {
+      "git_blob_oid": "41a174a008e0956448621b0d770f34c1a0bc675e",
+      "sha256": "7d94a44522597d952c5e9ea351f81d353a2b048e51e3579f45330da1adb16d7b"
+    }
+  },
+  "schema_version": "TD01_HISTORY_CODE_COMPATIBILITY_CHECKLIST_R1",
+  "task_id": "TD01_HISTORY_DISPOSITION_DECISIONS_AND_COMPATIBILITY_R1"
+}
