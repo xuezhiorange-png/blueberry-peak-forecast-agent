@@ -1,0 +1,76 @@
+{
+  "allowed_this_task": [
+    "new_versioned_policy_records",
+    "reuse_existing_code_identity_tools",
+    "approved_code_and_synthetic_git_graph_validation",
+    "related_existing_contract_tests",
+    "necessary_documents_commit_push_and_separate_Draft_PR"
+  ],
+  "approval_scope": "POLICY_PRINCIPLES_AND_APPROVED_CODE_COMPATIBILITY_PREPARATION_ONLY",
+  "authority": {
+    "date_precision": "DAY",
+    "effective_from": "THIS_OWNER_INSTRUCTION",
+    "instruction_date": "2026-11-02",
+    "kind": "EXPLICIT_OWNER_INSTRUCTION_IN_THIS_TASK",
+    "timezone": "Asia/Shanghai"
+  },
+  "base_main_sha": "0118d82c8a0aa14f17fb37f56faeb6ed134698cf",
+  "custody_details": {
+    "access_scope": null,
+    "custodian": null,
+    "operation_record_fields": [
+      "authorization_reference",
+      "operator",
+      "object_identity",
+      "action",
+      "timestamp",
+      "result",
+      "recovery_acceptance_reference"
+    ],
+    "operation_record_responsible_and_location": null,
+    "real_data_operations_ready": false,
+    "recovery_responsible": null,
+    "retention_period": null,
+    "status": "UNCONFIRMED",
+    "storage_location": null
+  },
+  "decisions": {
+    "D01": {
+      "owner_statement": "两份历史 XLS 按真实业务数据管理，不授予公开发布许可。",
+      "status": "OWNER_POLICY_APPROVED"
+    },
+    "D07": {
+      "owner_statement": "五份未确认来源的压缩资产继续排除在公开交付范围之外，等待独立来源核实。",
+      "status": "OWNER_POLICY_APPROVED"
+    },
+    "D08": {
+      "owner_statement": "先验证历史代码身份兼容性，再开展隔离预演。真实 Git 历史调整、Tag/Release 处理必须分别获得后续授权。",
+      "status": "OWNER_POLICY_APPROVED"
+    },
+    "D09": {
+      "owner_statement": "建立真实数据独立保管、权限控制、操作记录和恢复机制。具体保管人、保管位置、访问范围、保存期限仍需确认。",
+      "status": "OWNER_POLICY_APPROVED"
+    }
+  },
+  "not_authorized": [
+    "real_XLS_or_SOURCE_002_body_read",
+    "real_data_custody_move_or_backup",
+    "real_history_rewrite",
+    "preexisting_branch_tag_or_release_change",
+    "model_or_frozen_evidence_change",
+    "P35_upload",
+    "new_remote_repository",
+    "ready_merge_release_deploy"
+  ],
+  "original_repository_visibility": "PUBLIC",
+  "p35_publication_authorized": false,
+  "prior_business_scope_record": "../td01-owner-decisions-p35-review-r1/owner-decisions.json",
+  "real_history_adjustment_authorized": false,
+  "record_class": "OWNER_POLICY_DECISION",
+  "release_handling_authorized": false,
+  "repository": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "schema_version": "TD01_HISTORY_DISPOSITION_OWNER_POLICY_R1",
+  "supersedes_old_pending_in_place": false,
+  "tag_handling_authorized": false,
+  "task_id": "TD01_HISTORY_DISPOSITION_DECISIONS_AND_COMPATIBILITY_R1"
+}
