@@ -14,7 +14,9 @@ import subprocess
 from pathlib import Path, PurePosixPath
 
 from backend.app.core.historical_code_identity import (
+    historical_revision,
     read_code,
+    read_compatibility_metadata,
     read_technical_history,
     registered,
     technical_registered,
@@ -97,6 +99,9 @@ def historical_bytes(relative: str, commit: str, *, root: Path = ROOT) -> bytes:
     # still require the exact original Commit; no arbitrary graph fallback.
     if registered(commit, relative):
         return read_code(commit, relative, repo=root)
+    metadata = read_compatibility_metadata(commit, relative, repo=root)
+    if metadata is not None:
+        return metadata
     exists = subprocess.run(
         ["git", "cat-file", "-e", commit + "^{commit}"],
         cwd=root,
@@ -104,7 +109,15 @@ def historical_bytes(relative: str, commit: str, *, root: Path = ROOT) -> bytes:
         check=False,
     )
     if exists.returncode:
-        raise AssertionError("Required historical commit unavailable")
+        try:
+            historical_revision(commit, relative, repo=root)
+        except AssertionError as error:
+            raise AssertionError("Required historical commit unavailable") from error
+        # The exact logical version is known, but that does not approve another
+        # path or permit reading its Blob. Preserve source-unavailable rejection.
+        raise AssertionError(
+            "Required historical source unavailable: independent identity required"
+        )
     result = subprocess.run(
         ["git", "show", commit + ":" + relative],
         cwd=root,

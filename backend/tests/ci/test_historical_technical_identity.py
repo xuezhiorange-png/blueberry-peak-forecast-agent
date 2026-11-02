@@ -38,7 +38,7 @@ def technical_graph():
         expected = json.loads((identity.ROOT / authority).read_bytes())["source_evidence_sha256"][
             path
         ]
-        raw = identity._git(identity.ROOT, "show", commit + ":" + path)
+        raw = identity.read_technical(commit, path)
         assert hashlib.sha256(raw).hexdigest() == expected
         originals[commit, path] = raw
     with identity.isolated_code_repository() as repo:
@@ -98,7 +98,8 @@ def test_owned_graph_contains_only_three_technical_blobs_and_no_old_history(tech
 def test_old_commit_contamination_is_not_silently_accepted(technical_graph):
     repo, _, _ = technical_graph
     commit, path, _ = CASES[0]
-    metadata = identity._git(identity.ROOT, "cat-file", "commit", commit)
+    revision = identity.historical_revision(commit, path)
+    metadata = identity._git(identity.ROOT, "cat-file", "commit", revision)
     identity._git(repo, "hash-object", "-t", "commit", "-w", "--stdin", data=metadata)
     with pytest.raises(identity.CodeIdentityError, match="REHEARSAL_OLD_COMMIT_PRESENT"):
         historical_source.historical_bytes(path, commit, root=repo)

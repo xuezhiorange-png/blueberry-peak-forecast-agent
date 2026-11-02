@@ -1,7 +1,7 @@
 """Read exact reviewed code and scoped technical identities; never recover data.
 
-CURRENT_HISTORY still requires the original Commit+Path. The Blob-only mode is
-restricted to disposable repositories created in this process by this module.
+CURRENT_HISTORY verifies original Commit+Path or its sealed, reviewed rewrite
+locator. The Blob-only mode remains restricted to this process's repositories.
 The catalog seal is a code-review trust root, not a caller-supplied approval.
 """
 
@@ -21,6 +21,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path, PurePosixPath
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
 CATALOG_FILE = ROOT / "docs/tech-debt/td01e-code-identities-r1.json"
@@ -35,6 +36,7 @@ _TECHNICAL_PAIRS = frozenset(
     }
 )
 _CONTROLLED: dict[Path, str] = {}
+_CURRENT_REVISIONS: dict[Path, dict[tuple[str, str], str]] = {}
 _CODE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx", ".css", ".sh"}
 
 
@@ -160,6 +162,7 @@ def _run(repo: Path, *args: str, data: bytes | None = None) -> subprocess.Comple
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     env.update(
         GIT_NO_LAZY_FETCH="1",
+        GIT_NO_REPLACE_OBJECTS="1",
         GIT_OPTIONAL_LOCKS="0",
         GIT_TERMINAL_PROMPT="0",
         GIT_CONFIG_NOSYSTEM="1",
@@ -225,12 +228,21 @@ def read_code(
     return _read_identity(entry, repo=repo, mode=mode)
 
 
-def _read_identity(entry: Identity, *, repo: Path, mode: Mode, technical: bool = False) -> bytes:
+def _read_identity(
+    entry: Identity, *, repo: Path, mode: Mode, technical: bool = False, role: str = "SOURCE"
+) -> bytes:
+    from backend.app.core import rewritten_history
+
     commit, path = entry.commit, entry.path
     kind = _type(repo, commit)
     if mode == Mode.CURRENT_HISTORY:
-        if kind != "commit":
-            raise CodeIdentityError("HISTORICAL_COMMIT_UNAVAILABLE")
+        if role == "METADATA":
+            try:
+                commit = rewritten_history.resolve(repo, commit, role=role)
+            except rewritten_history.HistoryLocationError as error:
+                raise CodeIdentityError(str(error)) from error
+        else:
+            commit = historical_revision(commit, path, repo=repo)
         tree = _git(repo, "ls-tree", "-z", commit, "--", path).split(b"\0")
         records = [item.split(b"\t", 1) for item in tree if item]
         if len(records) != 1 or records[0][1].decode() != path:
@@ -241,7 +253,10 @@ def _read_identity(entry: Identity, *, repo: Path, mode: Mode, technical: bool =
             raise CodeIdentityError("CODE_OBJECT_TYPE_MISMATCH")
         if metadata[2] != entry.blob:
             raise CodeIdentityError("CODE_PATH_BLOB_MISMATCH")
-    elif kind is not None:
+    elif kind is not None or (
+        (mapped := rewritten_history.mapped_revision(commit)) is not None
+        and _type(repo, mapped) is not None
+    ):
         raise CodeIdentityError("REHEARSAL_OLD_COMMIT_PRESENT")
     if _type(repo, entry.blob) != "blob":
         raise CodeIdentityError("CODE_BLOB_UNAVAILABLE")
@@ -251,6 +266,43 @@ def _read_identity(entry: Identity, *, repo: Path, mode: Mode, technical: bool =
     if hashlib.sha256(raw).hexdigest() != entry.sha256:
         raise CodeIdentityError("ORIGINAL_SOURCE_SHA256_MISMATCH")
     return raw
+
+
+def historical_revision(commit: str, path: str, *, repo: Path = ROOT) -> str:
+    """Locate an exact approved source; fixture capabilities cannot be self-minted."""
+    from backend.app.core import rewritten_history
+
+    if _CONTROLLED.get(repo.resolve()) == "CURRENT_FIXTURE":
+        revision = _CURRENT_REVISIONS.get(repo.resolve(), {}).get((commit, path))
+        if revision is not None:
+            return revision
+    try:
+        return rewritten_history.resolve(repo, commit)
+    except rewritten_history.HistoryLocationError as error:
+        raise CodeIdentityError(str(error)) from error
+
+
+def read_compatibility_metadata(commit: str, path: str, *, repo: Path = ROOT) -> bytes | None:
+    """Two exact technical records, each bound by an unchanged frozen Hash field."""
+    from backend.app.core import rewritten_history
+
+    row = rewritten_history.metadata_identity(commit, path)
+    if row is None:
+        return None
+    authority: Any = json.loads((ROOT / row["authority_document"]).read_bytes())
+    expected: Any = authority
+    bound_commit: Any = authority
+    for field in row["authority_hash_field"]:
+        expected = expected[field]
+    for field in row["authority_commit_field"]:
+        bound_commit = bound_commit[field]
+    if expected != row["sha256"] or bound_commit != commit:
+        raise CodeIdentityError("ORIGINAL_EXPECTED_SHA256_CHANGED")
+    # Reuse the exact existing Blob/type/SHA chain; no repository is relabelled.
+    entry = Identity(commit, path, row["blob"], row["sha256"], "TECHNICAL_METADATA")
+    return _read_identity(
+        entry, repo=repo, mode=Mode.CURRENT_HISTORY, technical=True, role="METADATA"
+    )
 
 
 def read_technical(
@@ -299,8 +351,8 @@ def read_technical(
 
 
 def read_technical_history(commit: str, path: str, *, repo: Path = ROOT) -> bytes:
-    # The original consumer may use a process-owned graph; an ordinary repo
-    # still requires its exact old Commit. Missing history never selects fallback.
+    # Only process-owned graphs may select Blob-only mode. Ordinary rewritten
+    # history must satisfy the separate sealed exact-Commit locator contract.
     mode = (
         Mode.CLEAN_GRAPH_REHEARSAL
         if _CONTROLLED.get(repo.resolve()) == "REHEARSAL"
@@ -325,16 +377,18 @@ def isolated_code_repository() -> Iterator[Path]:
 
 @contextmanager
 def current_code_fixture(commit: str, path: str, *, source: Path = ROOT) -> Iterator[Path]:
-    """Seed only authorized code plus its exact Commit/Tree METADATA.
+    """Seed only authorized code plus its resolved Commit/Tree METADATA.
 
     Replaces a full-history local fetch in the old test fixture. Unrelated
     referenced data Blobs and parent commits are never copied or downloaded.
+    A rewritten source copies mapped metadata, never restoring an old Commit.
     This incomplete CURRENT_HISTORY fixture is not the clean graph rehearsal.
     """
     raw = read_code(commit, path, repo=source)
+    revision = historical_revision(commit, path, repo=source)
     with isolated_code_repository() as repo:
         _CONTROLLED[repo] = "CURRENT_FIXTURE"
-        commit_raw = _git(source, "cat-file", "commit", commit)
+        commit_raw = _git(source, "cat-file", "commit", revision)
         tree = commit_raw.splitlines()[0].decode().removeprefix("tree ")
         _sha(tree, 40)
         for part in (*PurePosixPath(path).parts[:-1], None):
@@ -355,9 +409,13 @@ def current_code_fixture(commit: str, path: str, *, source: Path = ROOT) -> Iter
             _git(repo, "hash-object", "-t", "commit", "-w", "--stdin", data=commit_raw)
             .decode()
             .strip()
-            == commit
+            == revision
         )
-        yield repo
+        _CURRENT_REVISIONS[repo] = {(commit, path): revision}
+        try:
+            yield repo
+        finally:
+            _CURRENT_REVISIONS.pop(repo, None)
 
 
 def _verify_independent_authorities() -> None:
@@ -497,9 +555,30 @@ def rehearse(*, source: Path = ROOT) -> dict[str, object]:
         return value
 
 
+def preflight(*, repo: Path = ROOT) -> dict[str, object]:
+    """The unchanged original source identities, not old-Commit existence."""
+    _verify_independent_authorities()
+    commit = "320f2046e3105b1b55da9cb037892571110b584a"
+    paths = (
+        "backend/app/main.py",
+        "backend/app/api/forecast_intelligence_read.py",
+        "backend/app/api/forecast_intelligence_decision.py",
+    )
+    for path in paths:
+        read_code(commit, path, repo=repo)
+    return {
+        "status": "PASS",
+        "original_commit": commit,
+        "verified_source_identities": list(paths),
+        "original_blob_and_sha256_verified": True,
+        "expected_hashes_changed": False,
+        "data_or_publication_authority_granted": False,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=("verify", "rehearse", "read"))
+    parser.add_argument("operation", choices=("verify", "rehearse", "read", "preflight"))
     parser.add_argument("--repo", type=Path, default=ROOT)
     parser.add_argument("--commit")
     parser.add_argument("--path")
@@ -509,6 +588,8 @@ def main() -> int:
             if args.commit is None or args.path is None:
                 raise CodeIdentityError("EXPLICIT_CODE_IDENTITY_REQUIRED")
             sys.stdout.buffer.write(read_code(args.commit, args.path, repo=args.repo))
+        elif args.operation == "preflight":
+            print(json.dumps(preflight(repo=args.repo), sort_keys=True, indent=2))
         else:
             result = (
                 verify_current(repo=args.repo)

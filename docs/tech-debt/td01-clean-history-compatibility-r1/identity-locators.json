@@ -1,0 +1,117 @@
+{
+  "clean_main": "0f04035b54fc9fb96a2578beeb562e4ad4150faa",
+  "entries": {
+    "0124371b433d1b3c34e5e59a2a9a5e621a570f3b": {
+      "original_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "roles": [
+        "SOURCE"
+      ]
+    },
+    "320f2046e3105b1b55da9cb037892571110b584a": {
+      "original_tree": "8a17d560073d34bd1d5e293008e15fea94b5525f",
+      "rewritten_commit": "651dd333a16dce6ce5fbf6a0adcc1e2d67fc0a2a",
+      "rewritten_tree": "3c0792501c1d9c67e4749dfe416bc38cc83bfc8b",
+      "roles": [
+        "SOURCE"
+      ]
+    },
+    "52b5a80f89c59130917b29c9097d63076eab4acb": {
+      "original_tree": "cb3c68e326fbb64284237552b1369ed85058d784",
+      "rewritten_commit": "9c1328f5913ec6d2aa0e7dc5c3db7ebafc23be69",
+      "rewritten_tree": "c258d181d9b11f8131e98b231b55f882f387e833",
+      "roles": [
+        "METADATA"
+      ]
+    },
+    "89641834ab7a0bd902a23f9243325da5c163d518": {
+      "original_tree": "583159905ed8625e39a47054caf543ba186aaee9",
+      "rewritten_commit": "e03844014da4083d5c34a4f0ccac0df4e66247df",
+      "rewritten_tree": "e87d2bd3feaebb6a2ed6f7c670fbe35590f27197",
+      "roles": [
+        "SOURCE"
+      ]
+    },
+    "e2d0ffa233483821e4fed3d429e317510dfcfcc1": {
+      "original_tree": "049c688c74d0abbff57dcf899cfc85f507d7a39b",
+      "rewritten_commit": "6672499fef46b04ec83c701d1784d5f127bb0234",
+      "rewritten_tree": "049c688c74d0abbff57dcf899cfc85f507d7a39b",
+      "roles": [
+        "BASELINE"
+      ]
+    },
+    "e92507f5213058e07515ef7f7efc2d71edf4488d": {
+      "original_tree": "51ce9809e2126bc19e978cd7184a1e9318039db7",
+      "rewritten_commit": "aeb7471d8b4904c20824749ed3fe9dab7e1a1751",
+      "rewritten_tree": "e0ce938db4d6ad749de562c80f196766ebcf009c",
+      "roles": [
+        "METADATA"
+      ]
+    },
+    "e9812e82067dceae444ff0707ceeb2f560c1018e": {
+      "original_tree": "435d25109a1c38a1e671a892c48f49b17acf0112",
+      "rewritten_commit": "f29612abb836bf65ec844a3e088f18c92289ba8e",
+      "rewritten_tree": "13eefbaa5aa1b0ade098d5bbe17a87184e94d7f9",
+      "roles": [
+        "SOURCE"
+      ]
+    },
+    "f151f0e6aca3577c5ee959a220c16e9756179649": {
+      "original_tree": "af46e01e67c7549ee8402679d289d8fc07e5692f",
+      "rewritten_commit": "4bb77b8493dee7b066e38faa188810e1b0f98899",
+      "rewritten_tree": "781a33856e53f5c0469726bab272e9373eed3bd8",
+      "roles": [
+        "SOURCE"
+      ]
+    },
+    "fe494971c92f1d951f5acfeb6a70b85a4aff23ac": {
+      "original_tree": "17f05236be250922181f43b02f63303ecbaa2bcb",
+      "rewritten_commit": "9120b0b0b5dba4c87a8e9b8f2c7a474f6f2e76b9",
+      "rewritten_tree": "17f05236be250922181f43b02f63303ecbaa2bcb",
+      "roles": [
+        "BASELINE"
+      ]
+    }
+  },
+  "metadata_identities": [
+    {
+      "authority_commit_field": [
+        "base_main_sha"
+      ],
+      "authority_document": "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json",
+      "authority_hash_field": [
+        "source_evidence_sha256",
+        "frontend/package.json"
+      ],
+      "blob": "e2cf789aeeabe49072aa1623dbbf3231728098ea",
+      "original_commit": "52b5a80f89c59130917b29c9097d63076eab4acb",
+      "path": "frontend/package.json",
+      "sha256": "a792c2afecc7fcbcbac21543c19435e3d8031063fd66f6397cbc9283a3d6a7ac"
+    },
+    {
+      "authority_commit_field": [
+        "r4_correction",
+        "previous_r3_snapshot",
+        "head_sha"
+      ],
+      "authority_document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+      "authority_hash_field": [
+        "r4_correction",
+        "previous_r3_snapshot",
+        "evidence_sha256"
+      ],
+      "blob": "ffb569b6d187b36aadb7f96b8b1a1f9a55f53203",
+      "original_commit": "e92507f5213058e07515ef7f7efc2d71edf4488d",
+      "path": "docs/v0-18/s1/local-auth-runtime-r1.json",
+      "sha256": "ec3976db1318cb5b79d882989095bfbd8247fb729bfc808471b3efb798d5f565"
+    }
+  ],
+  "original_main": "768f7f6b54f51797a9a8cfec6191c84e69f9687b",
+  "original_root": "7d524ccb5a69a9ca9b513d86cdd49b0e372cd91f",
+  "publication_authorized": false,
+  "schema": "TD01_CLEAN_HISTORY_LOCATORS_R1",
+  "scope": "Exact locators only; not graph publication or real-data authority.",
+  "source_content_authority": "UNCHANGED_TD01E_65_PR786_3_AND_EXPLICIT_EXISTING_FROZEN_FIELDS",
+  "v1_original_ci_blob": "a664eba14ca40f18cebbf5ca952f53ebd549f719"
+}
