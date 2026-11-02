@@ -1,0 +1,5115 @@
+{
+  "cases": {
+    "alternate": {
+      "checkout": "04457546f5577d4e44effb808154a6aa08b45846",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 0,
+      "objects": [],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "04457546f5577d4e44effb808154a6aa08b45846",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "EXTERNAL_HISTORY_OR_SHALLOW",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "81ac9e8544d4248bb5cdcdbb479dfd75b61ba8e7a62b388f0621479ef7e0ab4f",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "binary": {
+      "checkout": "8f076e1ce938a9e0dc49c1db6b5faa6dad1ec2c7",
+      "commit_count": 2,
+      "commits": [
+        {
+          "commit": "04457546f5577d4e44effb808154a6aa08b45846",
+          "parents": [],
+          "tree": "041132b3e7537706552cfcdf7209e770b23cc4ff"
+        },
+        {
+          "commit": "8f076e1ce938a9e0dc49c1db6b5faa6dad1ec2c7",
+          "parents": [
+            "04457546f5577d4e44effb808154a6aa08b45846"
+          ],
+          "tree": "e8acca215e18b52671c00051d3001355d39be1c7"
+        }
+      ],
+      "diff": [
+        {
+          "change": "ADD",
+          "commit": "8f076e1ce938a9e0dc49c1db6b5faa6dad1ec2c7",
+          "new_blob": "bb0f9148bfeb873ebf5ba11b267485949d6152b2",
+          "old_blob": null,
+          "parent": "04457546f5577d4e44effb808154a6aa08b45846",
+          "path": "SYNTHETIC_ONLY.bin"
+        }
+      ],
+      "independent_review_authority": "TD01I_INDEPENDENT_SYNTHETIC_REVIEW_R1",
+      "merge_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "object_count": 45,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "8f076e1ce938a9e0dc49c1db6b5faa6dad1ec2c7",
+          "type": "commit"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bb0f9148bfeb873ebf5ba11b267485949d6152b2",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "e8acca215e18b52671c00051d3001355d39be1c7",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [
+        {
+          "change": "ADD",
+          "new_blob": "bb0f9148bfeb873ebf5ba11b267485949d6152b2",
+          "old_blob": null,
+          "path": "SYNTHETIC_ONLY.bin"
+        }
+      ],
+      "proposed_head": "8f076e1ce938a9e0dc49c1db6b5faa6dad1ec2c7",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "UNREGISTERED_DATA_OR_BINARY",
+          "object": "bb0f9148bfeb873ebf5ba11b267485949d6152b2",
+          "path": "SYNTHETIC_ONLY.bin",
+          "severity": "BLOCKED"
+        },
+        {
+          "code": "COMMIT_REVIEW_REQUIRED",
+          "object": "8f076e1ce938a9e0dc49c1db6b5faa6dad1ec2c7",
+          "severity": "REVIEW_REQUIRED"
+        }
+      ],
+      "result_sha256": "420310e46074d7d3621098c7d4a1a257f58d5427a64e7714829a1a1b31b7ffa7",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "dangling": {
+      "checkout": "04457546f5577d4e44effb808154a6aa08b45846",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 43,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8918a48dd2cbbbd16bdc862f19ccf0e517e62dac",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "04457546f5577d4e44effb808154a6aa08b45846",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "UNKNOWN_OR_DANGLING_OBJECT",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "7932e334b75ce3111b1cdc7e98d6df552f390e565002216a6f9abab96ce27297",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "deleted_forbidden_identity": {
+      "checkout": "aad0b652fa7ee217e8d1112ff25b46246e87f553",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 45,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7917cae4976c17c5aaed9ec05e3026a955788d67",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "aad0b652fa7ee217e8d1112ff25b46246e87f553",
+          "type": "commit"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "eca4df94c941df714100f007f24eefba838d3a93",
+          "type": "commit"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "aad0b652fa7ee217e8d1112ff25b46246e87f553",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "BLOCKED_BUSINESS_BLOB",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "fed6bf2868183e8dd60266d4a5cd05fd4afb197b084336ce081e3b22e1fb6cc5",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "deleted_intermediate_data": {
+      "checkout": "e1561244c026b440fcb21a8e395b20d92e3745aa",
+      "commit_count": 3,
+      "commits": [
+        {
+          "commit": "04457546f5577d4e44effb808154a6aa08b45846",
+          "parents": [],
+          "tree": "041132b3e7537706552cfcdf7209e770b23cc4ff"
+        },
+        {
+          "commit": "dd91be62bb5df0d3982f67cdf6e6691637f0d924",
+          "parents": [
+            "04457546f5577d4e44effb808154a6aa08b45846"
+          ],
+          "tree": "b4051455b6d5c957219166d853636912a0ec02dc"
+        },
+        {
+          "commit": "e1561244c026b440fcb21a8e395b20d92e3745aa",
+          "parents": [
+            "dd91be62bb5df0d3982f67cdf6e6691637f0d924"
+          ],
+          "tree": "041132b3e7537706552cfcdf7209e770b23cc4ff"
+        }
+      ],
+      "diff": [
+        {
+          "change": "ADD",
+          "commit": "dd91be62bb5df0d3982f67cdf6e6691637f0d924",
+          "new_blob": "c7f1ad7c166fa5fee73353836f38dbda7334c8f5",
+          "old_blob": null,
+          "parent": "04457546f5577d4e44effb808154a6aa08b45846",
+          "path": "data/SYNTHETIC_ONLY.csv"
+        },
+        {
+          "change": "DELETE",
+          "commit": "e1561244c026b440fcb21a8e395b20d92e3745aa",
+          "new_blob": null,
+          "old_blob": "c7f1ad7c166fa5fee73353836f38dbda7334c8f5",
+          "parent": "dd91be62bb5df0d3982f67cdf6e6691637f0d924",
+          "path": "data/SYNTHETIC_ONLY.csv"
+        }
+      ],
+      "independent_review_authority": "TD01I_INDEPENDENT_SYNTHETIC_REVIEW_R1",
+      "merge_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "object_count": 47,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b4051455b6d5c957219166d853636912a0ec02dc",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "c7f1ad7c166fa5fee73353836f38dbda7334c8f5",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "dd91be62bb5df0d3982f67cdf6e6691637f0d924",
+          "type": "commit"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "e1561244c026b440fcb21a8e395b20d92e3745aa",
+          "type": "commit"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        },
+        {
+          "oid": "f2529afe9d6d818ba6252c9fdce82b13707912cb",
+          "type": "tree"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "e1561244c026b440fcb21a8e395b20d92e3745aa",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "UNREGISTERED_DATA_OR_BINARY",
+          "object": "c7f1ad7c166fa5fee73353836f38dbda7334c8f5",
+          "path": "data/SYNTHETIC_ONLY.csv",
+          "severity": "BLOCKED"
+        },
+        {
+          "code": "COMMIT_REVIEW_REQUIRED",
+          "object": "dd91be62bb5df0d3982f67cdf6e6691637f0d924",
+          "severity": "REVIEW_REQUIRED"
+        },
+        {
+          "code": "COMMIT_REVIEW_REQUIRED",
+          "object": "e1561244c026b440fcb21a8e395b20d92e3745aa",
+          "severity": "REVIEW_REQUIRED"
+        },
+        {
+          "code": "DELETION_REVIEW_REQUIRED",
+          "path": "data/SYNTHETIC_ONLY.csv",
+          "severity": "REVIEW_REQUIRED"
+        }
+      ],
+      "result_sha256": "dc6f491a5c4c7d990e95d27e0e3c8feef0b024b0f232897279fd286d2f0734e7",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "dependency": {
+      "checkout": "61d4127e72ee9419287fa54b2f1a053d075fdd6c",
+      "commit_count": 2,
+      "commits": [
+        {
+          "commit": "04457546f5577d4e44effb808154a6aa08b45846",
+          "parents": [],
+          "tree": "041132b3e7537706552cfcdf7209e770b23cc4ff"
+        },
+        {
+          "commit": "61d4127e72ee9419287fa54b2f1a053d075fdd6c",
+          "parents": [
+            "04457546f5577d4e44effb808154a6aa08b45846"
+          ],
+          "tree": "1093fc6185fdba2bd560df55bfad4d12b174f96d"
+        }
+      ],
+      "diff": [
+        {
+          "change": "ADD",
+          "commit": "61d4127e72ee9419287fa54b2f1a053d075fdd6c",
+          "new_blob": "cd242a107958660bc5980875ddfae312248fafd5",
+          "old_blob": null,
+          "parent": "04457546f5577d4e44effb808154a6aa08b45846",
+          "path": "backend/app/synthetic_extension.py"
+        }
+      ],
+      "independent_review_authority": "TD01I_INDEPENDENT_SYNTHETIC_REVIEW_R1",
+      "merge_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "object_count": 47,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "1093fc6185fdba2bd560df55bfad4d12b174f96d",
+          "type": "tree"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "61d4127e72ee9419287fa54b2f1a053d075fdd6c",
+          "type": "commit"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8cb982783371797efaed7dbfc67b1b88f72da23c",
+          "type": "tree"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cd242a107958660bc5980875ddfae312248fafd5",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "e903a375706240bd482eae73635ec86429b51291",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [
+        {
+          "change": "ADD",
+          "new_blob": "cd242a107958660bc5980875ddfae312248fafd5",
+          "old_blob": null,
+          "path": "backend/app/synthetic_extension.py"
+        }
+      ],
+      "proposed_head": "61d4127e72ee9419287fa54b2f1a053d075fdd6c",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "UNREGISTERED_DEPENDENCY",
+          "severity": "BLOCKED"
+        },
+        {
+          "code": "COMMIT_REVIEW_REQUIRED",
+          "object": "61d4127e72ee9419287fa54b2f1a053d075fdd6c",
+          "severity": "REVIEW_REQUIRED"
+        }
+      ],
+      "result_sha256": "71e7439e4e9ecaf497233791b1ee1efe9da855c9006e9355f53cd356b4884e91",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "extra_ref": {
+      "checkout": "04457546f5577d4e44effb808154a6aa08b45846",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 0,
+      "objects": [],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "04457546f5577d4e44effb808154a6aa08b45846",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "UNTRUSTED_REF_OR_TAG",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "94c53bcdfc479531afe0617373f1816174f19e10ac514a1b26c67899d3f4461c",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "forbidden_object_176898e7d1924945389f0f9f9f6d42d5ed58878f": {
+      "checkout": "eca4df94c941df714100f007f24eefba838d3a93",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 44,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7917cae4976c17c5aaed9ec05e3026a955788d67",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "eca4df94c941df714100f007f24eefba838d3a93",
+          "type": "commit"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "eca4df94c941df714100f007f24eefba838d3a93",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "BLOCKED_BUSINESS_BLOB",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "576134a5ce0711a8b17519392bc5cb89a0442dc9e11fb7f790c8f8cb2d139ac0",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "forbidden_object_3413dbbc284312e75a2df98992a6ab66cfa87dbd": {
+      "checkout": "38580b1e4f4a149f3bc9e61b5ae3fe1ff7f929a8",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 44,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "38580b1e4f4a149f3bc9e61b5ae3fe1ff7f929a8",
+          "type": "commit"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        },
+        {
+          "oid": "f9926563fe0aa02b6c676a74a68f849f0e07fdc3",
+          "type": "tree"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "38580b1e4f4a149f3bc9e61b5ae3fe1ff7f929a8",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "BLOCKED_BUSINESS_BLOB",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "8798928c3991b93dda0f32ddc6873d9c5eaf4ee20582adfd0f55f4fb946fdb2b",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "forbidden_object_4afa86882d862cb15ffb9f5c242d3e8baa93c4ab": {
+      "checkout": "00fa47998996e48084bcd142d748d87e1d2c3440",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 44,
+      "objects": [
+        {
+          "oid": "00fa47998996e48084bcd142d748d87e1d2c3440",
+          "type": "commit"
+        },
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        },
+        {
+          "oid": "ff02509de928546bb0fb967998693e5a80d239b7",
+          "type": "tree"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "00fa47998996e48084bcd142d748d87e1d2c3440",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "BLOCKED_BUSINESS_BLOB",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "b2c62b3a03a8fa794ea960bc7c9fdb3cb3e2f8da924d7b4e9f3c902b86c17ef1",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "forbidden_object_74eb1b2deb521f0b7646be57c20c65a0680ccc9a": {
+      "checkout": "75f25e6af339b30f0252dd020023b52fc6247bcd",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 44,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3708c62989aad993c6dc35e1cdcd65830eea5767",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "75f25e6af339b30f0252dd020023b52fc6247bcd",
+          "type": "commit"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "75f25e6af339b30f0252dd020023b52fc6247bcd",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "BLOCKED_BUSINESS_BLOB",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "1e1f0a1b4584f45c36a7085f85f6de0d1ce1c0e21905b05f5ee96de00836b5a7",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "forbidden_object_a045348c4c72507ae367b4e30f267fcf19c490c1": {
+      "checkout": "fa2e2f005e367436225a2cc777224b0818ee237f",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 44,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        },
+        {
+          "oid": "f6a38ed05ef202c6e2a5201d265ea27dd74ec12f",
+          "type": "tree"
+        },
+        {
+          "oid": "fa2e2f005e367436225a2cc777224b0818ee237f",
+          "type": "commit"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "fa2e2f005e367436225a2cc777224b0818ee237f",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "BLOCKED_BUSINESS_BLOB",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "44d574df55050aa786f1892ee29e7eadda9b30f2641eb8f7c4cfb949e61f1658",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "forbidden_object_cf3a861302e30722396171ac739dc81ffdda6c6b": {
+      "checkout": "586d9f047bb0adfdaa9e760ae0bdba2035994188",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 44,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "4346bcdf9e23e20931df6716578071d1e883ee41",
+          "type": "tree"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "586d9f047bb0adfdaa9e760ae0bdba2035994188",
+          "type": "commit"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "586d9f047bb0adfdaa9e760ae0bdba2035994188",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "BLOCKED_BUSINESS_BLOB",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "f187959e9d7296b81f865b8d6439c43c63edec01a8acb84bb0455fb02dc0244a",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "forbidden_object_d5116f568420aec3fb26e88b5336778ce0a1e011": {
+      "checkout": "bc0d76c20d50ae3926ff2cfd7ed0e8c6c8894030",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 44,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b71648b49a199b934a55804e1eac028e55fde42c",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "bc0d76c20d50ae3926ff2cfd7ed0e8c6c8894030",
+          "type": "commit"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "bc0d76c20d50ae3926ff2cfd7ed0e8c6c8894030",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "BLOCKED_BUSINESS_BLOB",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "7ec23faa64313540822632c43c64b999a7cbd02a68bc3d0885c4379437a289bb",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "graft": {
+      "checkout": "04457546f5577d4e44effb808154a6aa08b45846",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 0,
+      "objects": [],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "04457546f5577d4e44effb808154a6aa08b45846",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "EXTERNAL_HISTORY_OR_SHALLOW",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "81ac9e8544d4248bb5cdcdbb479dfd75b61ba8e7a62b388f0621479ef7e0ab4f",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "lfs": {
+      "checkout": "12c565addf033365953daf20af56037fbf27198f",
+      "commit_count": 2,
+      "commits": [
+        {
+          "commit": "04457546f5577d4e44effb808154a6aa08b45846",
+          "parents": [],
+          "tree": "041132b3e7537706552cfcdf7209e770b23cc4ff"
+        },
+        {
+          "commit": "12c565addf033365953daf20af56037fbf27198f",
+          "parents": [
+            "04457546f5577d4e44effb808154a6aa08b45846"
+          ],
+          "tree": "8252fdd12fb2e622340fbe3214ccf47bf5733012"
+        }
+      ],
+      "diff": [
+        {
+          "change": "ADD",
+          "commit": "12c565addf033365953daf20af56037fbf27198f",
+          "new_blob": "76edda3f26133b422da4bb4aa9601907a3dae302",
+          "old_blob": null,
+          "parent": "04457546f5577d4e44effb808154a6aa08b45846",
+          "path": "backend/app/synthetic_extension.py"
+        }
+      ],
+      "independent_review_authority": "TD01I_INDEPENDENT_SYNTHETIC_REVIEW_R1",
+      "merge_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "object_count": 47,
+      "objects": [
+        {
+          "oid": "03fbcf12855f3ed2aa3023fffe40f59c3dacf3b6",
+          "type": "tree"
+        },
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "12c565addf033365953daf20af56037fbf27198f",
+          "type": "commit"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "76edda3f26133b422da4bb4aa9601907a3dae302",
+          "type": "blob"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "8252fdd12fb2e622340fbe3214ccf47bf5733012",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        },
+        {
+          "oid": "f97363a47f64b7e01bf234d5277a4e4220fd02a5",
+          "type": "tree"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [
+        {
+          "change": "ADD",
+          "new_blob": "76edda3f26133b422da4bb4aa9601907a3dae302",
+          "old_blob": null,
+          "path": "backend/app/synthetic_extension.py"
+        }
+      ],
+      "proposed_head": "12c565addf033365953daf20af56037fbf27198f",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "BINARY_OR_LFS_POINTER",
+          "severity": "BLOCKED"
+        },
+        {
+          "code": "COMMIT_REVIEW_REQUIRED",
+          "object": "12c565addf033365953daf20af56037fbf27198f",
+          "severity": "REVIEW_REQUIRED"
+        }
+      ],
+      "result_sha256": "02248cfc8d9718e20a3374aa3837c1639ee45d58002d8febedd8bf8bfda43891",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "missing": {
+      "checkout": "a55321d0ae1b34c52a8f1f260fc6cd5d897276c7",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 44,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "942eb076c7471a729637ecabe77ca59a6d4c4c7c",
+          "type": "tree"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a55321d0ae1b34c52a8f1f260fc6cd5d897276c7",
+          "type": "commit"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "a55321d0ae1b34c52a8f1f260fc6cd5d897276c7",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "GIT_METADATA_OR_OBJECT_UNAVAILABLE",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "4f695ffee1300b7778ce915d8823a9e893e5eedff3089f605c4e82487dc271f2",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "old_commit": {
+      "checkout": "d5cb87bd7344c91cfb7ba54759ed29d6e29bbb47",
+      "commit_count": 3,
+      "commits": [
+        {
+          "commit": "04457546f5577d4e44effb808154a6aa08b45846",
+          "parents": [],
+          "tree": "041132b3e7537706552cfcdf7209e770b23cc4ff"
+        },
+        {
+          "commit": "7afe526f3a1c076706e7f54318805de94a1b3fa6",
+          "parents": [],
+          "tree": "041132b3e7537706552cfcdf7209e770b23cc4ff"
+        },
+        {
+          "commit": "d5cb87bd7344c91cfb7ba54759ed29d6e29bbb47",
+          "parents": [
+            "04457546f5577d4e44effb808154a6aa08b45846",
+            "7afe526f3a1c076706e7f54318805de94a1b3fa6"
+          ],
+          "tree": "041132b3e7537706552cfcdf7209e770b23cc4ff"
+        }
+      ],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 44,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7afe526f3a1c076706e7f54318805de94a1b3fa6",
+          "type": "commit"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "d5cb87bd7344c91cfb7ba54759ed29d6e29bbb47",
+          "type": "commit"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "d5cb87bd7344c91cfb7ba54759ed29d6e29bbb47",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "FOREIGN_ROOT_OR_ORIGINAL_HISTORY",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "22622b52da2ffb3ad35ab6620f4a3a0819c0dc94a30715f1178abb160bf765a5",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "path": {
+      "checkout": "65b3c9c87914c3b01fc24570e3fd16fcfaa16dae",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 45,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "54a53a7ede0e76829f004bee39e11acb0b3f0820",
+          "type": "tree"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "65b3c9c87914c3b01fc24570e3fd16fcfaa16dae",
+          "type": "commit"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c1d228adff7dc5e4b7755e7366e2609f2f220e56",
+          "type": "blob"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "65b3c9c87914c3b01fc24570e3fd16fcfaa16dae",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "UNSAFE_PATH",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "1c4709408bb626b2f19aaf424b9a2f6950fc2856b16684ea9b204a3ecc3f6d24",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "ref_rollback": {
+      "checkout": "04457546f5577d4e44effb808154a6aa08b45846",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 46,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "46d737abfd2de9267927a3e38979a0a2c757ce5e",
+          "type": "commit"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "84014727cdcc82b0c4e8b0afd82a1d4923093b0a",
+          "type": "tree"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "baa81a46597eb06e968ba58710d7bfe611149472",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb7b0a2ea8abcbcdf64ffe973bc758b40e181459",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "04457546f5577d4e44effb808154a6aa08b45846",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "UNKNOWN_OR_DANGLING_OBJECT",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "946c47eab9e2a469708a3dd98bb145e040e3419233b8f33f018253c7b68d788d",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "remote": {
+      "checkout": "04457546f5577d4e44effb808154a6aa08b45846",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 0,
+      "objects": [],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "04457546f5577d4e44effb808154a6aa08b45846",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "UNTRUSTED_ORIGIN",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "fa8a9f042c2693eff9b17eef75460a7e6820fd8316470c6c7de42fb8d7bf307e",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "self_approval": {
+      "checkout": "23cf7348f9ef3a1e6010259a1bad1ebce99e7782",
+      "commit_count": 2,
+      "commits": [
+        {
+          "commit": "04457546f5577d4e44effb808154a6aa08b45846",
+          "parents": [],
+          "tree": "041132b3e7537706552cfcdf7209e770b23cc4ff"
+        },
+        {
+          "commit": "23cf7348f9ef3a1e6010259a1bad1ebce99e7782",
+          "parents": [
+            "04457546f5577d4e44effb808154a6aa08b45846"
+          ],
+          "tree": "3e526982d88b4b0add8ea1d841918d7da9fdefa4"
+        }
+      ],
+      "diff": [
+        {
+          "change": "ADD",
+          "commit": "23cf7348f9ef3a1e6010259a1bad1ebce99e7782",
+          "new_blob": "4f812dc4df4434d7755963159bc9672255818b55",
+          "old_blob": null,
+          "parent": "04457546f5577d4e44effb808154a6aa08b45846",
+          "path": ".github/workflows/self.yml"
+        },
+        {
+          "change": "MODIFY",
+          "commit": "23cf7348f9ef3a1e6010259a1bad1ebce99e7782",
+          "new_blob": "ca3469364377d86edc59a4adb247c40b00d57048",
+          "old_blob": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "parent": "04457546f5577d4e44effb808154a6aa08b45846",
+          "path": "PUBLIC-CORE-MANIFEST.json"
+        },
+        {
+          "change": "ADD",
+          "commit": "23cf7348f9ef3a1e6010259a1bad1ebce99e7782",
+          "new_blob": "c1d228adff7dc5e4b7755e7366e2609f2f220e56",
+          "old_blob": null,
+          "parent": "04457546f5577d4e44effb808154a6aa08b45846",
+          "path": "backend/app/synthetic_extension.py"
+        },
+        {
+          "change": "MODIFY",
+          "commit": "23cf7348f9ef3a1e6010259a1bad1ebce99e7782",
+          "new_blob": "fedc5a828b3a9fdb6d068d78d13c3a14b9e59be5",
+          "old_blob": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "parent": "04457546f5577d4e44effb808154a6aa08b45846",
+          "path": "tools/verify_public_core.py"
+        }
+      ],
+      "independent_review_authority": "TD01I_INDEPENDENT_SYNTHETIC_REVIEW_R1",
+      "merge_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "object_count": 53,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1961ab7aa745260673f3a82e066aa9aa6c96a3c9",
+          "type": "tree"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "23cf7348f9ef3a1e6010259a1bad1ebce99e7782",
+          "type": "commit"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "3e526982d88b4b0add8ea1d841918d7da9fdefa4",
+          "type": "tree"
+        },
+        {
+          "oid": "3f670d8cb35d46204bd58452cb2b5941410b6e9b",
+          "type": "tree"
+        },
+        {
+          "oid": "4f812dc4df4434d7755963159bc9672255818b55",
+          "type": "blob"
+        },
+        {
+          "oid": "51f9788b609eb7be737b9fd8da24fc0f7268454a",
+          "type": "tree"
+        },
+        {
+          "oid": "53703c2c3a47625b4ede9979346b8b5104a2925d",
+          "type": "tree"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "5f94bdd8e7059d29edc6342f577e837f9b1cb820",
+          "type": "tree"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c1d228adff7dc5e4b7755e7366e2609f2f220e56",
+          "type": "blob"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "ca3469364377d86edc59a4adb247c40b00d57048",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        },
+        {
+          "oid": "fedc5a828b3a9fdb6d068d78d13c3a14b9e59be5",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [
+        {
+          "change": "ADD",
+          "new_blob": "4f812dc4df4434d7755963159bc9672255818b55",
+          "old_blob": null,
+          "path": ".github/workflows/self.yml"
+        },
+        {
+          "change": "MODIFY",
+          "new_blob": "ca3469364377d86edc59a4adb247c40b00d57048",
+          "old_blob": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "path": "PUBLIC-CORE-MANIFEST.json"
+        },
+        {
+          "change": "ADD",
+          "new_blob": "c1d228adff7dc5e4b7755e7366e2609f2f220e56",
+          "old_blob": null,
+          "path": "backend/app/synthetic_extension.py"
+        },
+        {
+          "change": "MODIFY",
+          "new_blob": "fedc5a828b3a9fdb6d068d78d13c3a14b9e59be5",
+          "old_blob": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "path": "tools/verify_public_core.py"
+        }
+      ],
+      "proposed_head": "23cf7348f9ef3a1e6010259a1bad1ebce99e7782",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "UNTRUSTED_POLICY_CHANGE",
+          "object": "4f812dc4df4434d7755963159bc9672255818b55",
+          "path": ".github/workflows/self.yml",
+          "severity": "BLOCKED"
+        },
+        {
+          "code": "UNTRUSTED_POLICY_CHANGE",
+          "object": "ca3469364377d86edc59a4adb247c40b00d57048",
+          "path": "PUBLIC-CORE-MANIFEST.json",
+          "severity": "BLOCKED"
+        },
+        {
+          "code": "UNTRUSTED_POLICY_CHANGE",
+          "object": "fedc5a828b3a9fdb6d068d78d13c3a14b9e59be5",
+          "path": "tools/verify_public_core.py",
+          "severity": "BLOCKED"
+        },
+        {
+          "code": "COMMIT_REVIEW_REQUIRED",
+          "object": "23cf7348f9ef3a1e6010259a1bad1ebce99e7782",
+          "severity": "REVIEW_REQUIRED"
+        },
+        {
+          "code": "FILE_REVIEW_REQUIRED",
+          "object": "c1d228adff7dc5e4b7755e7366e2609f2f220e56",
+          "path": "backend/app/synthetic_extension.py",
+          "severity": "REVIEW_REQUIRED"
+        }
+      ],
+      "result_sha256": "d0a9cf252c2d2055da2b57c29641d05aa3adbce0ebb26586adb88f0a8ad7b4e7",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "shallow": {
+      "checkout": "04457546f5577d4e44effb808154a6aa08b45846",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 0,
+      "objects": [],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "04457546f5577d4e44effb808154a6aa08b45846",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "EXTERNAL_HISTORY_OR_SHALLOW",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "81ac9e8544d4248bb5cdcdbb479dfd75b61ba8e7a62b388f0621479ef7e0ab4f",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "submodule": {
+      "checkout": "c1a4e06e840e4747adcf0dc44aae577f838c2351",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 44,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b02adcfe1cb04670567d350f89588df46d4a5f23",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c1a4e06e840e4747adcf0dc44aae577f838c2351",
+          "type": "commit"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "c1a4e06e840e4747adcf0dc44aae577f838c2351",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "SYMLINK_SUBMODULE_OR_SPECIAL_MODE",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "3ebfaead90475f6c796ff0a7fe6238049b84262db9aff4b3a52f263b36039027",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "symlink": {
+      "checkout": "26876a0ed10c078e57c1d3f039e594be95794762",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 45,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26876a0ed10c078e57c1d3f039e594be95794762",
+          "type": "commit"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "2d9e60cdab284b994e533ac6f9ce424f1c525da9",
+          "type": "tree"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        },
+        {
+          "oid": "f84dad219501c7ee1108d81b257ddb4eeaac2dc8",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "26876a0ed10c078e57c1d3f039e594be95794762",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "SYMLINK_SUBMODULE_OR_SPECIAL_MODE",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "4f179ac9315d755e3368572586ecfe7a6755a116754ae89b8e3cee9e4058fc20",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "tag": {
+      "checkout": "04457546f5577d4e44effb808154a6aa08b45846",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 0,
+      "objects": [],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "04457546f5577d4e44effb808154a6aa08b45846",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "UNTRUSTED_REF_OR_TAG",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "94c53bcdfc479531afe0617373f1816174f19e10ac514a1b26c67899d3f4461c",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "wrong_base": {
+      "checkout": "04457546f5577d4e44effb808154a6aa08b45846",
+      "commit_count": 0,
+      "commits": [],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": null,
+      "object_count": 42,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [],
+      "proposed_head": "04457546f5577d4e44effb808154a6aa08b45846",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "MISSING_OR_NONCOMMIT_TIP",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "9abb2fa1f3a6fdfc26afe609eed249f50a2098bbd3501104c656edb06ffa7425",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "0000000000000000000000000000000000000000",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    },
+    "wrong_review": {
+      "checkout": "f4d1004a1990e7c6af48d1f94208fefa5cf56571",
+      "commit_count": 2,
+      "commits": [
+        {
+          "commit": "04457546f5577d4e44effb808154a6aa08b45846",
+          "parents": [],
+          "tree": "041132b3e7537706552cfcdf7209e770b23cc4ff"
+        },
+        {
+          "commit": "f4d1004a1990e7c6af48d1f94208fefa5cf56571",
+          "parents": [
+            "04457546f5577d4e44effb808154a6aa08b45846"
+          ],
+          "tree": "ab0913cf90286680af94875092edaea1a96d572c"
+        }
+      ],
+      "diff": [],
+      "independent_review_authority": "UNCONFIGURED",
+      "merge_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "object_count": 47,
+      "objects": [
+        {
+          "oid": "041132b3e7537706552cfcdf7209e770b23cc4ff",
+          "type": "tree"
+        },
+        {
+          "oid": "04457546f5577d4e44effb808154a6aa08b45846",
+          "type": "commit"
+        },
+        {
+          "oid": "04eb575ff4cc68f63803b16176710df23e5d25d0",
+          "type": "tree"
+        },
+        {
+          "oid": "05386dd283fc9ad663a1872a5de868f2e2619959",
+          "type": "blob"
+        },
+        {
+          "oid": "0c4f8d7feb7815fe32016613cffd539c6398ba41",
+          "type": "blob"
+        },
+        {
+          "oid": "18b665ed7daf5f6c10390a2177cdbd3a70145ee4",
+          "type": "blob"
+        },
+        {
+          "oid": "1961ab7aa745260673f3a82e066aa9aa6c96a3c9",
+          "type": "tree"
+        },
+        {
+          "oid": "1a1378d8b629fc4a190dc5fae444313de1b905c1",
+          "type": "blob"
+        },
+        {
+          "oid": "1b1d8eadfaee9baf224baf783fb3393fdf89e093",
+          "type": "tree"
+        },
+        {
+          "oid": "1b8cf6ffed1fb96a98c72bffbf3dda162b0fc251",
+          "type": "blob"
+        },
+        {
+          "oid": "1c7946c728835c3ad4875849641f3356c42c2d9b",
+          "type": "blob"
+        },
+        {
+          "oid": "26ab2c29a2f4568f71effa6c625a633350b11854",
+          "type": "blob"
+        },
+        {
+          "oid": "358a7bc8fbe110cb9f654b3ba85a881de25d089a",
+          "type": "tree"
+        },
+        {
+          "oid": "3e0b8f69ed655001dc026a39327057210ce3d700",
+          "type": "blob"
+        },
+        {
+          "oid": "53703c2c3a47625b4ede9979346b8b5104a2925d",
+          "type": "tree"
+        },
+        {
+          "oid": "56a4cbc4c88013bd246057d192965b264117f0e8",
+          "type": "tree"
+        },
+        {
+          "oid": "5803af06cd4905a0ecd30e3d4a674bf453de9a1d",
+          "type": "blob"
+        },
+        {
+          "oid": "5e27154a478274ed5a3d9e80ab2ba659e8b7327b",
+          "type": "blob"
+        },
+        {
+          "oid": "66a4b7d8efa3fb3cf8b05f8aa044f3d0a63123dc",
+          "type": "blob"
+        },
+        {
+          "oid": "70b6f31a2662d9f853d7900eeb3bcd99a812f0dc",
+          "type": "tree"
+        },
+        {
+          "oid": "760fa2559457ca05b23df45dbbd1d7721e4ac284",
+          "type": "tree"
+        },
+        {
+          "oid": "7bca9094e65c99ad46ddc476d1ea41a7860f8b4a",
+          "type": "tree"
+        },
+        {
+          "oid": "83bdf95a6d45b97e901e484ac184e60a05d40535",
+          "type": "blob"
+        },
+        {
+          "oid": "850bc8fa55cbb52ed1be49639c330fbbaf5dce26",
+          "type": "blob"
+        },
+        {
+          "oid": "8c6eeca97c57f43ebb86298d1ca51bbce54bcc1e",
+          "type": "blob"
+        },
+        {
+          "oid": "8ea84d8b811fcce59f086ac229278155f6c02f64",
+          "type": "tree"
+        },
+        {
+          "oid": "8f0451e20fc9ef6179cf574f0ef3e3eb66da95dd",
+          "type": "blob"
+        },
+        {
+          "oid": "9b24ed9b6e9b2a9477ecce3f4ee1d27c453c6f40",
+          "type": "blob"
+        },
+        {
+          "oid": "9be15a7443aa7d915cb9764ef5071fd7e938e866",
+          "type": "blob"
+        },
+        {
+          "oid": "9d28409fba967d374a1adaa4a185174a6a25337d",
+          "type": "blob"
+        },
+        {
+          "oid": "a7703fd347a1dbc851b54c423bf6d7079f21509a",
+          "type": "tree"
+        },
+        {
+          "oid": "ab0913cf90286680af94875092edaea1a96d572c",
+          "type": "tree"
+        },
+        {
+          "oid": "b8d7e7814da5a667a6ce4ad7c76389d9200c6409",
+          "type": "blob"
+        },
+        {
+          "oid": "bba17c8d807545a7056706e6b5394a8a030e2a86",
+          "type": "blob"
+        },
+        {
+          "oid": "beee7974f637bf5c8ee91eb08afd8c9b1024d6bf",
+          "type": "blob"
+        },
+        {
+          "oid": "bf42c1ddd0a333842b48c868c215f43df2932c43",
+          "type": "tree"
+        },
+        {
+          "oid": "c1d228adff7dc5e4b7755e7366e2609f2f220e56",
+          "type": "blob"
+        },
+        {
+          "oid": "c4dd84c951a3f1189b7ea3dcf06325332c493271",
+          "type": "blob"
+        },
+        {
+          "oid": "c4e866ee534bf4aa1a6616716e3718f7816c3294",
+          "type": "blob"
+        },
+        {
+          "oid": "cbc60d80daaf3f5e02544dc6924532e5e90e57f6",
+          "type": "blob"
+        },
+        {
+          "oid": "cfaab89e0b9cacc8c000f4b188b7ad3536d33b5b",
+          "type": "blob"
+        },
+        {
+          "oid": "df55f50b6dc5a26706c2cb926903e023855cd343",
+          "type": "tree"
+        },
+        {
+          "oid": "df6183295122af053e84bffce8f92e0fbf3ec7e1",
+          "type": "blob"
+        },
+        {
+          "oid": "e1023d617d0933181b5d424ec65facf51825b7b0",
+          "type": "tree"
+        },
+        {
+          "oid": "eb9bf8e3add4debb0d169828360c09f9ffc1eabe",
+          "type": "blob"
+        },
+        {
+          "oid": "f175f4110bf0977c444a8c43ee39ff2de423c9c2",
+          "type": "blob"
+        },
+        {
+          "oid": "f4d1004a1990e7c6af48d1f94208fefa5cf56571",
+          "type": "commit"
+        }
+      ],
+      "production_model_admitted": false,
+      "proposed_diff": [
+        {
+          "change": "ADD",
+          "new_blob": "c1d228adff7dc5e4b7755e7366e2609f2f220e56",
+          "old_blob": null,
+          "path": "backend/app/synthetic_extension.py"
+        }
+      ],
+      "proposed_head": "f4d1004a1990e7c6af48d1f94208fefa5cf56571",
+      "publication_authorized": false,
+      "real_forecast_validated": false,
+      "real_remote_review_authority": "UNVERIFIED",
+      "reasons": [
+        {
+          "code": "INDEPENDENT_AUTHORITY_SCOPE_MISMATCH",
+          "severity": "BLOCKED"
+        }
+      ],
+      "result_sha256": "43606e15337db7295c86f0ba9f4cc7aa24b604bc888d427af0abf2ea33fea861",
+      "schema": "TD01I_PUBLIC_CORE_V2_R1",
+      "status": "BLOCKED",
+      "strict_real_pit_validated": false,
+      "test_merge": null,
+      "trusted_base": "04457546f5577d4e44effb808154a6aa08b45846",
+      "trusted_root": "04457546f5577d4e44effb808154a6aa08b45846"
+    }
+  },
+  "independent_processes": {
+    "equal": true,
+    "exit_codes": [
+      0,
+      0
+    ],
+    "independent_graph_exit_codes": [
+      0,
+      0
+    ],
+    "independent_graph_process_count": 2,
+    "independent_graph_result_sha256": "939dd4b623b77cec37a99bffc295ecb1809ce6d257d56da67218cd8d74ea17a2",
+    "independent_graph_results_equal": true,
+    "process_count": 2,
+    "result_sha256": "408c0960732d20b3ab885cd50fd97b82b3cfc868c0f582259f5e596286badd28"
+  }
+}
