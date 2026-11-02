@@ -1,0 +1,93 @@
+name: Public core V2 trusted-base checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-core-v2-trusted-base:
+    runs-on: ubuntu-latest
+    env:
+      EXPECTED_REPOSITORY: ${{ vars.PUBLIC_CORE_EXPECTED_REPOSITORY }}
+      EXECUTOR_MANIFEST_SHA256: ${{ vars.PUBLIC_CORE_V2_EXECUTOR_MANIFEST_SHA256 }}
+      TRUSTED_BASE: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+      PROPOSED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Require separately admitted clean repository
+        env:
+          ACTUAL_REPOSITORY: ${{ github.repository }}
+        run: |
+          test "$ACTUAL_REPOSITORY" != xuezhiorange-png/blueberry-peak-forecast-agent
+          test -n "$EXPECTED_REPOSITORY"
+          test "$ACTUAL_REPOSITORY" = "$EXPECTED_REPOSITORY"
+          test -n "$EXECUTOR_MANIFEST_SHA256"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TRUSTED_BASE }}
+          path: trusted-base
+          fetch-depth: 1
+          persist-credentials: false
+          lfs: false
+          submodules: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check independently pinned trusted executors
+        run: |
+          python -I -B - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          root=Path('trusted-base')
+          file=root/'PUBLIC-CORE-V2-EXECUTORS.json'
+          if not file.is_file():
+              raise SystemExit('REVIEW_REQUIRED_TRUSTED_V2_BOOTSTRAP_NOT_INSTALLED')
+          raw=file.read_bytes()
+          if hashlib.sha256(raw).hexdigest()!=os.environ['EXECUTOR_MANIFEST_SHA256']:
+              raise SystemExit('BLOCKED_TRUSTED_EXECUTOR_SEAL_MISMATCH')
+          expected={'tools/public_core_incremental_gate.py','tools/run_public_ci_v2.py',
+                    'tools/public_core_v2_context.py','tests/test_public_gate_v2.py'}
+          rows=json.loads(raw)['files']
+          if {r['path'] for r in rows}!=expected or len(rows)!=len(expected):
+              raise SystemExit('BLOCKED_EXECUTOR_SCOPE_MISMATCH')
+          for row in rows:
+              path=root/row['path']
+              if path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest()!=row['sha256']:
+                  raise SystemExit('BLOCKED_TRUSTED_EXECUTOR_BYTES_CHANGED')
+          PY
+      - name: Fetch only the declared clean Base and Head ancestry
+        run: |
+          [[ "$TRUSTED_BASE" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$PROPOSED_HEAD" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$EXPECTED_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          git init --template= --object-format=sha1 candidate
+          git -C candidate remote add origin "https://github.com/$EXPECTED_REPOSITORY"
+          git -C candidate -c protocol.file.allow=never fetch --no-tags origin \
+            "$TRUSTED_BASE:refs/heads/trusted-base" "$PROPOSED_HEAD:refs/heads/proposed-head"
+          git -C candidate checkout --detach "$PROPOSED_HEAD"
+          python -I -B trusted-base/tools/public_core_v2_context.py \
+            --base "$TRUSTED_BASE" --head "$PROPOSED_HEAD" \
+            --expected-repository "$EXPECTED_REPOSITORY" --output "$RUNNER_TEMP/v2-context.json"
+      - name: Trusted Base gate before any proposed code execution
+        run: |
+          python -I -B trusted-base/tools/public_core_incremental_gate.py \
+            --repository candidate --context "$RUNNER_TEMP/v2-context.json"
+      - name: Independent install, original 38, active Head and V2 negative tests
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          GATE_SHA=$(python -I -B -c "import hashlib;from pathlib import Path;print(hashlib.sha256(Path('trusted-base/tools/public_core_incremental_gate.py').read_bytes()).hexdigest())")
+          TEST_SHA=$(python -I -B -c "import hashlib;from pathlib import Path;print(hashlib.sha256(Path('trusted-base/tests/test_public_gate_v2.py').read_bytes()).hexdigest())")
+          python -I -B trusted-base/tools/run_public_ci_v2.py \
+            --repository candidate --context "$RUNNER_TEMP/v2-context.json" \
+            --gate-script trusted-base/tools/public_core_incremental_gate.py --gate-sha256 "$GATE_SHA" \
+            --security-test trusted-base/tests/test_public_gate_v2.py --security-test-sha256 "$TEST_SHA" \
+            --executor-origin-base "$TRUSTED_BASE" --output-dir "$RUNNER_TEMP/v2-ci"
+      - name: Retain bounded synthetic validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-core-v2-results
+          path: ${{ runner.temp }}/v2-ci/summary.json
+          if-no-files-found: error
