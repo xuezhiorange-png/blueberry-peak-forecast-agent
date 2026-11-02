@@ -507,11 +507,19 @@ def independent_processes(output: Path) -> dict[str, object]:
 
 
 def verify_v1_preserved() -> None:
+    from backend.app.core import rewritten_history
+
+    baseline = rewritten_history.resolve(ROOT, BASE_MAIN, role="BASELINE")
+    # The original CI version remains frozen. TD01 clean-history compatibility
+    # explicitly authorizes today's CI preflight to evolve, not that old version.
+    original_ci = history._git(ROOT, "ls-tree", baseline, "--", ".github/workflows/ci.yml")
+    assert original_ci.split()[2].decode() == rewritten_history.catalog()["v1_original_ci_blob"], (
+        "V1_FROZEN_IDENTITY_CHANGED"
+    )
     paths = [row["repository_relative_path"] for row in v1.catalog()]
     paths += [
         "backend/app/core/public_core_rehearsal.py",
         "backend/tests/ci/test_public_core_rehearsal.py",
-        ".github/workflows/ci.yml",
     ]
     paths += [
         p.relative_to(ROOT).as_posix()
@@ -523,7 +531,7 @@ def verify_v1_preserved() -> None:
     ]
     paths += ["docs/tech-debt/td01f-public-code-candidates-r1.json"]
     for path in paths:
-        before = history._git(ROOT, "ls-tree", BASE_MAIN, "--", path)
+        before = history._git(ROOT, "ls-tree", baseline, "--", path)
         after = history._git(ROOT, "ls-tree", "HEAD", "--", path)
         assert before == after, "V1_FROZEN_IDENTITY_CHANGED"
         row = after.split()
