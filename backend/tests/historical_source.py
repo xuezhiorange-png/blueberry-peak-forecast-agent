@@ -1,7 +1,8 @@
 """Verify reviewed historical code blobs without freezing future runtime changes.
 
-Only the explicitly authorized code/test paths below use Git. Frozen documents,
-evidence, manifests and research assets always use current worktree bytes.
+Only the authorized code/test paths and three separately reviewed technical
+identities use verified historical reads. Frozen documents, evidence, manifests
+and research assets always use current worktree bytes through source_bytes.
 The fixed commit is the merged PR #716 implementation-authority snapshot. Each
 adapted historical pin was independently checked against that snapshot before
 adaptation; a digest mismatch never searches for another matching revision.
@@ -12,7 +13,12 @@ import re
 import subprocess
 from pathlib import Path, PurePosixPath
 
-from backend.app.core.historical_code_identity import read_code, registered
+from backend.app.core.historical_code_identity import (
+    read_code,
+    read_technical_history,
+    registered,
+    technical_registered,
+)
 
 HISTORICAL_COMMIT = "320f2046e3105b1b55da9cb037892571110b584a"
 ROOT = Path(__file__).resolve().parents[2]
@@ -85,8 +91,10 @@ def historical_bytes(relative: str, commit: str, *, root: Path = ROOT) -> bytes:
     validated_path(relative)
     if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
         raise AssertionError("Historical commit must be a fixed full SHA")
-    # Reviewed code receives additional Blob+SHA256 checks. No automatic
-    # clean-graph fallback; unregistered/non-code evidence keeps its old path.
+    if technical_registered(commit, relative):
+        return read_technical_history(commit, relative, repo=root)
+    # Reviewed code keeps its original Blob+SHA256 checks. Other identities
+    # still require the exact original Commit; no arbitrary graph fallback.
     if registered(commit, relative):
         return read_code(commit, relative, repo=root)
     exists = subprocess.run(

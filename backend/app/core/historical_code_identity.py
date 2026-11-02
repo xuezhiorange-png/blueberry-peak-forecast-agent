@@ -1,4 +1,4 @@
-"""Read exact reviewed code identities; never recover data or search revisions.
+"""Read exact reviewed code and scoped technical identities; never recover data.
 
 CURRENT_HISTORY still requires the original Commit+Path. The Blob-only mode is
 restricted to disposable repositories created in this process by this module.
@@ -25,6 +25,15 @@ from pathlib import Path, PurePosixPath
 ROOT = Path(__file__).resolve().parents[3]
 CATALOG_FILE = ROOT / "docs/tech-debt/td01e-code-identities-r1.json"
 CATALOG_SHA256 = "80c60fe1b35204a8f3a819e3b84dd1ca3f2c469b7a71811b282c45ca3cbd6193"
+TECHNICAL_CATALOG_FILE = ROOT / "docs/tech-debt/td01-technical-identities-r1.json"
+TECHNICAL_CATALOG_SHA256 = "26287f3e643ff370404f1f587845dec5c2e98e50326db23b0399439a065d7a48"
+_TECHNICAL_PAIRS = frozenset(
+    {
+        ("e9812e82067dceae444ff0707ceeb2f560c1018e", ".github/workflows/ci.yml"),
+        ("320f2046e3105b1b55da9cb037892571110b584a", "pyproject.toml"),
+        ("320f2046e3105b1b55da9cb037892571110b584a", "uv.lock"),
+    }
+)
 _CONTROLLED: dict[Path, str] = {}
 _CODE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx", ".css", ".sh"}
 
@@ -69,17 +78,21 @@ def _sha(value: str, length: int) -> None:
         raise CodeIdentityError("INVALID_FIXED_CODE_IDENTITY")
 
 
-def _records() -> list[dict[str, object]]:
-    raw = CATALOG_FILE.read_bytes()
-    if hashlib.sha256(raw).hexdigest() != CATALOG_SHA256:
+def _sealed_records(file: Path, seal: str, schema: str) -> list[dict[str, object]]:
+    raw = file.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != seal:
         raise CodeIdentityError("CATALOG_TRUST_ANCHOR_MISMATCH")
     payload: object = json.loads(raw)
-    if not isinstance(payload, dict) or payload.get("schema_version") != "TD01E_CODE_IDENTITY_R1":
+    if not isinstance(payload, dict) or payload.get("schema_version") != schema:
         raise CodeIdentityError("INVALID_CODE_CATALOG")
     entries = payload.get("entries")
     if not isinstance(entries, list) or not all(isinstance(row, dict) for row in entries):
         raise CodeIdentityError("INVALID_CODE_CATALOG")
     return [{str(k): v for k, v in row.items()} for row in entries]
+
+
+def _records() -> list[dict[str, object]]:
+    return _sealed_records(CATALOG_FILE, CATALOG_SHA256, "TD01E_CODE_IDENTITY_R1")
 
 
 def _field(row: dict[str, object], key: str) -> str:
@@ -113,6 +126,34 @@ def catalog() -> tuple[Identity, ...]:
 
 def registered(commit: str, path: str) -> bool:
     return any(row.commit == commit and row.path == path for row in catalog())
+
+
+def _technical_records() -> list[dict[str, object]]:
+    rows = _sealed_records(
+        TECHNICAL_CATALOG_FILE, TECHNICAL_CATALOG_SHA256, "TD01_TECHNICAL_IDENTITY_R1"
+    )
+    pairs = []
+    for row in rows:
+        pair = (_field(row, "original_commit_sha"), _field(row, "repository_relative_path"))
+        if (
+            pair not in _TECHNICAL_PAIRS
+            or row.get("source_class") != "TECHNICAL_FILE"
+            or row.get("verification_status") != "VERIFIED_EXISTING_SHA256"
+        ):
+            raise CodeIdentityError("UNREGISTERED_TECHNICAL_IDENTITY")
+        _sha(_field(row, "original_git_blob_oid"), 40)
+        _sha(_field(row, "original_source_sha256"), 64)
+        pairs.append(pair)
+    if len(pairs) != len(_TECHNICAL_PAIRS) or set(pairs) != _TECHNICAL_PAIRS:
+        raise CodeIdentityError("INVALID_TECHNICAL_CATALOG")
+    return rows
+
+
+def technical_registered(commit: str, path: str) -> bool:
+    if (commit, path) not in _TECHNICAL_PAIRS:
+        return False
+    _technical_records()
+    return True
 
 
 def _run(repo: Path, *args: str, data: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
@@ -181,6 +222,11 @@ def read_code(
     entry = next((r for r in catalog() if r.commit == commit and r.path == path), None)
     if entry is None:
         raise CodeIdentityError("UNREGISTERED_CODE_IDENTITY")
+    return _read_identity(entry, repo=repo, mode=mode)
+
+
+def _read_identity(entry: Identity, *, repo: Path, mode: Mode, technical: bool = False) -> bytes:
+    commit, path = entry.commit, entry.path
     kind = _type(repo, commit)
     if mode == Mode.CURRENT_HISTORY:
         if kind != "commit":
@@ -190,7 +236,8 @@ def read_code(
         if len(records) != 1 or records[0][1].decode() != path:
             raise CodeIdentityError("CODE_PATH_UNAVAILABLE")
         metadata = records[0][0].decode().split()
-        if metadata[:2] not in (["100644", "blob"], ["100755", "blob"]):
+        allowed = (["100644", "blob"],) if technical else (["100644", "blob"], ["100755", "blob"])
+        if metadata[:2] not in allowed:
             raise CodeIdentityError("CODE_OBJECT_TYPE_MISMATCH")
         if metadata[2] != entry.blob:
             raise CodeIdentityError("CODE_PATH_BLOB_MISMATCH")
@@ -204,6 +251,62 @@ def read_code(
     if hashlib.sha256(raw).hexdigest() != entry.sha256:
         raise CodeIdentityError("ORIGINAL_SOURCE_SHA256_MISMATCH")
     return raw
+
+
+def read_technical(
+    commit: str,
+    path: str,
+    *,
+    repo: Path = ROOT,
+    mode: Mode = Mode.CURRENT_HISTORY,
+) -> bytes:
+    """Read only three exact technical identities with existing independent Hashes."""
+    _sha(commit, 40)
+    _check_path(path, code=False)
+    if (commit, path) not in _TECHNICAL_PAIRS:
+        raise CodeIdentityError("UNREGISTERED_TECHNICAL_IDENTITY")
+    if not isinstance(mode, Mode):
+        raise CodeIdentityError("INVALID_CODE_READ_MODE")
+    if mode == Mode.CLEAN_GRAPH_REHEARSAL and _CONTROLLED.get(repo.resolve()) != "REHEARSAL":
+        raise CodeIdentityError("OWNED_REHEARSAL_REQUIRED")
+    row = next(
+        r
+        for r in _technical_records()
+        if (r["original_commit_sha"], r["repository_relative_path"]) == (commit, path)
+    )
+    authority = row.get("independent_authority")
+    if not isinstance(authority, dict) or authority.get("kind") != "EXISTING_FROZEN_SHA256_FIELD":
+        raise CodeIdentityError("INDEPENDENT_AUTHORITY_REQUIRED")
+    document = authority.get("document")
+    if not isinstance(document, str):
+        raise CodeIdentityError("INDEPENDENT_AUTHORITY_REQUIRED")
+    _check_path(document, code=False)
+    if document not in {
+        "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json",
+    } or authority.get("field") != ["source_evidence_sha256", path]:
+        raise CodeIdentityError("UNAPPROVED_HASH_METADATA")
+    value: object = json.loads((ROOT / document).read_bytes())
+    for field in ("source_evidence_sha256", path):
+        if not isinstance(value, dict):
+            raise CodeIdentityError("INVALID_HASH_FIELD_REFERENCE")
+        value = value.get(field)
+    sha256 = _field(row, "original_source_sha256")
+    if value != sha256 or authority.get("expected_sha256") != sha256:
+        raise CodeIdentityError("ORIGINAL_EXPECTED_SHA256_CHANGED")
+    entry = Identity(commit, path, _field(row, "original_git_blob_oid"), sha256, "TECHNICAL_FILE")
+    return _read_identity(entry, repo=repo, mode=mode, technical=True)
+
+
+def read_technical_history(commit: str, path: str, *, repo: Path = ROOT) -> bytes:
+    # The original consumer may use a process-owned graph; an ordinary repo
+    # still requires its exact old Commit. Missing history never selects fallback.
+    mode = (
+        Mode.CLEAN_GRAPH_REHEARSAL
+        if _CONTROLLED.get(repo.resolve()) == "REHEARSAL"
+        else Mode.CURRENT_HISTORY
+    )
+    return read_technical(commit, path, repo=repo, mode=mode)
 
 
 @contextmanager

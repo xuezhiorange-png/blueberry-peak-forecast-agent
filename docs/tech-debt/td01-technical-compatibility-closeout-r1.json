@@ -1,0 +1,113 @@
+{
+  "PR_exact_head_CI": "REPORTED_SEPARATELY_NOT_PREFILLED",
+  "actually_resolved": 3,
+  "base_main_sha": "76c93841d7173a6949ddf3bb980bbac7589bf537",
+  "candidate_results": [
+    {
+      "authority": {
+        "document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+        "expected_sha256": "696c72eeee06046d761d76a919b21ac374eb7f86e22d6639c21e97f660120fab",
+        "field": [
+          "source_evidence_sha256",
+          ".github/workflows/ci.yml"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "current_history_and_original_consumer": "PASS",
+      "original_commit_sha": "e9812e82067dceae444ff0707ceeb2f560c1018e",
+      "original_git_blob_oid": "ba39349668d7db5f3f2893455357b8b993d3bf08",
+      "original_sha256": "696c72eeee06046d761d76a919b21ac374eb7f86e22d6639c21e97f660120fab",
+      "owned_no_original_commit_graph": "PASS",
+      "path": ".github/workflows/ci.yml",
+      "result": "RESOLVED"
+    },
+    {
+      "authority": {
+        "document": "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json",
+        "expected_sha256": "3fa58e6bfb946b9714a29f6263d92acc659f2d871155ee542aba85c52ab8f764",
+        "field": [
+          "source_evidence_sha256",
+          "pyproject.toml"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "current_history_and_original_consumer": "PASS",
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "df672f11a28e0a49ceed46454d496cdebe8f0612",
+      "original_sha256": "3fa58e6bfb946b9714a29f6263d92acc659f2d871155ee542aba85c52ab8f764",
+      "owned_no_original_commit_graph": "PASS",
+      "path": "pyproject.toml",
+      "result": "RESOLVED"
+    },
+    {
+      "authority": {
+        "document": "docs/v0-18/evidence/s1-identity-and-grant-preflight-r1.json",
+        "expected_sha256": "91cd8c9d1678e8b505c4ff10c6275ca630e026c45c2210b0879ed4fc34ec0218",
+        "field": [
+          "source_evidence_sha256",
+          "uv.lock"
+        ],
+        "kind": "EXISTING_FROZEN_SHA256_FIELD"
+      },
+      "current_history_and_original_consumer": "PASS",
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "8f97a9557ea1bc2e41863a3efb3e917c658f9c84",
+      "original_sha256": "91cd8c9d1678e8b505c4ff10c6275ca630e026c45c2210b0879ed4fc34ec0218",
+      "owned_no_original_commit_graph": "PASS",
+      "path": "uv.lock",
+      "result": "RESOLVED"
+    },
+    {
+      "added_to_catalog": false,
+      "existing_hash_document": "docs/v0-18/s1/local-auth-runtime-r1.json",
+      "existing_hash_field_value": "4f206ec6a9569c5e099d1485897eba0f712dc1a4c6c7e73bbe5134b2e99df95a",
+      "observed_sha256_not_an_admission": "0a8492c97640ef3113aa88a872be1b6e754c8c96ffcc5c07468c3a9b00e3d1cf",
+      "original_commit_sha": "320f2046e3105b1b55da9cb037892571110b584a",
+      "original_git_blob_oid": "c43f842038ee8e35f5f9e8d77774c3d57a85806b",
+      "path": "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py",
+      "reason": "NO_MATCHING_INDEPENDENT_HASH_FOR_EXACT_ORIGINAL_VERSION",
+      "result": "BLOCKED"
+    }
+  ],
+  "candidates": 4,
+  "current_CI_workflow_changed": false,
+  "data_or_compressed_asset_body_read": false,
+  "frozen_evidence_hashes_or_business_assertions_changed": false,
+  "full_project_history_migration_ready": false,
+  "model_modified": false,
+  "new_catalog_sha256": "26287f3e643ff370404f1f587845dec5c2e98e50326db23b0399439a065d7a48",
+  "old_222_rescan_performed": false,
+  "old_65_catalog_sha256_unchanged": "80c60fe1b35204a8f3a819e3b84dd1ca3f2c469b7a71811b282c45ca3cbd6193",
+  "old_65_total_reverification_performed": false,
+  "old_catalog_and_unresolved_snapshot_modified": false,
+  "ordinary_repository_missing_commit": "REJECTED_NO_AUTOMATIC_FALLBACK",
+  "original_technical_files_changed": false,
+  "other_old_versions": "NOT_AUTOMATICALLY_ADMITTED",
+  "p35_modified": false,
+  "quality": {
+    "format": "PASS",
+    "mypy": "PASS_648_SOURCE_FILES",
+    "ruff": "PASS"
+  },
+  "real_history_modified": false,
+  "regression_before": {
+    "failed": 3,
+    "junit_sha256": "29f29ec8720dbe6fcc5bf7e9577ab23e5fa92ab72897eaf1291c9766ec64cee9",
+    "reason": "Required historical commit unavailable"
+  },
+  "related_regression_after": {
+    "deselected": 4,
+    "deselection_reason": "three_65_total_verification_or_rehearsal_cases_and_one_unrelated_current_code_fixture_excluded_by_scope",
+    "failed": 0,
+    "junit_sha256": "7459dab333fbe0a9fe57376eb9514a24444649c70d06e52b68d612fe33383395",
+    "passed": 69,
+    "scope": "new_28_targeted_cases_existing_31_synthetic_security_cases_and_10_original_contract_cases",
+    "skipped": 0
+  },
+  "report_class": "VALIDATION_METADATA_ONLY",
+  "result": "PARTIAL",
+  "source_002_body_read": false,
+  "still_blocked": 1,
+  "tag_release_modified": false,
+  "task_id": "TD01_HISTORY_TECHNICAL_COMPATIBILITY_CLOSEOUT_R1"
+}
