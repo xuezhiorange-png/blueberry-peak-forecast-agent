@@ -1,0 +1,529 @@
+{
+  "base_main": "9b65b0aa108baae792150160fb6ac51d7f1bc36a",
+  "candidate_count": 28,
+  "consumers": [
+    "backend/tests/local_auth/test_historical_source.py::test_reviewed_fixed_commit_exists_and_blobs_match",
+    "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash",
+    "backend/tests/test_td03g_historical_compatibility.py::test_td03f_controlled_diagnostic_keeps_assertions_on_its_exact_old_source"
+  ],
+  "excluded_authorities": [
+    "Real-data access or publication",
+    "Referenced configuration/evidence/fixture bodies",
+    "Model or assertion changes",
+    "Git history or Branch/Tag/Release changes",
+    "P35 publication",
+    "Ready/Merge/Deploy"
+  ],
+  "items": [
+    {
+      "byte_size": 26515,
+      "candidate_id": "C01",
+      "consumers": [
+        "backend/tests/local_auth/test_historical_source.py::test_reviewed_fixed_commit_exists_and_blobs_match"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "c43f842038ee8e35f5f9e8d77774c3d57a85806b",
+      "mode": "100644",
+      "old_version_identity": "V0.17/V0.18 historical test pinned to merged PR #716 authority snapshot",
+      "original_commit": "320f2046e3105b1b55da9cb037892571110b584a",
+      "package_source_path": "historical-code/320f2046e3105b1b55da9cb037892571110b584a/backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py",
+      "path": "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py",
+      "purpose": "S2 保存预测决策适配、合成成本/产能场景、Hash 与拒绝行为的历史测试",
+      "rewritten_commit": "651dd333a16dce6ce5fbf6a0adcc1e2d67fc0a2a",
+      "rewritten_tree": "3c0792501c1d9c67e4749dfe416bc38cc83bfc8b",
+      "sha256": "0a8492c97640ef3113aa88a872be1b6e754c8c96ffcc5c07468c3a9b00e3d1cf"
+    },
+    {
+      "byte_size": 16429,
+      "candidate_id": "C02",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "672603ee628319a09786e1b034b9d0bd642c0006",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_authorization.py",
+      "purpose": "完整性 PASS closeout 实施授权及父合同保留测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "fb669fb0fd93c21e53732b77e5177ef6f61cd15c3d539ea7e1785daf06b91a53"
+    },
+    {
+      "byte_size": 16590,
+      "candidate_id": "C03",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "c22105587866768a6ec8e1200a862098bb5bba36",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_contract.py",
+      "purpose": "完整性 PASS closeout 冻结合同与失败条件测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "70237ba287f7f33e96448dd27c1517ee0d1b8f6dafc6de7bb3b0ce65fa897ddc"
+    },
+    {
+      "byte_size": 21528,
+      "candidate_id": "C04",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "443512942f6536877a5afaae06f71d64115e541f",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_r1.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_closeout_r1.py",
+      "purpose": "完整性 PASS closeout R1 分类器及 fail-closed 测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "a4697dfc3be64b48e11e156dd92e0b964ec5556d51f5143792daf5de8762a677"
+    },
+    {
+      "byte_size": 23473,
+      "candidate_id": "C05",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "e52ccd2ba4b6ee8ea33acc69ce9721da11ac4f75",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_authorization.py",
+      "purpose": "完整性 PASS observation 实施授权及边界测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "db833712f019e54f141faf7b85139e8f24c83f7ec5a771906dfe4bfd665302f3"
+    },
+    {
+      "byte_size": 22478,
+      "candidate_id": "C06",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "d0a61484d898996ae8eff5ab7e5825ad79a30b3c",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_completeness_pass_observation_contract.py",
+      "purpose": "完整性 PASS observation 冻结合同与父身份测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "80cf31716d37416cffe290323131805f1cd485876780f556d7d08c7cf883313a"
+    },
+    {
+      "byte_size": 19387,
+      "candidate_id": "C07",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "f5ab2d8779ddfbff3e11d47d5717ecc4c04bbc1a",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_authorization.py",
+      "purpose": "协调审核 live-origin grain identity-set 实施授权测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "1def1697c5cc8bf76cc0a210e808f825692e42b8a973dba29659d0b672426081"
+    },
+    {
+      "byte_size": 16468,
+      "candidate_id": "C08",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "010c5811d4600d656604bb437b4859a9838a89fe",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_contract.py",
+      "purpose": "协调审核 live-origin grain identity-set 冻结合同测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "c853efeb5e22bfc4e49da49a172706c268e62bdf03329cd3504c6fbe84988be1"
+    },
+    {
+      "byte_size": 22918,
+      "candidate_id": "C09",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "7af3c25d25b6e63367b2b005112f085315e9ce4c",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_authorization.py",
+      "purpose": "协调审核 grain identity-set observation 实施授权测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "c98ddd225ab1cb500ababc79d5516e6114bc3bffa433c3d683de7d7b7142d7b0"
+    },
+    {
+      "byte_size": 27648,
+      "candidate_id": "C10",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "4189aca49d6814fa6d739287b9b4d024283d1914",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_contract.py",
+      "purpose": "协调审核 grain identity-set observation 冻结合同测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "4417193e9141a40d0d22bbe4e3283575409bc1a8e170edb464579d5438710b4c"
+    },
+    {
+      "byte_size": 22910,
+      "candidate_id": "C11",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "d172003e89cd9d731ac347a5b4773496f5343280",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_observation_r1.py",
+      "purpose": "协调审核 grain identity-set observation R1 分类与来源边界测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "99225945c2e8cc047e233d1d9c0e4241ff1a81a462d7589052e36ff6062e9d9f"
+    },
+    {
+      "byte_size": 22526,
+      "candidate_id": "C12",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "19d3d1fcc1c663ae70b7a382cc633f720baf5dfb",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_coordinator_reviewed_live_origin_grain_identity_set_r1.py",
+      "purpose": "协调审核 live-origin grain identity-set R1 保留与安装边界测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "a4b91e25376f219a364d8da43108727d8f02f2e7acfb159096314cbbfd94170e"
+    },
+    {
+      "byte_size": 14815,
+      "candidate_id": "C13",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "75a39bad0bedabc18878f0e44bc4bd65641f1a28",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository.py",
+      "purpose": "默认 catalog bindable-repository R1 分类与 fail-closed 测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "aa0627bb3225e164dc6554d0ce33bd92da050cf7330d3e872a46ec15d7c8ba39"
+    },
+    {
+      "byte_size": 12698,
+      "candidate_id": "C14",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "e9d4ccfe5343f6a3ef4a49288bb7e48157db92df",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_authorization.py",
+      "purpose": "默认 catalog bindable-repository 实施授权测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "7ad1fdc9c856f8f5a280a92e5fcaa9d93febb17d4d88e830a99aa2fcd2ce1447"
+    },
+    {
+      "byte_size": 12114,
+      "candidate_id": "C15",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "8a20cb88f5fb9a48f29a00286d8d58f9b1b49bed",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_bindable_repository_contract.py",
+      "purpose": "默认 catalog bindable-repository 冻结合同测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "4ca36c117c61d03f90eff42d0a33160005b5f8feb3eae1fc844ba870024a8127"
+    },
+    {
+      "byte_size": 13979,
+      "candidate_id": "C16",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "d0b8544d82d1d325741447df226dd0e883a9526d",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction.py",
+      "purpose": "默认 catalog live-origin construction R1 构建与来源边界测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "2b4810cb7783cfca0663d7692e41165f0c95d71166027f30bd917ee566512e16"
+    },
+    {
+      "byte_size": 11234,
+      "candidate_id": "C17",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "f47c031fa63a48d5dc37108f73eb5b8214f904d5",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_authorization.py",
+      "purpose": "默认 catalog live-origin construction 实施授权测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "3878714292ab5e0ecc0d0ac0c0d92ffba2f7264c04e2becdbf9e9c758e663023"
+    },
+    {
+      "byte_size": 9455,
+      "candidate_id": "C18",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "6db78ac4a428b32f5025c8457e2e0f580b001db9",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_default_catalog_live_origin_construction_contract.py",
+      "purpose": "默认 catalog live-origin construction 冻结合同测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "5c46671ff67a4a7f4cfd943d310a56ab31e50c25d80f18b3f112683e94fa666d"
+    },
+    {
+      "byte_size": 16877,
+      "candidate_id": "C19",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "08b36dbacab4716eaac6af2f9713953243f2d07a",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout.py",
+      "purpose": "evaluation-instance registry AVAILABLE closeout R1 分类测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "4984f2fac4998b6a3d7ddcdd64ad5a92ece2030cc783a5b9df8ae5cbbc18349b"
+    },
+    {
+      "byte_size": 14640,
+      "candidate_id": "C20",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "6cf59bc281bc5221e3d3498fd11b5008601c9808",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_authorization.py",
+      "purpose": "evaluation-instance registry AVAILABLE closeout 实施授权测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "6a8a5e5e1d9d811045f5dfbbc026fa73dffbe68e5afec59f81c4b3c539624ed1"
+    },
+    {
+      "byte_size": 14298,
+      "candidate_id": "C21",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "e8007624f2e820bdd0cc698f9438784b30f47466",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_evaluation_instance_registry_available_closeout_contract.py",
+      "purpose": "evaluation-instance registry AVAILABLE closeout 冻结合同测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "9deec4f919515703648d4aaf6dec41c8202e93f0806a9056ae04ef0a443a9efa"
+    },
+    {
+      "byte_size": 32458,
+      "candidate_id": "C22",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "181616715d6bbf197f4bea03be8f2842dc5ffed3",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_catalog_no_versioned_closeout_r1.py",
+      "purpose": "incumbent forecast artifact catalog no-versioned closeout R1 测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "a48f666a2cd2c032c78910eae88d08a58813a444dc2474768898384c41275264"
+    },
+    {
+      "byte_size": 27000,
+      "candidate_id": "C23",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "be10e8d19819647010d2619c9dbdf6aae2cbd1d0",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_authorization.py",
+      "purpose": "incumbent forecast artifact repository-presence observation 实施授权测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "38b9d0b6b4679b97c9156a394f7b82907b3d4b668fa91f532b762662d127cf81"
+    },
+    {
+      "byte_size": 29335,
+      "candidate_id": "C24",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "24287dd38f2dcbb54c4bb6d74fa202824f5a2946",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_incumbent_forecast_artifact_repository_presence_observation_r1.py",
+      "purpose": "incumbent forecast artifact repository-presence observation R1 测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "83057aaf073260254d80d7cb83ea7e0ff7b714f944939ae28cb4e2df0327b2b6"
+    },
+    {
+      "byte_size": 15222,
+      "candidate_id": "C25",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "29602b3289e21bfe1d47b19c476d0c2c18e75480",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_authorization.py",
+      "purpose": "reviewed grain identity-set closeout 实施授权测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "6cb70da7c42f571071577bc3b386c04af3662582a1d8f7004a298f8ad8b383f1"
+    },
+    {
+      "byte_size": 15167,
+      "candidate_id": "C26",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "b664f619ff6b6e11c816a70b88e0f0db474361ee",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_contract.py",
+      "purpose": "reviewed grain identity-set closeout 冻结合同测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "5cfdab7cbefbd3066a961006cd00bb990545aaad18a7bc12091b74267e31c920"
+    },
+    {
+      "byte_size": 18252,
+      "candidate_id": "C27",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_historical_reader_adaptation_preserves_every_original_test_body_and_hash"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "467e9a657e8c2bb1c737842342efa9b751f180ec",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_r1.py",
+      "path": "backend/tests/s3_daily_rowset/test_s3_a2_reviewed_grain_identity_set_closeout_r1.py",
+      "purpose": "reviewed grain identity-set closeout R1 分类与 fail-closed 测试",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "a2ae53f4110f8db3f5abc005c8fb81b150a56b0eb1c9712ea26e933289480971"
+    },
+    {
+      "byte_size": 11093,
+      "candidate_id": "C28",
+      "consumers": [
+        "backend/tests/test_td03g_historical_compatibility.py::test_td03f_controlled_diagnostic_keeps_assertions_on_its_exact_old_source"
+      ],
+      "content_scope_status": "ACCEPTED_AS_CODE_CANDIDATE_PENDING_OWNER_APPROVAL",
+      "git_blob_oid": "a787c0aba17609b507f6c249f822daf5bb974353",
+      "mode": "100644",
+      "old_version_identity": "Exact pre-TD03G snapshot, not the resource-ownership adaptation or current version",
+      "original_commit": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "package_source_path": "historical-code/0124371b433d1b3c34e5e59a2a9a5e621a570f3b/backend/tests/integration/test_asyncpg_resource_lifecycle.py",
+      "path": "backend/tests/integration/test_asyncpg_resource_lifecycle.py",
+      "purpose": "隔离 PostgreSQL/asyncpg 资源所有权及旧受控跨循环诊断的历史源码",
+      "rewritten_commit": "5d4a71b3f049124b2c7ff04444d5981975c1ef40",
+      "rewritten_tree": "5d4b51803bec9eaafbcc648c5e4ad0fdb3099de1",
+      "sha256": "f18ba6946c5c5f790c920b49b7e02332c30bb9aae6e3d880027962001ce06d57"
+    }
+  ],
+  "owner_approval_status": "NEW_OWNER_APPROVAL_REQUIRED",
+  "permitted_future_use": "Only exact historical test-source byte/Hash/AST reads for the three named existing consumers, after a separate formal Owner approval and implementation task",
+  "repository": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "schema": "TD01_PENDING_OWNER_CODE_SET_R1",
+  "source_origin": "NEW_REVIEW_BASELINE_NOT_PREEXISTING_FROZEN_HASH_EVIDENCE",
+  "task_id": "BLUEBERRY_TD01_FINAL_28_CODE_BASELINE_REVIEW_R1"
+}
