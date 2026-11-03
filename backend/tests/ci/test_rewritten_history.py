@@ -226,7 +226,9 @@ def test_two_metadata_reads_keep_the_original_independent_hash_authorities(monke
                 identity.read_compatibility_metadata(row["original_commit"], row["path"])
 
 
-def test_unapproved_historical_test_does_not_gain_a_locator_or_metadata_clearance():
+def test_unapproved_historical_test_does_not_gain_a_locator_or_metadata_clearance(
+    unapproved_owner_baseline,
+):
     original = "320f2046e3105b1b55da9cb037892571110b584a"
     path = "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py"
     assert identity.registered(original, path) is False

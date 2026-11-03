@@ -27,7 +27,7 @@ def test_runtime_keeps_its_existing_frozen_closeout_identity(relative):
     assert hashlib.sha256(raw).hexdigest() == expected
 
 
-def test_missing_authority_never_admits_the_other_28_sources():
+def test_missing_authority_never_admits_the_other_28_sources(unapproved_owner_baseline):
     unadmitted = [r for r in BLOCKED if r["path"] not in RUNTIMES]
     assert len(unadmitted) == 28
     for row in unadmitted:
