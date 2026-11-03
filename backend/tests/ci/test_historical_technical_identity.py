@@ -199,7 +199,9 @@ def test_original_code_only_reader_still_excludes_technical_files():
         identity.read_code(CASES[1][0], "pyproject.toml")
 
 
-def test_unverified_historical_test_stays_blocked_in_the_original_consumer(technical_graph):
+def test_unverified_historical_test_stays_blocked_in_the_original_consumer(
+    technical_graph, unapproved_owner_baseline
+):
     repo, _, _ = technical_graph
     path = "backend/tests/forecast_intelligence/test_v0_17_s2_decision_service.py"
     assert identity.technical_registered(CASES[1][0], path) is False

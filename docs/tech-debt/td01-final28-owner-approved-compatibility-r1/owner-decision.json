@@ -1,0 +1,29 @@
+{
+  "schema": "TD01_FINAL28_OWNER_DECISION_R1",
+  "task_id": "BLUEBERRY_TD01_FINAL28_COMPATIBILITY_IMPLEMENTATION_R1",
+  "repository": "xuezhiorange-png/blueberry-peak-forecast-agent",
+  "owner_approved_set": "TD01-FINAL28-BDCFD0B86A85B454",
+  "approved_set_sha256": "bdcfd0b86a85b4548a92d0010c6be9d6eef858cb18aea2e40ea3b1942279368a",
+  "approved_identity_count": 28,
+  "owner_status": "APPROVED",
+  "authorization_source": "EXPLICIT_CURRENT_OWNER_INSTRUCTION",
+  "effective_from": "THIS_TASK_OWNER_INSTRUCTION",
+  "decision_date": "2026-11-03",
+  "source_authority_kind": "NEW_OWNER_APPROVED_CODE_BASELINE",
+  "retrospective_approval_claimed": false,
+  "grants": {
+    "integrate_exact_historical_identities": true,
+    "repair_original_three_consumers": true,
+    "independent_draft_pr_and_full_validation": true
+  },
+  "excluded_authorities": [
+    "Real business data access or publication",
+    "Git history rewrite or force push",
+    "Existing Branch/Tag/Release/PR changes",
+    "Prediction model, training data or frozen evidence changes",
+    "P35 publication",
+    "Server or backup changes",
+    "Ready/Merge/Release/Deploy"
+  ],
+  "previous_pending_record_preserved": true
+}

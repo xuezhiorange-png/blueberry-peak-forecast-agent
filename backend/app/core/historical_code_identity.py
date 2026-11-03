@@ -35,6 +35,18 @@ FINAL_RUNTIME_CATALOG_SHA256 = "288a6656c032bf8359e0247150e1df6587212ab3a9bb557d
 FINAL_RUNTIME_AUTHORITY_FILE = ROOT / "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json"
 FINAL_RUNTIME_AUTHORITY_SHA256 = "47074e70ba503988d7b424ae9a2c0af3d46b7553ba720b830840d4f1a4ff4513"
 FINAL_RUNTIME_COMMIT = "0124371b433d1b3c34e5e59a2a9a5e621a570f3b"
+OWNER_BASELINE_SET_FILE = (
+    ROOT / "docs/tech-debt/td01-final28-owner-approved-compatibility-r1/reviewed-set.json"
+)
+OWNER_BASELINE_SET_SHA256 = "bdcfd0b86a85b4548a92d0010c6be9d6eef858cb18aea2e40ea3b1942279368a"
+OWNER_BASELINE_SET_ID = "TD01-FINAL28-BDCFD0B86A85B454"
+OWNER_DECISION_FILE = (
+    ROOT / "docs/tech-debt/td01-final28-owner-approved-compatibility-r1/owner-decision.json"
+)
+OWNER_DECISION_SHA256 = "e74b99bc24863958d6a062d8b687dfb1e4886036501825c3d58fc94cb6a7bd08"
+_OWNER_BASELINE_COMMITS = frozenset(
+    {"320f2046e3105b1b55da9cb037892571110b584a", FINAL_RUNTIME_COMMIT}
+)
 _TECHNICAL_PAIRS = frozenset(
     {
         ("e9812e82067dceae444ff0707ceeb2f560c1018e", ".github/workflows/ci.yml"),
@@ -185,9 +197,100 @@ def _final_runtime_entry(commit: str, path: str) -> Identity | None:
     return next((row for row in final_runtime_catalog() if row.path == path), None)
 
 
+def _sealed_owner_record(file: Path, expected: str) -> dict[str, Any]:
+    try:
+        raw = file.read_bytes()
+    except OSError as error:
+        raise CodeIdentityError("OWNER_BASELINE_RECORD_UNAVAILABLE") from error
+    if hashlib.sha256(raw).hexdigest() != expected:
+        raise CodeIdentityError("OWNER_BASELINE_TRUST_ANCHOR_MISMATCH")
+    try:
+        value = json.loads(raw)
+    except ValueError as error:
+        raise CodeIdentityError("INVALID_OWNER_BASELINE_RECORD") from error
+    if not isinstance(value, dict):
+        raise CodeIdentityError("INVALID_OWNER_BASELINE_RECORD")
+    return value
+
+
+def owner_approved_catalog() -> tuple[Identity, ...]:
+    """Only the exact newly approved set; never reclassify it as old evidence."""
+    from backend.app.core import rewritten_history
+
+    decision = _sealed_owner_record(OWNER_DECISION_FILE, OWNER_DECISION_SHA256)
+    if decision.get("schema") != "TD01_FINAL28_OWNER_DECISION_R1":
+        raise CodeIdentityError("INVALID_OWNER_BASELINE_RECORD")
+    if decision.get("owner_status") != "APPROVED":
+        return ()
+    grants = decision.get("grants")
+    if (
+        decision.get("owner_approved_set") != OWNER_BASELINE_SET_ID
+        or decision.get("approved_set_sha256") != OWNER_BASELINE_SET_SHA256
+        or decision.get("approved_identity_count") != 28
+        or decision.get("source_authority_kind") != "NEW_OWNER_APPROVED_CODE_BASELINE"
+        or decision.get("retrospective_approval_claimed") is not False
+        or decision.get("authorization_source") != "EXPLICIT_CURRENT_OWNER_INSTRUCTION"
+        or not isinstance(grants, dict)
+        or grants.get("integrate_exact_historical_identities") is not True
+    ):
+        raise CodeIdentityError("OWNER_APPROVED_SET_BINDING_MISMATCH")
+    value = _sealed_owner_record(OWNER_BASELINE_SET_FILE, OWNER_BASELINE_SET_SHA256)
+    if (
+        value.get("schema") != "TD01_PENDING_OWNER_CODE_SET_R1"
+        or value.get("owner_approval_status") != "NEW_OWNER_APPROVAL_REQUIRED"
+        or value.get("candidate_count") != 28
+        or value.get("source_origin") != "NEW_REVIEW_BASELINE_NOT_PREEXISTING_FROZEN_HASH_EVIDENCE"
+    ):
+        raise CodeIdentityError("INVALID_OWNER_BASELINE_RECORD")
+    rows = value.get("items")
+    if not isinstance(rows, list) or len(rows) != 28:
+        raise CodeIdentityError("EXACT_OWNER_APPROVED_SET_REQUIRED")
+    entries, seen, identifiers = [], set(), set()
+    locations = rewritten_history.catalog()["entries"]
+    for row in rows:
+        if not isinstance(row, dict):
+            raise CodeIdentityError("INVALID_OWNER_BASELINE_RECORD")
+        commit, path = _field(row, "original_commit"), _field(row, "path")
+        blob, digest = _field(row, "git_blob_oid"), _field(row, "sha256")
+        _sha(commit, 40)
+        _sha(blob, 40)
+        _sha(digest, 64)
+        _check_path(path)
+        if (
+            commit not in _OWNER_BASELINE_COMMITS
+            or not path.startswith("backend/tests/")
+            or not path.endswith(".py")
+            or row.get("mode") != "100644"
+            or (commit, path) in seen
+        ):
+            raise CodeIdentityError("EXACT_OWNER_APPROVED_SET_REQUIRED")
+        location = locations[commit]
+        if any(
+            row.get(field) != location[field] for field in ("rewritten_commit", "rewritten_tree")
+        ):
+            raise CodeIdentityError("OWNER_APPROVED_LOCATION_MISMATCH")
+        identifiers.add(_field(row, "candidate_id"))
+        seen.add((commit, path))
+        entries.append(Identity(commit, path, blob, digest, "TEST_CODE"))
+    if identifiers != {f"C{number:02d}" for number in range(1, 29)}:
+        raise CodeIdentityError("EXACT_OWNER_APPROVED_SET_REQUIRED")
+    return tuple(entries)
+
+
+def _owner_approved_entry(commit: str, path: str) -> Identity | None:
+    if commit not in _OWNER_BASELINE_COMMITS or not path.startswith("backend/tests/"):
+        return None
+    return next(
+        (row for row in owner_approved_catalog() if (row.commit, row.path) == (commit, path)),
+        None,
+    )
+
+
 def registered(commit: str, path: str) -> bool:
-    return any(row.commit == commit and row.path == path for row in catalog()) or (
-        _final_runtime_entry(commit, path) is not None
+    return (
+        any(row.commit == commit and row.path == path for row in catalog())
+        or (_final_runtime_entry(commit, path) is not None)
+        or _owner_approved_entry(commit, path) is not None
     )
 
 
@@ -286,6 +389,8 @@ def read_code(
     entry = next((r for r in catalog() if r.commit == commit and r.path == path), None)
     if entry is None:
         entry = _final_runtime_entry(commit, path)
+    if entry is None:
+        entry = _owner_approved_entry(commit, path)
     if entry is None:
         raise CodeIdentityError("UNREGISTERED_CODE_IDENTITY")
     return _read_identity(entry, repo=repo, mode=mode)
