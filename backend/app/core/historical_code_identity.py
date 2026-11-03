@@ -28,6 +28,13 @@ CATALOG_FILE = ROOT / "docs/tech-debt/td01e-code-identities-r1.json"
 CATALOG_SHA256 = "80c60fe1b35204a8f3a819e3b84dd1ca3f2c469b7a71811b282c45ca3cbd6193"
 TECHNICAL_CATALOG_FILE = ROOT / "docs/tech-debt/td01-technical-identities-r1.json"
 TECHNICAL_CATALOG_SHA256 = "26287f3e643ff370404f1f587845dec5c2e98e50326db23b0399439a065d7a48"
+FINAL_RUNTIME_CATALOG_FILE = (
+    ROOT / "docs/tech-debt/td01-final-history-compatibility-r1/runtime-identities.json"
+)
+FINAL_RUNTIME_CATALOG_SHA256 = "288a6656c032bf8359e0247150e1df6587212ab3a9bb557d54c3725cb50785de"
+FINAL_RUNTIME_AUTHORITY_FILE = ROOT / "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json"
+FINAL_RUNTIME_AUTHORITY_SHA256 = "47074e70ba503988d7b424ae9a2c0af3d46b7553ba720b830840d4f1a4ff4513"
+FINAL_RUNTIME_COMMIT = "0124371b433d1b3c34e5e59a2a9a5e621a570f3b"
 _TECHNICAL_PAIRS = frozenset(
     {
         ("e9812e82067dceae444ff0707ceeb2f560c1018e", ".github/workflows/ci.yml"),
@@ -126,8 +133,62 @@ def catalog() -> tuple[Identity, ...]:
     return tuple(entries)
 
 
+def final_runtime_catalog() -> tuple[Identity, ...]:
+    """Fourteen exact old runtimes independently pinned by the frozen closeout.
+
+    The original 65-entry catalog stays unchanged. A new catalog seal cannot
+    grant authority: every source digest must match the existing frozen field.
+    """
+    rows = _sealed_records(
+        FINAL_RUNTIME_CATALOG_FILE, FINAL_RUNTIME_CATALOG_SHA256, "TD01_FINAL_RUNTIME_IDENTITY_R1"
+    )
+    raw = FINAL_RUNTIME_AUTHORITY_FILE.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != FINAL_RUNTIME_AUTHORITY_SHA256:
+        raise CodeIdentityError("FINAL_RUNTIME_AUTHORITY_CHANGED")
+    authority = json.loads(raw)
+    hashes = authority.get("frozen_model_and_math_sha256")
+    if not isinstance(hashes, dict):
+        raise CodeIdentityError("INVALID_HASH_FIELD_REFERENCE")
+    entries, seen = [], set()
+    for row in rows:
+        commit, path = _field(row, "original_commit_sha"), _field(row, "repository_relative_path")
+        blob, digest = _field(row, "original_git_blob_oid"), _field(row, "original_source_sha256")
+        _sha(blob, 40)
+        _sha(digest, 64)
+        _check_path(path)
+        if (
+            commit != FINAL_RUNTIME_COMMIT
+            or not path.startswith("backend/app/")
+            or row.get("source_class") != "APPLICATION_CODE"
+            or row.get("verification_status") != "VERIFIED_EXISTING_SHA256"
+            or path in seen
+        ):
+            raise CodeIdentityError("INVALID_FINAL_RUNTIME_IDENTITY")
+        expected_authority = {
+            "kind": "EXISTING_FROZEN_SHA256_FIELD",
+            "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+            "field": ["frozen_model_and_math_sha256", path],
+            "expected_sha256": digest,
+        }
+        if row.get("independent_authority") != expected_authority or hashes.get(path) != digest:
+            raise CodeIdentityError("ORIGINAL_EXPECTED_SHA256_CHANGED")
+        seen.add(path)
+        entries.append(Identity(commit, path, blob, digest, "APPLICATION_CODE"))
+    if len(entries) != 14:
+        raise CodeIdentityError("INVALID_FINAL_RUNTIME_IDENTITY_COUNT")
+    return tuple(entries)
+
+
+def _final_runtime_entry(commit: str, path: str) -> Identity | None:
+    if commit != FINAL_RUNTIME_COMMIT or not path.startswith("backend/app/"):
+        return None
+    return next((row for row in final_runtime_catalog() if row.path == path), None)
+
+
 def registered(commit: str, path: str) -> bool:
-    return any(row.commit == commit and row.path == path for row in catalog())
+    return any(row.commit == commit and row.path == path for row in catalog()) or (
+        _final_runtime_entry(commit, path) is not None
+    )
 
 
 def _technical_records() -> list[dict[str, object]]:
@@ -223,6 +284,8 @@ def read_code(
     if mode == Mode.CLEAN_GRAPH_REHEARSAL and _CONTROLLED.get(repo.resolve()) != "REHEARSAL":
         raise CodeIdentityError("OWNED_REHEARSAL_REQUIRED")
     entry = next((r for r in catalog() if r.commit == commit and r.path == path), None)
+    if entry is None:
+        entry = _final_runtime_entry(commit, path)
     if entry is None:
         raise CodeIdentityError("UNREGISTERED_CODE_IDENTITY")
     return _read_identity(entry, repo=repo, mode=mode)
