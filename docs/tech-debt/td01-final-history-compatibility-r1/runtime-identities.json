@@ -1,0 +1,244 @@
+{
+  "schema_version": "TD01_FINAL_RUNTIME_IDENTITY_R1",
+  "scope": "EXACT_PRE_TD03G_RUNTIME_CODE_ONLY_NOT_DATA_OR_PUBLICATION_AUTHORITY",
+  "entries": [
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_obtain.py",
+      "original_git_blob_oid": "01f0e6e75f527514c5a08208f91eaec99a0154d1",
+      "original_source_sha256": "68ab56222753e748654f8d2838d51b18f46e4562927f98c2d7d7e870cff4d381",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_obtain.py"
+        ],
+        "expected_sha256": "68ab56222753e748654f8d2838d51b18f46e4562927f98c2d7d7e870cff4d381"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_obtain.py",
+      "original_git_blob_oid": "5b8a343ae3889111c5032cb22083beb19de20e7a",
+      "original_source_sha256": "e3d679e824ac665f58e854464ebfb34b7a9c636b18cb20a54d0667732384640a",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_obtain.py"
+        ],
+        "expected_sha256": "e3d679e824ac665f58e854464ebfb34b7a9c636b18cb20a54d0667732384640a"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_bind.py",
+      "original_git_blob_oid": "a955a2de32209e8cd0fa7a8609029336c7a6d4fc",
+      "original_source_sha256": "e581528b9e853c56e1596704869852c7e0f2d01654658c089f14c50a7cb031b9",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_bind.py"
+        ],
+        "expected_sha256": "e581528b9e853c56e1596704869852c7e0f2d01654658c089f14c50a7cb031b9"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_run_sync_query.py",
+      "original_git_blob_oid": "84541fba4b9d60832e3109c6aed7e515b8021925",
+      "original_source_sha256": "b4909bd6e25e8c7561668f64fea5cdae318df09928e3790355c52afa22c1d72a",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_run_sync_query.py"
+        ],
+        "expected_sha256": "b4909bd6e25e8c7561668f64fea5cdae318df09928e3790355c52afa22c1d72a"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_query.py",
+      "original_git_blob_oid": "90415c54ce07a82ce4567084f01aaea75a7b7a9c",
+      "original_source_sha256": "8b3c864f139b907bc8a07c8ad49fb727e60774f372bcc5f208dd60e0486b7bcf",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_query.py"
+        ],
+        "expected_sha256": "8b3c864f139b907bc8a07c8ad49fb727e60774f372bcc5f208dd60e0486b7bcf"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/incumbent_forecast_daily_curve_live_obtain.py",
+      "original_git_blob_oid": "d5f78bd1f3f9276c2b3fcc626070d8cb2669edd2",
+      "original_source_sha256": "74e449b1829837cfec56d034415937beaa31a623f29cfb8ea6db1d6dfb85355b",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/incumbent_forecast_daily_curve_live_obtain.py"
+        ],
+        "expected_sha256": "74e449b1829837cfec56d034415937beaa31a623f29cfb8ea6db1d6dfb85355b"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection.py",
+      "original_git_blob_oid": "222166655ad4822a6ae943e132c0abcd3aa33dde",
+      "original_source_sha256": "0e65ebaceece62d7d1577d5e5cc86029db6da09485b230204b2b9dc71a855cb4",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection.py"
+        ],
+        "expected_sha256": "0e65ebaceece62d7d1577d5e5cc86029db6da09485b230204b2b9dc71a855cb4"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain.py",
+      "original_git_blob_oid": "726d934415952ea5705d53c5b2b4311888e7c4c0",
+      "original_source_sha256": "9256f136fa4b6ad944d8ae371768f36bd201658a6e69c6bd60543e1e92bdbac8",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_connection_obtain.py"
+        ],
+        "expected_sha256": "9256f136fa4b6ad944d8ae371768f36bd201658a6e69c6bd60543e1e92bdbac8"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/live_accepted_s2_train_val_actuals_source.py",
+      "original_git_blob_oid": "7633615d5cd7a1ea8cb40cf4b4a66fc6753b4807",
+      "original_source_sha256": "c78485872123a5d8631844dc56def35f91fa09465c7ee6422fcc6e48ae878a16",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/live_accepted_s2_train_val_actuals_source.py"
+        ],
+        "expected_sha256": "c78485872123a5d8631844dc56def35f91fa09465c7ee6422fcc6e48ae878a16"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_run_sync.py",
+      "original_git_blob_oid": "52bb1d9574497f3b7fed7a424f0e8249938a19a9",
+      "original_source_sha256": "09fbd70e75b9137610771ed38c6c0d79ffe81e9b95766cafdf2c3664c3a5bf35",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_run_sync.py"
+        ],
+        "expected_sha256": "09fbd70e75b9137610771ed38c6c0d79ffe81e9b95766cafdf2c3664c3a5bf35"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_connection.py",
+      "original_git_blob_oid": "51672d5a159d0889a159d9c03e8191e7f8a6b344",
+      "original_source_sha256": "c468862f16ff9eaca2ccf86a7c13221adbdc15d7c442547fb711087d2a3306e9",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_connection.py"
+        ],
+        "expected_sha256": "c468862f16ff9eaca2ccf86a7c13221adbdc15d7c442547fb711087d2a3306e9"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/s3_a2_live_catalog_execution.py",
+      "original_git_blob_oid": "38621ab652a288176e33e55f6f6ab5ab0ee8e3ca",
+      "original_source_sha256": "48e94dc98eb8110ef66a58b92337742e05bc4c77fbfba5e9fa4d8bf0259389ac",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/s3_a2_live_catalog_execution.py"
+        ],
+        "expected_sha256": "48e94dc98eb8110ef66a58b92337742e05bc4c77fbfba5e9fa4d8bf0259389ac"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query.py",
+      "original_git_blob_oid": "c95efcbdc7b4ef2f95eb1a90550b9aff3500bf22",
+      "original_source_sha256": "02563fc5d05b10491b94f10e26ae600115fa6e1d00eab71bf3a08396e9572df6",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/s3_daily_rowset/accepted_s2_train_val_source_002_row_level_read_live_async_session_bind_query.py"
+        ],
+        "expected_sha256": "02563fc5d05b10491b94f10e26ae600115fa6e1d00eab71bf3a08396e9572df6"
+      }
+    },
+    {
+      "original_commit_sha": "0124371b433d1b3c34e5e59a2a9a5e621a570f3b",
+      "repository_relative_path": "backend/app/forecast_quality/train_val_pairing_materialization_live_async.py",
+      "original_git_blob_oid": "2c6b0b1504035950f1d69f556fbec87900dfea90",
+      "original_source_sha256": "a8a7dbae7b06bf843afde366aaf85673b366c9730884dbfb5245589f7bd73d6d",
+      "source_class": "APPLICATION_CODE",
+      "verification_status": "VERIFIED_EXISTING_SHA256",
+      "independent_authority": {
+        "kind": "EXISTING_FROZEN_SHA256_FIELD",
+        "document": "docs/v0-18/evidence/v0.18.0-version-closeout-r1.json",
+        "field": [
+          "frozen_model_and_math_sha256",
+          "backend/app/forecast_quality/train_val_pairing_materialization_live_async.py"
+        ],
+        "expected_sha256": "a8a7dbae7b06bf843afde366aaf85673b366c9730884dbfb5245589f7bd73d6d"
+      }
+    }
+  ]
+}
